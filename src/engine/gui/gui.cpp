@@ -1,14 +1,17 @@
 #include "gui.hpp"
 
-#include "glm/gtc/type_ptr.hpp"
 #include "imgui.h"
 // #include "implot.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
+#include "glm/gtc/type_ptr.hpp"
+#include "global.hpp"
+
 using namespace ImGui;
 
-static bool collapsed = true;
+static bool configCollapsed = true;
+static bool infoCollapsed = true;
 
 Camera* gui::camPtr = nullptr;
 Light* gui::lightPtr = nullptr;
@@ -38,19 +41,22 @@ void gui::init() {
   ImGui_ImplOpenGL3_Init();
 }
 
-void gui::toggle() { collapsed = !collapsed; }
+void gui::toggleConfig() { configCollapsed = !configCollapsed; }
+void gui::toggleInfo()   { infoCollapsed   = !infoCollapsed;   }
 
 void gui::draw() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  static RunOnce a([]() {
-    SetNextWindowPos({0, 0});
-  });
-  SetNextWindowCollapsed(collapsed);
+  // ::::: Config window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
-  Begin("Settings");
+  SetNextWindowPos({0, 0}, ImGuiCond_FirstUseEver);
+  SetNextWindowCollapsed(configCollapsed);
+
+  auto _task = global::profiler->startScopedTask("gui::draw");
+
+  Begin("Config");
 
   ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
 
@@ -91,6 +97,27 @@ void gui::draw() {
   }
 
   End();
+
+  _task.end();
+
+  // ::::: Info window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
+
+  const ImGuiViewport* viewport = GetMainViewport();
+  ImVec2 posBR = viewport->WorkPos + viewport->WorkSize;
+
+  SetNextWindowPos(posBR, ImGuiCond_Always, {1.f, 1.f});
+  SetNextWindowCollapsed(infoCollapsed);
+
+  Begin("Info");
+
+  ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
+
+  assert(global::profiler);
+  global::profiler->renderTasks(400, 200, 200, 0);
+
+  End();
+
+  // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

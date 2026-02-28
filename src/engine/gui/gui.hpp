@@ -12,7 +12,8 @@ struct gui {
   static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
 
   static void init();
-  static void toggle();
+  static void toggleConfig();
+  static void toggleInfo();
   static void draw();
   static void shutdown();
 };

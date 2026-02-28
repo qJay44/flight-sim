@@ -1,9 +1,5 @@
 #pragma once
 
-#include <functional>
-#include <span>
-#include <vector>
-
 #include "Vertex.hpp"
 #include "Transformable.hpp"
 #include "VAO.hpp"
@@ -13,10 +9,11 @@
 
 class Mesh : public Transformable {
 public:
-  Mesh(const Mesh &) = delete;
-  Mesh &operator=(const Mesh &) = delete;
+  Mesh(const Mesh&) = delete;
+  Mesh& operator=(const Mesh&) = delete;
 
-  Mesh(Mesh &&other);
+  Mesh(Mesh&& other) = default;
+  Mesh& operator=(Mesh&& other) = default;
 
   Mesh(const std::vector<VertexPCTN>& vertices, const std::vector<GLuint>& indices, GLenum mode, GLenum usage = GL_STATIC_DRAW);
   Mesh(const std::vector<VertexPT>&   vertices, const std::vector<GLuint>& indices, GLenum mode, GLenum usage = GL_STATIC_DRAW);
@@ -25,8 +22,6 @@ public:
   Mesh(const std::vector<VertexPCTN>& vertices, GLenum mode, GLenum usage);
   Mesh(const std::vector<VertexPT>&   vertices, GLenum mode, GLenum usage);
   Mesh(const std::vector<VertexPC>&   vertices, GLenum mode, GLenum usage);
-
-  ~Mesh();
 
   static Mesh loadObj(const fspath& file, bool printInfo = false);
   static void screenDraw(const Camera* camera, Shader& shader);
@@ -51,6 +46,7 @@ private:
 
 private:
   static void setCamUniforms(const Camera* c, Shader& s);
+  static void setGlobalUniforms(Shader& s);
 
   static void drawElements(GLenum mode, GLsizei count);
   static void drawArrays(GLenum mode, GLsizei count);

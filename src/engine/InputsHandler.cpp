@@ -1,8 +1,7 @@
 #include "InputsHandler.hpp"
 
-#include <cassert>
-
 #include "gui/gui.hpp"
+#include "global.hpp"
 
 using global::window;
 
@@ -22,7 +21,10 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
       }
       break;
     case GLFW_KEY_E:
-      if (action == GLFW_PRESS) gui::toggle();
+      if (action == GLFW_PRESS) gui::toggleConfig();
+      break;
+    case GLFW_KEY_C:
+      if (action == GLFW_PRESS) gui::toggleInfo();
       break;
     case GLFW_KEY_1:
       if (action == GLFW_PRESS && !global::guiFocused)

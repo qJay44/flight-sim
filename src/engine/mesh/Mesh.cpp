@@ -1,8 +1,6 @@
 #include "Mesh.hpp"
 
-#include <cassert>
-
-#include "../../global.hpp"
+#include "global.hpp"
 #include "utils/status.hpp"
 #include "utils/clrp.hpp"
 #include "VAO.hpp"
@@ -132,19 +130,6 @@ Mesh Mesh::loadObj(const fspath& file, bool printInfo) {
   return Mesh(vertices, indices, GL_TRIANGLES);
 }
 
-Mesh::Mesh(Mesh &&other) {
-  count = other.count;
-  mode = other.mode;
-  vao = other.vao;
-  vbo = other.vbo;
-  ebo = other.ebo;
-  drawFunc = std::move(other.drawFunc);
-
-  other.vao = VAO();
-  other.vbo = BufferObject();
-  other.ebo = BufferObject();
-}
-
 Mesh::Mesh(const std::vector<VertexPCTN>& vertices, const std::vector<GLuint>& indices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), indices, mode, usage) {}
 Mesh::Mesh(const std::vector<VertexPT>&   vertices, const std::vector<GLuint>& indices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), indices, mode, usage) {}
 Mesh::Mesh(const std::vector<VertexPC>&   vertices, const std::vector<GLuint>& indices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), indices, mode, usage) {}
@@ -153,23 +138,14 @@ Mesh::Mesh(const std::vector<VertexPCTN>& vertices, GLenum mode, GLenum usage) :
 Mesh::Mesh(const std::vector<VertexPT>&   vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
 Mesh::Mesh(const std::vector<VertexPC>&   vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
 
-Mesh::~Mesh() {
-  clear();
-};
-
 void Mesh::screenDraw(const Camera* camera, Shader& shader) {
   static const VAO& vao = VAO::getEmpty();
   setCamUniforms(camera, shader);
+  setGlobalUniforms(shader);
 
   vao.bind();
   glDrawArrays(GL_TRIANGLES, 0, 6);
   vao.unbind();
-}
-
-void Mesh::clear() {
-  vao.clear();
-  vbo.clear();
-  ebo.clear();
 }
 
 void Mesh::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -179,11 +155,13 @@ void Mesh::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) con
   vao.bind();
 
   setCamUniforms(camera, shader);
+  setGlobalUniforms(shader);
   shader.setUniformMatrix4f("u_model", getModel());
 
   if (global::drawWireframe & !forceNoWireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+  shader.use();
   drawFunc(mode, count);
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -192,7 +170,6 @@ void Mesh::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) con
 }
 
 void Mesh::setCamUniforms(const Camera* c, Shader& s) {
-  s.use();
   s.setUniform1f      ("u_camNear"   , c->getNearPlane());
   s.setUniform1f      ("u_camFar"    , c->getFarPlane());
   s.setUniform1f      ("u_camFov"    , c->getFov());
@@ -205,6 +182,9 @@ void Mesh::setCamUniforms(const Camera* c, Shader& s) {
   s.setUniformMatrix4f("u_camPV"     , c->getProjView());
 }
 
+void Mesh::setGlobalUniforms(Shader& s) {
+  s.setUniform1f("u_time", global::time);
+}
 void Mesh::drawElements(GLenum mode, GLsizei count) {
   glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
 }

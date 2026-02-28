@@ -3,6 +3,7 @@
 namespace global {
 
 GLFWwindow* window = nullptr;
+ProfilerManager* profiler = nullptr;
 
 float dt = 0.f;
 float time = 0.f;

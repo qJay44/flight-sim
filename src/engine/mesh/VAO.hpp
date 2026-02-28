@@ -17,6 +17,25 @@ struct VAO {
 
   VAO() = default;
 
+  VAO(const VAO&) = delete;
+  VAO& operator=(const VAO&) = delete;
+
+  VAO(VAO&& other) {
+    id = other.id;
+    other.id = 0;
+  }
+
+  VAO& operator=(VAO&& other) {
+    if (this != &other) {
+      clear();
+      id = other.id;
+      other.id = 0;
+    }
+
+    return *this;
+  }
+
+
   void gen() {
     glGenVertexArrays(size, &id);
   }

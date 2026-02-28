@@ -1,8 +1,7 @@
 #include "Moveable.hpp"
 
-#include "../global.hpp"
 #include "glm/gtx/vector_angle.hpp"
-#include "utils/utils.hpp"
+#include "global.hpp"
 
 Moveable::Moveable(vec3 pos, float yaw, float pitch) : position(pos), yaw(yaw), pitch(pitch) {
   calcOrientation();

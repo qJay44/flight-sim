@@ -1,8 +1,3 @@
-#include "engine/Light.hpp"
-#include "engine/texture/Texture.hpp"
-#include <cstdio>
-#include <cstdlib>
-
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -18,6 +13,7 @@
 #include "engine/InputsHandler.hpp"
 #include "engine/mesh/meshes.hpp"
 #include "engine/Light.hpp"
+#include "engine/texture/Texture2D.hpp"
 #include "utils/clrp.hpp"
 
 using global::window;
@@ -31,21 +27,22 @@ void GLAPIENTRY MessageCallback(
   const GLchar* message,
   const void* userParam
 ) {
+  static const clrp::clrp_t clrpError{clrp::ATTRIBUTE::BOLD, clrp::FG::RED};
+  static const clrp::clrp_t clrpWarning{clrp::ATTRIBUTE::BOLD, clrp::FG::YELLOW};
+
+  clrp::clrp_t clrpFinal = clrpError;
+
   switch (source) {
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
       return; // Handled by the Shader class itself
     case GL_DEBUG_SOURCE_API:
-      return; // "SIMD32 shader inefficient", skipping since occurs only on my laptop
+      clrpFinal = clrpWarning; // "SIMD32 shader inefficient", skipping since occurs only on my laptop
   }
 
-  clrp::clrp_t clrpError;
-  clrpError.attr = clrp::ATTRIBUTE::BOLD;
-  clrpError.fg = clrp::FG::RED;
   fprintf(
     stderr, "GL CALLBACK: %s source = 0x%x, id = 0x%x type = 0x%x, severity = 0x%x, message = %s\n",
-    (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), source, id, type, severity, clrp::format(message, clrpError).c_str()
+    (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), source, id, type, severity, clrp::format(message, clrpFinal).c_str()
   );
-  exit(1);
 }
 
 int main() {
@@ -60,7 +57,8 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
 
   // Window init
-  window = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, "MyProgram", NULL, NULL);
+  window = glfwCreateWindow(1600, 900, "MyProgram", NULL, NULL);
+  global::profiler = new ProfilerManager(300);
   ivec2 winSize = global::getWinSize();
   dvec2 winCenter = dvec2(winSize) / 2.;
 
@@ -153,18 +151,19 @@ int main() {
       titleTimer = currTime;
     }
 
+    global::profiler->clearTasks();
+
     light.update();
     light.setUniforms(cubeShader);
-    cubeShader.setUniform1f("u_time", global::time);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_CULL_FACE); // Disable for plane meshes, enable for volumetric meshes
     glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
 
-    Texture::getDebug0Tex().bind();
+    Texture2D::getDebug0Tex().bind();
     cube.draw(&cameraSpectate, cubeShader);
-    Texture::getDebug0Tex().unbind();
+    Texture2D::getDebug0Tex().unbind();
 
     glDisable(GL_CULL_FACE);
 

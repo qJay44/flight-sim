@@ -1,14 +1,11 @@
 #include "image2D.hpp"
 
-#include <format>
-
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 
-#include "utils/status.hpp"
 #include "utils/loadTif.hpp"
 
 void image2D::write(const std::string& path, uvec2 size, u8 channels, byte* buf) {

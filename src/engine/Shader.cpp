@@ -1,9 +1,5 @@
 #include "Shader.hpp"
 
-#include <cstdio>
-#include <format>
-#include <string>
-
 #include "utils/clrp.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "utils/utils.hpp"

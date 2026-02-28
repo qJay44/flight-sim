@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-#include <span>
-
 // VBO - GL_ARRAY_BUFFER
 // EBO - GL_ELEMENT_ARRAY_BUFFER
 // UBO - GL_UNIFORM_BUFFER
@@ -17,6 +13,26 @@ public:
 
   BufferObject(GLenum target) : target(target) {
     gen();
+  }
+
+  BufferObject(const BufferObject&) = delete;
+  BufferObject& operator=(const BufferObject&) = delete;
+
+  BufferObject(BufferObject&& other) {
+    target = other.target;
+    id = other.id;
+    other.id = 0;
+  }
+
+  BufferObject& operator=(BufferObject&& other) {
+    if (this != &other) {
+      clear();
+      target = other.target;
+      id = other.id;
+      other.id = 0;
+    }
+
+    return *this;
   }
 
   void gen() {
