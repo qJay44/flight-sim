@@ -35,6 +35,10 @@ public:
     return *this;
   }
 
+  ~BufferObject() {
+    clear();
+  }
+
   void gen() {
     glGenBuffers(size, &id);
   }

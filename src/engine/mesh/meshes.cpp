@@ -59,17 +59,54 @@ Mesh plane(vec3 color, GLenum mode) {
 }
 
 Mesh plane(size_t resolution, GLenum mode, vec3 up) {
+  std::vector<VertexPT> vertices;
+  std::vector<GLuint> indices;
+  size_t triIndex = 0;
+
+  const auto appendIndices_TRIANGLES = [&] (size_t idx) {
+    indices[triIndex + 0] = idx + resolution + 1;  // 0       2 -------- 1
+    indices[triIndex + 1] = idx + 1;               // 1       |          |
+    indices[triIndex + 2] = idx;                   // 2       |          |
+    //                                                   CCW  |          |
+    indices[triIndex + 3] = idx;                   // 2       |          |
+    indices[triIndex + 4] = idx + resolution;      // 3       |          |
+    indices[triIndex + 5] = idx + resolution + 1;  // 0       3 -------- 0
+
+    triIndex += 6;
+  };
+
+  const auto appendIndices_PATCHES = [&] (size_t idx) {
+    indices[triIndex + 0] = idx + resolution + 1; // 0
+    indices[triIndex + 1] = idx + 1;              // 1
+    indices[triIndex + 2] = idx;                  // 2
+    indices[triIndex + 3] = idx + resolution;     // 3
+
+    triIndex += 4;
+  };
+
   size_t indicesPerQuad = 0;
-  if      (mode == GL_TRIANGLES) indicesPerQuad = 6;
-  else if (mode == GL_PATCHES)   indicesPerQuad = 4;
-  else error("[meshes::plane] Unexpected mode [{}]", mode);
+  std::function<void(size_t)> appendIndicesFunc;
 
-  std::vector<VertexPT> vertices(resolution * resolution);
-  std::vector<GLuint> indices((resolution - 1) * (resolution - 1) * indicesPerQuad);
+  switch (mode) {
+    case GL_TRIANGLES:
+      indicesPerQuad = 6;
+      appendIndicesFunc = appendIndices_TRIANGLES;
+      break;
+    case GL_PATCHES:
+      indicesPerQuad = 4;
+      appendIndicesFunc = appendIndices_PATCHES;
+      break;
+    default:
+      error("[meshes::plane] Unexpected mode [{}]", mode);
+      break;
+  }
 
+  vertices.resize(resolution * resolution);
+  indices.resize((resolution - 1) * (resolution - 1) * indicesPerQuad);
+
+  up = -up; // To achieve CCW without messing inside the loop
   vec3 axisA = vec3(up.y, up.z, up.x);
   vec3 axisB = cross(up, axisA);
-  size_t triIndex = 0;
 
   for (size_t y = 0; y < resolution; y++) {
     float percentY = y / (resolution - 1.f);
@@ -84,33 +121,8 @@ Mesh plane(size_t resolution, GLenum mode, vec3 up) {
       vert.position = up + pX + pY;
       vert.texture = {percentX, percentY};
 
-      switch (mode) {
-        case GL_TRIANGLES: {
-          if (x != resolution - 1 && y != resolution - 1) {
-            indices[triIndex + 0] = idx + resolution + 1;  // 2       2 -------- 1
-            indices[triIndex + 1] = idx + 1;               // 0       |          |
-            indices[triIndex + 2] = idx;                   // 1       |          |
-            //                                                   CCW  |          |
-            indices[triIndex + 3] = idx;                   // 1       |          |
-            indices[triIndex + 4] = idx + resolution;      // 3       |          |
-            indices[triIndex + 5] = idx + resolution + 1;  // 2       3 -------- 0
-
-            triIndex += 6;
-          }
-          break;
-        }
-        case GL_PATCHES: {
-          if (x != resolution - 1 && y != resolution - 1) {
-            indices[triIndex + 0] = idx + resolution + 1; // 0
-            indices[triIndex + 1] = idx + 1;              // 1
-            indices[triIndex + 2] = idx;                  // 2
-            indices[triIndex + 3] = idx + resolution;     // 3
-
-            triIndex += 4;
-          }
-          break;
-        }
-      }
+      if (x != resolution - 1 && y != resolution - 1)
+        appendIndicesFunc(idx);
     }
   }
 

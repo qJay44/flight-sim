@@ -31,6 +31,10 @@ struct VAO {
     return *this;
   }
 
+  ~VAO() {
+    clear();
+  }
+
   void gen() {
     glGenVertexArrays(size, &id);
   }
