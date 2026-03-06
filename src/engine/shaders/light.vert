@@ -3,7 +3,7 @@
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec2 inTex;
 
-out vec2 texCoord;
+out vec2 v_uv;
 
 uniform mat4 u_camProj;
 uniform mat4 u_camView;
@@ -11,7 +11,7 @@ uniform mat4 u_model;
 uniform float u_lightRadius;
 
 void main() {
-  texCoord = inTex;
+  v_uv = inTex;
 
   vec3 worldPos = vec3(u_model * vec4(0.f, 0.f, 0.f, 1.f));
   vec4 viewPos = u_camView * vec4(worldPos, 1.f);

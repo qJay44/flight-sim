@@ -5,19 +5,20 @@ layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec2 inTex;
 layout (location = 3) in vec3 inNormal;
 
-out vec4 worldPos;
-out vec3 color;
-out vec2 texCoord;
-out vec3 normal;
+out vec3 v_worldPos;
+out vec3 v_color;
+out vec2 v_uv;
+out vec3 v_normal;
 
 uniform mat4 u_model;
 uniform mat4 u_camPV;
 
 void main() {
-  worldPos = u_model * vec4(inPos, 1.f);
-  color = inColor;
-  texCoord = inTex;
-  normal = inNormal;
+  vec4 worldPos = u_model * vec4(inPos, 1.f);
+  v_worldPos = worldPos.xyz;
+  v_color = inColor;
+  v_uv = inTex;
+  v_normal = inNormal;
 	gl_Position = u_camPV * worldPos;
 }
 
