@@ -2,8 +2,7 @@
 
 class Moveable {
 public:
-  Moveable() = default;
-  Moveable(vec3 pos, float yaw = PI_2, float pitch = 0.f);
+  Moveable(vec3 pos = vec3(0.f), float yaw = PI_2, float pitch = 0.f);
 
   void accelerate(bool b);
 

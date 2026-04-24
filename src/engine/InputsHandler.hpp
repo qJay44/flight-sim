@@ -6,6 +6,7 @@ struct InputsHandler {
   InputsHandler() = delete;
 
   static dvec2 mousePos;
+  static Moveable* activeEntity;
 
   static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
   static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);

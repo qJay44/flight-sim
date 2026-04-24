@@ -1,3 +1,4 @@
+#include "fjet/FighterJet.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -89,7 +90,7 @@ int main() {
 
   Shader lightShader("light.vert", "light.frag");
   Shader linesShader("lines.vert", "lines.frag");
-  Shader cubeShader("cube.vert", "cube.frag");
+  Shader airplaneShader("f15.vert", "f15.frag");
 
   // ===== Cameras ============================================== //
 
@@ -108,9 +109,8 @@ int main() {
 
   Light light({0.f, 30.f, 0.f});
 
-  Mesh cube = Mesh::loadObj("res/obj/Cube.obj");
-  cube.translate(vec3(50.f));
-  cube.scale(10.f);
+  FighterJet f15("res/fbx/f15.fbx");
+  f15.setCamDistance(30.f);
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
@@ -128,6 +128,7 @@ int main() {
     static double titleTimer = glfwGetTime();
     static double prevTime = titleTimer;
     static double currTime = prevTime;
+    const auto& activeCam = Camera::activeCam;
 
     constexpr double fpsLimit = 1. / 90.;
     currTime = glfwGetTime();
@@ -140,8 +141,9 @@ int main() {
     global::time += global::dt;
 
     if (glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
-      InputsHandler::process(cameraSpectate);
-      cameraSpectate.update();
+      InputsHandler::process(*activeCam);
+      activeCam->update();
+      InputsHandler::activeEntity = f15.isActive() ? &f15 : nullptr;
     } else
       glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
@@ -153,24 +155,23 @@ int main() {
 
     global::profiler->clearTasks();
 
+    f15.update();
     light.update();
-    light.setUniforms(cubeShader);
+    light.setUniforms(airplaneShader);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_CULL_FACE); // Disable for plane meshes, enable for volumetric meshes
     glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
 
-    Texture2D::getDebug0Tex().bind();
-    cube.draw(&cameraSpectate, cubeShader);
-    Texture2D::getDebug0Tex().unbind();
+    f15.draw(activeCam, airplaneShader);
 
     glDisable(GL_CULL_FACE);
 
-    light.draw(&cameraSpectate, lightShader);
+    light.draw(activeCam, lightShader);
 
     if (global::drawGlobalAxis)
-      axis.draw(&cameraSpectate, linesShader);
+      axis.draw(activeCam, linesShader);
 
     // ============================================================ //
 

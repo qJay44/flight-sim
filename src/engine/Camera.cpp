@@ -9,9 +9,21 @@
 #include "mesh/meshes.hpp"
 #include "global.hpp"
 
+std::vector<Camera*> Camera::cameraPool;
+Camera* Camera::activeCam = nullptr;
+size_t Camera::activeCamIdx = 0;
+
 Camera::Camera(vec3 pos, float yaw, float pitch) : Moveable(pos, yaw, pitch) {
   update();
+  cameraPool.push_back(this);
+  camIdx = cameraPool.size() - 1;
+  activeCam = activeCam ?: this;
 };
+
+void Camera::setNextActiveCam() {
+  activeCamIdx = (activeCamIdx + 1) % cameraPool.size();
+  activeCam = cameraPool[activeCamIdx];
+}
 
 const float& Camera::getNearPlane()   const { return nearPlane;   }
 const float& Camera::getFarPlane()    const { return farPlane;    }

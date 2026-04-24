@@ -13,10 +13,14 @@ enum CameraFlags : u32 {
 
 class Camera : public Moveable {
 public:
+  static Camera* activeCam;
+
   Camera() = delete;
   Camera(Camera&) = delete;
   Camera(Camera&&) = delete;
   Camera(vec3 pos, float yaw = PI_2, float pitch = 0.f);
+
+  static void setNextActiveCam();
 
   const float& getNearPlane()   const;
   const float& getFarPlane()    const;
@@ -39,6 +43,8 @@ protected:
   friend struct gui;
   friend struct InputsHandler;
 
+  int camIdx;
+
   float nearPlane = 0.1f;
   float farPlane = 100.f;
   float fov = 45.f;
@@ -49,5 +55,9 @@ protected:
   mat4 pv   = mat4(1.f);
 
   u32 flags = CameraFlags_None;
+
+private:
+  static std::vector<Camera*> cameraPool;
+  static size_t activeCamIdx;
 };
 

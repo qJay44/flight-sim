@@ -4,6 +4,7 @@
 #include "utils/status.hpp"
 #include "utils/clrp.hpp"
 #include "VAO.hpp"
+#include "utils/utils.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"

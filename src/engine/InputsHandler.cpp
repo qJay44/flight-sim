@@ -6,6 +6,7 @@
 using global::window;
 
 dvec2 InputsHandler::mousePos;
+Moveable* InputsHandler::activeEntity = nullptr;
 
 void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   switch (key) {
@@ -25,6 +26,10 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
       break;
     case GLFW_KEY_C:
       if (action == GLFW_PRESS) gui::toggleInfo();
+      break;
+    case GLFW_KEY_N:
+      if (action == GLFW_PRESS)
+        Camera::setNextActiveCam();
       break;
     case GLFW_KEY_1:
       if (action == GLFW_PRESS && !global::guiFocused)
@@ -47,7 +52,8 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
 void InputsHandler::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
   if (global::guiFocused) {
     gui::scrollCallback(window, xoffset, yoffset);
-  }
+  } else if (activeEntity)
+    activeEntity->onMouseScroll({xoffset, yoffset});
 }
 
 void InputsHandler::cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {

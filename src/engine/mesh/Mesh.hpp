@@ -9,6 +9,7 @@
 
 class Mesh : public Transformable {
 public:
+  Mesh() = default;
   Mesh(const Mesh&) = delete;
   Mesh& operator=(const Mesh&) = delete;
 
