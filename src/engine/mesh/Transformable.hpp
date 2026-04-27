@@ -13,8 +13,11 @@ public:
   void scale(const float& s);
   void scale(const vec2& s);
 
-  void setTrans(const mat4& t);
-  void setTrans(vec3 pos);
+  void setTranslationMat(const mat4& m);
+  void setTranslationMat(vec3 pos);
+
+  void setRotationMat(const mat4& m);
+  void setRotationMat(glm::quat q);
 
   void setScale(float s);
   void setScale(vec3 s);

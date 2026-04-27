@@ -138,6 +138,7 @@ Mesh::Mesh(const std::vector<VertexPC>&   vertices, const std::vector<GLuint>& i
 Mesh::Mesh(const std::vector<VertexPCTN>& vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
 Mesh::Mesh(const std::vector<VertexPT>&   vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
 Mesh::Mesh(const std::vector<VertexPC>&   vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
+Mesh::Mesh(const std::vector<VertexP>&    vertices, GLenum mode, GLenum usage) : Mesh(std::span(vertices), {}, mode, usage) {}
 
 void Mesh::screenDraw(const Camera* camera, Shader& shader) {
   static const VAO& vao = VAO::getEmpty();

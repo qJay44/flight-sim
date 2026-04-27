@@ -12,6 +12,7 @@ struct Socket {
 struct NamedMesh {
   std::string name;
   Mesh mesh;
+  vec3 averagePos;
 };
 
 struct Model {

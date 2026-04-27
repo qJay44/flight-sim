@@ -1,13 +1,13 @@
 #pragma once
 
-#include "FighterJetMesh.hpp"
+#include "FighterJetBody.hpp"
 
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
 class FighterJet : public Moveable, public Transformable {
 public:
-  FighterJet(const fspath& fbxFilepath);
+  FighterJet(const fspath& fbxFilepath, float jetMass);
 
   bool isActive() const;
 
@@ -17,21 +17,16 @@ public:
 
   void addTrottle();
   void setCamDistance(float val);
+  void setCamSensitivity(float val);
 
   void update();
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-
+  void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
-  FighterJetMesh meshes;
-  vec3 velocity{};
-  vec3 lastVelocity{};
-  vec3 angularVelocity{};
-  vec3 localVelocity{};
-  vec3 localAngularVelocity{};
-  vec3 localGForce{};
-  float angleOfAttack = 0.f;
-  float angleOfAttackYaw = 0.f;
+  friend struct gui;
+
+  FighterJetBody body;
   float throttle = 0.f;
 
   Camera camera;
@@ -42,10 +37,6 @@ private:
   glm::quat rotateQuat = glm::identity<glm::quat>();
 
 private:
-  void calcState();
-  void calcAngleOfAttack();
-  void calcGForce();
-
   void updateThrust();
   void updateCamera();
 };

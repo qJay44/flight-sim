@@ -71,6 +71,8 @@ Model load(const fspath& file, bool printInfo) {
     std::vector<VertexPCTN> vertices;
 
     if (mesh) {
+      vec3 avgPos{};
+
       for (size_t f = 0; f < mesh->faces.count; f++) {
         ufbx_face face = mesh->faces.data[f];
         u32 tris[64]; // Big enough for most N-gons
@@ -82,6 +84,7 @@ Model load(const fspath& file, bool printInfo) {
 
           ufbx_vec3 position = ufbx_get_vertex_vec3(&mesh->vertex_position, idx);
           vertex.position = glm::make_vec3(position.v);
+          avgPos += vertex.position;
 
           if (mesh->vertex_color.exists) {
             ufbx_vec4 color = ufbx_get_vertex_vec4(&mesh->vertex_color, idx);
@@ -101,7 +104,12 @@ Model load(const fspath& file, bool printInfo) {
           vertices.push_back(vertex);
         }
       }
-      model.meshes.push_back({node->name.data, Mesh(vertices, GL_TRIANGLES, GL_STATIC_DRAW)});
+
+      model.meshes.push_back({
+        node->name.data,
+        Mesh(vertices, GL_TRIANGLES, GL_STATIC_DRAW),
+        avgPos / static_cast<float>(vertices.size())
+      });
 
     } else if (node->attrib_type == UFBX_ELEMENT_EMPTY) {
       Socket s;

@@ -1,10 +1,12 @@
 #include "FighterJet.hpp"
 
+#include "glm/gtc/quaternion.hpp"
 #include "global.hpp"
+#include <algorithm>
 
-FighterJet::FighterJet(const fspath& fbxFilepath)
+FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   : Moveable({}, -PI_2, 0.f),
-    meshes(fbxFilepath),
+    body(fbxFilepath, jetMass),
     camera(vec3{})
 {
   camera.setPosition(position + getBack() * camDistance);
@@ -51,6 +53,7 @@ void FighterJet::onMouseScroll(dvec2 offset) {
 
 void FighterJet::addTrottle() {
   throttle += global::dt * 0.1f;
+  throttle = std::min(throttle, 1.f);
 }
 
 void FighterJet::setCamDistance(float val) {
@@ -58,49 +61,34 @@ void FighterJet::setCamDistance(float val) {
   camDistanceMax = val * 2.f;
 }
 
-void FighterJet::update() {
-  calcState();
-  calcAngleOfAttack();
-  calcGForce();
+void FighterJet::setCamSensitivity(float val) {
+  camera.setSensitivity(val);
+}
 
+void FighterJet::update() {
   updateThrust();
+  body.update(global::dt);
   updateCamera();
+
+  setTranslationMat(body.physicsCore.position);
+  setRotationMat(body.physicsCore.orientation);
 }
 
 void FighterJet::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  meshes.draw(camera, shader, forceNoWireframe);
+  body.draw(camera, shader, forceNoWireframe);
 }
 
-void FighterJet::calcState() {
-  auto invRot = glm::inverse(rotMat);
-  localVelocity = invRot * vec4(velocity, 1.f);
-  localAngularVelocity = invRot * vec4(angularVelocity, 1.f);
-}
-
-void FighterJet::calcAngleOfAttack() {
-  if (dot(localVelocity, localVelocity) < 0.1f) {
-    angleOfAttack = 0.f;
-    angleOfAttackYaw = 0.f;
-    return;
-  }
-
-  angleOfAttack = atan2(-localVelocity.y, localVelocity.z);
-  angleOfAttackYaw = atan2(localVelocity.x, localVelocity.z);
-}
-
-void FighterJet::calcGForce() {
-  auto invRot = glm::inverse(rotMat);
-  auto acceleration = (velocity - lastVelocity) / global::dt;
-  localGForce = invRot * vec4(acceleration, 1.f);
-  lastVelocity = velocity;
+void FighterJet::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  body.drawDebug(camera, shader, forceNoWireframe);
 }
 
 void FighterJet::updateThrust() {
   float force = throttle * 5.f;
-
-  throttle *= 0.99f;
   vec3 t = getOrientation() * force;
-  meshes.translateAll(t);
+
+  body.physicsCore.position += t;
+  position += t;
+  throttle *= 0.99f;
 }
 
 void FighterJet::updateCamera() {

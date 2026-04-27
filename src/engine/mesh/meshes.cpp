@@ -129,5 +129,18 @@ Mesh plane(size_t resolution, GLenum mode, vec3 up) {
   return Mesh(vertices, indices, mode);
 }
 
+Mesh circle(int resolution) {
+  float angleStep = (PI * 2.f) / resolution;
+  float theta = 0.f;
+  std::vector<VertexP> vertices(resolution);
+
+  for (int i = 0; i < resolution; i++) {
+    vertices[i].position = {cos(theta), sin(theta), 0.f};
+    theta += angleStep;
+  }
+
+  return Mesh(vertices, GL_TRIANGLE_FAN, GL_STATIC_DRAW);
+}
+
 } // namespace meshes
 

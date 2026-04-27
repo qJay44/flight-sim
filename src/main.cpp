@@ -91,6 +91,7 @@ int main() {
   Shader lightShader("light.vert", "light.frag");
   Shader linesShader("lines.vert", "lines.frag");
   Shader airplaneShader("f15.vert", "f15.frag");
+  Shader billboardColorShader("billboardColor.vert", "billboardColor.frag");
 
   // ===== Cameras ============================================== //
 
@@ -107,10 +108,11 @@ int main() {
 
   // ============================================================ //
 
-  Light light({0.f, 30.f, 0.f});
+  Light light({0.f, 200.f, 0.f});
 
-  FighterJet f15("res/fbx/f15.fbx");
+  FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
+  f15.setCamSensitivity(100.f);
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
@@ -120,6 +122,7 @@ int main() {
 
   gui::camPtr = &cameraSpectate;
   gui::lightPtr = &light;
+  gui::fjetPtr= &f15;
 
   global::drawGlobalAxis = true;
 
@@ -141,9 +144,9 @@ int main() {
     global::time += global::dt;
 
     if (glfwGetWindowAttrib(window, GLFW_FOCUSED)) {
-      InputsHandler::process(*activeCam);
+      InputsHandler::process();
       activeCam->update();
-      InputsHandler::activeEntity = f15.isActive() ? &f15 : nullptr;
+      InputsHandler::activeEntity = &(f15.isActive() ? f15 : (Moveable&)cameraSpectate);
     } else
       glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
@@ -165,6 +168,7 @@ int main() {
     glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
 
     f15.draw(activeCam, airplaneShader);
+    f15.drawDebug(activeCam, billboardColorShader);
 
     glDisable(GL_CULL_FACE);
 

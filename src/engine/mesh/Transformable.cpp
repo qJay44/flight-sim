@@ -26,12 +26,20 @@ void Transformable::rotate(const glm::quat& q) {
 void Transformable::scale(const float& s) { scaleMat = glm::scale(scaleMat, vec3(s)); }
 void Transformable::scale(const vec2& s)  { scaleMat = glm::scale(scaleMat, vec3(s, 1.f)); }
 
-void Transformable::setTrans(const mat4& t) {
-  transMat = t;
+void Transformable::setTranslationMat(const mat4& m) {
+  transMat = m;
 }
 
-void Transformable::setTrans(vec3 pos) {
-  transMat = glm::translate(mat4(1.f), pos);
+void Transformable::setTranslationMat(vec3 pos) {
+  setTranslationMat(glm::translate(mat4(1.f), pos));
+}
+
+void Transformable::setRotationMat(const mat4& m) {
+  rotMat = m;
+}
+
+void Transformable::setRotationMat(glm::quat q) {
+  setRotationMat(glm::mat4_cast(q));
 }
 
 void Transformable::setScale(float s) {

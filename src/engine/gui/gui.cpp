@@ -7,6 +7,7 @@
 
 #include "glm/gtc/type_ptr.hpp"
 #include "global.hpp"
+#include <cassert>
 
 using namespace ImGui;
 
@@ -15,6 +16,7 @@ static bool infoCollapsed = true;
 
 Camera* gui::camPtr = nullptr;
 Light* gui::lightPtr = nullptr;
+FighterJet* gui::fjetPtr = nullptr;
 
 u16 gui::fps = 1;
 
@@ -59,6 +61,35 @@ void gui::draw() {
   Begin("Config");
 
   ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
+
+  // ===== F15 Global ==================================================================================== //
+
+  assert(fjetPtr);
+  if (CollapsingHeader("F15 Global")) {
+  }
+
+  // ===== F15 Body ====================================================================================== //
+
+  if (CollapsingHeader("F15 Body")) {
+    SeparatorText("Center of mass");
+    bool showAll = Button("Show all"); SameLine();
+    bool hideAll = Button("Hide all");
+
+    SeparatorText("Parts");
+
+    for (AircraftPart* p : fjetPtr->body.allParts) {
+      p->bDrawDebug |= showAll;
+      p->bDrawDebug &= !hideAll;
+
+      if (TreeNode(p->name.c_str())) {
+        const vec3& pos = p->offset;
+        Text("%.2f kg at [%.1f, %.1f, %.1f]", p->mass, pos.x, pos.y, pos.z);
+        Checkbox("Show", &p->bDrawDebug);
+
+        TreePop();
+      }
+    }
+  }
 
   // ===== Spectate camera =============================================================================== //
 

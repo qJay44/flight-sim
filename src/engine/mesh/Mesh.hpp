@@ -23,6 +23,7 @@ public:
   Mesh(const std::vector<VertexPCTN>& vertices, GLenum mode, GLenum usage);
   Mesh(const std::vector<VertexPT>&   vertices, GLenum mode, GLenum usage);
   Mesh(const std::vector<VertexPC>&   vertices, GLenum mode, GLenum usage);
+  Mesh(const std::vector<VertexP>&    vertices, GLenum mode, GLenum usage);
 
   static Mesh loadObj(const fspath& file, bool printInfo = false);
   static void screenDraw(const Camera* camera, Shader& shader);

@@ -61,21 +61,21 @@ void InputsHandler::cursorPosCallback(GLFWwindow* window, double xpos, double yp
   gui::cursorPosCallback(window, xpos, ypos);
 }
 
-void InputsHandler::process(Moveable& entity) {
+void InputsHandler::process() {
   if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GLFW_TRUE);
 
-  if (!global::guiFocused) {
-    entity.onMouseMove(mousePos);
-    entity.accelerate(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+  if (!global::guiFocused && activeEntity) {
+    activeEntity->onMouseMove(mousePos);
+    activeEntity->accelerate(glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) entity.moveForward();
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) entity.moveLeft();
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) entity.moveBack();
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) entity.moveRight();
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) activeEntity->moveForward();
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) activeEntity->moveLeft();
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) activeEntity->moveBack();
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) activeEntity->moveRight();
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) entity.moveUp();
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) entity.moveDown();
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) activeEntity->moveUp();
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) activeEntity->moveDown();
   }
 
   mousePos = global::getWinCenter();
