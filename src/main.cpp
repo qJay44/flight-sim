@@ -113,6 +113,7 @@ int main() {
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
   f15.setCamSensitivity(100.f);
+  f15.setMaxThrust(210000.f);
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);

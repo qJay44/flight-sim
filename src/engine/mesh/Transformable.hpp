@@ -2,9 +2,9 @@
 
 class Transformable {
 public:
-  const mat4& getTranslation() const;
-  const mat4& getRotation()    const;
-  const mat4& getScale()       const;
+  const mat4& getMatTranslation() const;
+  const mat4& getMatRotation()    const;
+  const mat4& getMatScale()       const;
   mat4 getModel() const;
 
   void translate(const vec3& v);
@@ -13,18 +13,18 @@ public:
   void scale(const float& s);
   void scale(const vec2& s);
 
-  void setTranslationMat(const mat4& m);
-  void setTranslationMat(vec3 pos);
+  void setMatTranslation(const mat4& m);
+  void setMatTranslation(vec3 pos);
 
-  void setRotationMat(const mat4& m);
-  void setRotationMat(glm::quat q);
+  void setMatRotation(const mat4& m);
+  void setMatRotation(glm::quat q);
 
-  void setScale(float s);
-  void setScale(vec3 s);
+  void setMatScale(float s);
+  void setMatScale(vec3 s);
 
 protected:
-  mat4 transMat = mat4(1.f);
-  mat4 rotMat   = mat4(1.f);
-  mat4 scaleMat = mat4(1.f);
+  mat4 matTranslation = mat4(1.f);
+  mat4 matRotation   = mat4(1.f);
+  mat4 matScale = mat4(1.f);
 };
 

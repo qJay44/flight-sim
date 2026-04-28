@@ -3,7 +3,25 @@
 #include "AircraftPart.hpp"
 #include "PointMass.hpp"
 
-struct FighterJetBody {
+class FighterJetBody {
+public:
+  FighterJetBody(const fspath& fbxFilepath, float totalMass);
+
+  const vec3& getPosition() const;
+  const glm::quat& getOrientaion() const;
+
+  void applyThrust(float normalizedValue); // [0, 1]
+  void translateAll(vec3 v);
+  void rotateAll(glm::quat q);
+
+  void update(float dt);
+
+  void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+
+private:
+  friend struct gui;
+
   AircraftPart fuselage      {"Fuselage"};
   AircraftPart nose          {"Nose"};
   AircraftPart cockpit       {"Cockpit"};
@@ -47,15 +65,8 @@ struct FighterJetBody {
     &airbrake,
   };
 
-  FighterJetBody(const fspath& fbxFilepath, float totalMass);
-
-  void translateAll(vec3 v);
-  void rotateAll(glm::quat q);
-
-  void update(float dt);
+private:
   void updatePhysics(float dt);
   void updateMesh();
-  void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-  void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 };
 

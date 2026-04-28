@@ -1,16 +1,15 @@
 #include "FighterJet.hpp"
 
-#include "glm/gtc/quaternion.hpp"
 #include "global.hpp"
-#include <algorithm>
 
 FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   : Moveable({}, -PI_2, 0.f),
     body(fbxFilepath, jetMass),
+    maxThrust(jetMass * 5.f),
     camera(vec3{})
 {
-  camera.setPosition(position + getBack() * camDistance);
-  camera.setView(this);
+  camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
+  camera.setOrientation(vec3(-0.577f));
   camera.update();
 }
 
@@ -18,8 +17,9 @@ bool FighterJet::isActive() const {
  return &camera == Camera::activeCam;
 }
 
+// TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
-  addTrottle();
+  body.applyThrust(1.f * maxThrust);
 }
 
 void FighterJet::onMouseMove(dvec2 mousePos) {
@@ -51,10 +51,9 @@ void FighterJet::onMouseScroll(dvec2 offset) {
   camDistance = glm::clamp(camDistance, 1.f, camDistanceMax);
 }
 
-void FighterJet::addTrottle() {
-  throttle += global::dt * 0.1f;
-  throttle = std::min(throttle, 1.f);
-}
+const float& FighterJet::getMaxThrust() const { return maxThrust; }
+
+void FighterJet::setMaxThrust(float t) { maxThrust = t; }
 
 void FighterJet::setCamDistance(float val) {
   camDistance = val;
@@ -66,12 +65,8 @@ void FighterJet::setCamSensitivity(float val) {
 }
 
 void FighterJet::update() {
-  updateThrust();
   body.update(global::dt);
   updateCamera();
-
-  setTranslationMat(body.physicsCore.position);
-  setRotationMat(body.physicsCore.orientation);
 }
 
 void FighterJet::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -82,18 +77,9 @@ void FighterJet::drawDebug(const Camera* camera, Shader& shader, bool forceNoWir
   body.drawDebug(camera, shader, forceNoWireframe);
 }
 
-void FighterJet::updateThrust() {
-  float force = throttle * 5.f;
-  vec3 t = getOrientation() * force;
-
-  body.physicsCore.position += t;
-  position += t;
-  throttle *= 0.99f;
-}
-
 void FighterJet::updateCamera() {
   vec3 actualBack = turnQuat * rotateQuat * camera.getBack();
-  vec3 pos = position + actualBack * camDistance;
+  vec3 pos = body.getPosition() + actualBack * camDistance;
 
   camera.setUp(up);
   camera.setOrientation(-actualBack);

@@ -89,6 +89,13 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, float totalMass) {
   physicsCore.mass = finalTotalMass;
 }
 
+const vec3& FighterJetBody::getPosition() const { return physicsCore.position; }
+const glm::quat& FighterJetBody::getOrientaion() const { return physicsCore.orientation; }
+
+void FighterJetBody::applyThrust(float thrust) {
+  physicsCore.applyThrust(thrust);
+}
+
 void FighterJetBody::translateAll(vec3 v) {
   for (AircraftPart* part : allParts)
     part->mesh.translate(v);
@@ -111,16 +118,29 @@ void FighterJetBody::rotateAll(glm::quat q) {
 }
 
 void FighterJetBody::update(float dt) {
+  physicsCore.calcState(dt);
+  physicsCore.calcAngleOfAttack();
+  physicsCore.calcGForce(dt);
+
   float dtSub = dt * 0.1f;
-  for (size_t i = 0; i < 10; i++) {
+  for (size_t i = 0; i < 10; i++)
     updatePhysics(dtSub);
-  }
+
   updateMesh();
 }
 
+void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  for (AircraftPart* part : allParts)
+    part->draw(camera, shader, forceNoWireframe);
+}
+
+void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  for (AircraftPart* part : allParts)
+    part->drawDebug(camera, shader, forceNoWireframe);
+}
+
 void FighterJetBody::updatePhysics(float dt) {
-  vec3 totalForce{0.f, -9.81f * physicsCore.mass, 0.f};
-  vec3 totalTorque{};
+  physicsCore.applyGravity();
 
   constexpr float groundHeight = 0.f;
   constexpr float stiffness = 100000.f;
@@ -138,19 +158,11 @@ void FighterJetBody::updatePhysics(float dt) {
       float damping = -partVel.y * dampingCoeff;
 
       vec3 force{0.f, spring + damping, 0.f};
-      totalForce += force;
-      totalTorque += cross(rotatedOffset, force);
+      physicsCore.force += force;
+      physicsCore.torque += cross(rotatedOffset, force);
     }
   }
-  physicsCore.velocity += (totalForce / physicsCore.mass) * dt;
-  physicsCore.position += physicsCore.velocity * dt;
-
-  constexpr float momentOfInertia = 1000.f;
-  physicsCore.angularVelocity += (totalTorque / momentOfInertia) * dt;
-
-  glm::quat rotStep = glm::quat(0.f, physicsCore.angularVelocity * dt);
-  physicsCore.orientation += rotStep * 0.5f * physicsCore.orientation;
-  physicsCore.orientation = glm::normalize(physicsCore.orientation);
+  physicsCore.update(dt);
 }
 
 void FighterJetBody::updateMesh() {
@@ -158,22 +170,12 @@ void FighterJetBody::updateMesh() {
 
   for (AircraftPart* part : allParts) {
     vec3 partWorldPos = physicsCore.position;
-    part->mesh.setTranslationMat(partWorldPos);
-    part->mesh.setRotationMat(bodyRot);
+    part->mesh.setMatTranslation(partWorldPos);
+    part->mesh.setMatRotation(bodyRot);
 
-    part->debugMassMesh.setTranslationMat(partWorldPos + physicsCore.orientation * part->offset);
-    part->debugMassMesh.setRotationMat(bodyRot);
-    part->debugMassMesh.setScale(physicsCore.mass / part->mass);
+    part->debugMassMesh.setMatTranslation(partWorldPos + physicsCore.orientation * part->offset);
+    part->debugMassMesh.setMatRotation(bodyRot);
+    part->debugMassMesh.setMatScale(physicsCore.mass / part->mass);
   }
-}
-
-void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  for (AircraftPart* part : allParts)
-    part->draw(camera, shader, forceNoWireframe);
-}
-
-void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  for (AircraftPart* part : allParts)
-    part->drawDebug(camera, shader, forceNoWireframe);
 }
 

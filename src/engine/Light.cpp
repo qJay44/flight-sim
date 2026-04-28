@@ -10,7 +10,7 @@ const vec3& Light::getPosition() const { return position; }
 const vec3& Light::getColor() const { return color; }
 
 void Light::update() {
-  setTranslationMat(position);
+  setMatTranslation(position);
 }
 
 void Light::setUniforms(Shader& shader) const {

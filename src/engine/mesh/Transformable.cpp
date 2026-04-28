@@ -3,50 +3,50 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/ext/matrix_transform.hpp"
 
-const mat4& Transformable::getTranslation() const { return transMat; }
-const mat4& Transformable::getRotation()    const { return rotMat;   }
-const mat4& Transformable::getScale()       const { return scaleMat; }
+const mat4& Transformable::getMatTranslation() const { return matTranslation; }
+const mat4& Transformable::getMatRotation()    const { return matRotation;   }
+const mat4& Transformable::getMatScale()       const { return matScale; }
 
 mat4 Transformable::getModel() const {
-  return transMat * rotMat * scaleMat;
+  return matTranslation * matRotation * matScale;
 }
 
 void Transformable::translate(const vec3& v) {
-  transMat = glm::translate(transMat, v);
+  matTranslation = glm::translate(matTranslation, v);
 }
 
 void Transformable::rotate(const float& angle, const vec3& axis) {
-  rotMat = glm::rotate(rotMat, angle, axis);
+  matRotation = glm::rotate(matRotation, angle, axis);
 }
 
 void Transformable::rotate(const glm::quat& q) {
-  rotMat = glm::mat4_cast(q) * rotMat;
+  matRotation = glm::mat4_cast(q) * matRotation;
 };
 
-void Transformable::scale(const float& s) { scaleMat = glm::scale(scaleMat, vec3(s)); }
-void Transformable::scale(const vec2& s)  { scaleMat = glm::scale(scaleMat, vec3(s, 1.f)); }
+void Transformable::scale(const float& s) { matScale = glm::scale(matScale, vec3(s)); }
+void Transformable::scale(const vec2& s)  { matScale = glm::scale(matScale, vec3(s, 1.f)); }
 
-void Transformable::setTranslationMat(const mat4& m) {
-  transMat = m;
+void Transformable::setMatTranslation(const mat4& m) {
+  matTranslation = m;
 }
 
-void Transformable::setTranslationMat(vec3 pos) {
-  setTranslationMat(glm::translate(mat4(1.f), pos));
+void Transformable::setMatTranslation(vec3 pos) {
+  setMatTranslation(glm::translate(mat4(1.f), pos));
 }
 
-void Transformable::setRotationMat(const mat4& m) {
-  rotMat = m;
+void Transformable::setMatRotation(const mat4& m) {
+  matRotation = m;
 }
 
-void Transformable::setRotationMat(glm::quat q) {
-  setRotationMat(glm::mat4_cast(q));
+void Transformable::setMatRotation(glm::quat q) {
+  setMatRotation(glm::mat4_cast(q));
 }
 
-void Transformable::setScale(float s) {
-  setScale(vec3(s));
+void Transformable::setMatScale(float s) {
+  setMatScale(vec3(s));
 }
 
-void Transformable::setScale(vec3 s) {
-  scaleMat = glm::scale(mat4(1.f), s);
+void Transformable::setMatScale(vec3 s) {
+  matScale = glm::scale(mat4(1.f), s);
 }
 

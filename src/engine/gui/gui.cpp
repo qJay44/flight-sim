@@ -20,6 +20,14 @@ FighterJet* gui::fjetPtr = nullptr;
 
 u16 gui::fps = 1;
 
+namespace {
+
+void TextVec3(const char* label, const vec3& v) {
+  Text("%s: [%.2f, %.2f, %.2f]", label, v.x, v.y, v.z);
+}
+
+} // namespace
+
 void gui::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
 }
@@ -62,28 +70,39 @@ void gui::draw() {
 
   ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
 
-  // ===== F15 Global ==================================================================================== //
+  // ===== F15 General =================================================================================== //
 
   assert(fjetPtr);
-  if (CollapsingHeader("F15 Global")) {
+  if (CollapsingHeader("F15 General")) {
+    SliderFloat("Max thrust", &fjetPtr->maxThrust, 0.f, 1e6f);
   }
 
   // ===== F15 Body ====================================================================================== //
 
   if (CollapsingHeader("F15 Body")) {
+    auto& body = fjetPtr->body;
+
+    SeparatorText("Physics core");
+    {
+      auto& core = body.physicsCore;
+      Text("Mass: %.4f kg", core.mass);
+      TextVec3("Position", core.position);
+      TextVec3("Velocity", core.velocity);
+    }
+
     SeparatorText("Center of mass");
     bool showAll = Button("Show all"); SameLine();
     bool hideAll = Button("Hide all");
 
     SeparatorText("Parts");
 
-    for (AircraftPart* p : fjetPtr->body.allParts) {
+    for (AircraftPart* p : body.allParts) {
       p->bDrawDebug |= showAll;
       p->bDrawDebug &= !hideAll;
 
       if (TreeNode(p->name.c_str())) {
-        const vec3& pos = p->offset;
-        Text("%.2f kg at [%.1f, %.1f, %.1f]", p->mass, pos.x, pos.y, pos.z);
+        Text("Mass: %.2f kg", p->mass);
+        ColorEdit3("Color", glm::value_ptr(p->color));
         Checkbox("Show", &p->bDrawDebug);
 
         TreePop();

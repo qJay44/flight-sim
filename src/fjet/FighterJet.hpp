@@ -5,7 +5,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
-class FighterJet : public Moveable, public Transformable {
+class FighterJet : public Moveable {
 public:
   FighterJet(const fspath& fbxFilepath, float jetMass);
 
@@ -15,7 +15,9 @@ public:
   void onMouseMove(dvec2 mousePos) override;
   void onMouseScroll(dvec2 offset) override;
 
-  void addTrottle();
+  const float& getMaxThrust() const;
+
+  void setMaxThrust(float t);
   void setCamDistance(float val);
   void setCamSensitivity(float val);
 
@@ -27,7 +29,7 @@ private:
   friend struct gui;
 
   FighterJetBody body;
-  float throttle = 0.f;
+  float maxThrust;
 
   Camera camera;
   float camDistance = 10.f;
@@ -37,7 +39,6 @@ private:
   glm::quat rotateQuat = glm::identity<glm::quat>();
 
 private:
-  void updateThrust();
   void updateCamera();
 };
 
