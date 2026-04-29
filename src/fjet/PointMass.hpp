@@ -1,14 +1,14 @@
 #pragma once
 
-#include "glm/ext/quaternion_common.hpp"
-#include "glm/gtc/quaternion.hpp"
+#include "glm/common.hpp"
 #include "glm/gtx/norm.hpp"
-#include "glm/gtx/fast_trigonometry.hpp"
-#include "../engine/mesh/Transformable.hpp"
 
-struct PointMass : public Transformable {
+struct PointMass {
   float mass{1.f};
   float momentOfInertia = 1000.f;
+  float Cd_forward = 0.02f;
+  float Cd_side = 0.50f;
+  float Cd_vertical = 0.80f;
   vec3 position{};
   vec3 velocity{};
   vec3 lastVelocity{};
@@ -34,8 +34,25 @@ struct PointMass : public Transformable {
     force.y += -9.81f * mass;
   }
 
+  void applyDrag(float airbrakeDrag, float flapsDrag) {
+    if (glm::length2(localVelocity) < 0.1f)
+      return;
+
+    float totalForwardCd = Cd_forward + airbrakeDrag + flapsDrag;
+
+    vec3 lvAbs = abs(localVelocity);
+    vec3 dragForceLocal{
+      -localVelocity.x * lvAbs.x * Cd_side,
+      -localVelocity.y * lvAbs.y * Cd_vertical,
+      -localVelocity.z * lvAbs.z * totalForwardCd
+    };
+
+    vec3 dragForceWorld = orientation * dragForceLocal;
+    force += dragForceWorld;
+  }
+
   void calcState(float dt) {
-    auto invRotation = glm::inverse(glm::quat_cast(matRotation));
+    auto invRotation = glm::conjugate(orientation);
     localVelocity = invRotation * velocity;
     localAngularVelocity = invRotation * angularVelocity;
   }
@@ -52,7 +69,7 @@ struct PointMass : public Transformable {
   }
 
   void calcGForce(float dt) {
-    auto invRotation = glm::inverse(glm::quat_cast(matRotation));
+    auto invRotation = glm::conjugate(orientation);
     vec3 acc = (velocity - lastVelocity) / dt;
     localGForce = invRotation * acc;
     lastVelocity = velocity;

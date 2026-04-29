@@ -13,10 +13,6 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   camera.update();
 }
 
-bool FighterJet::isActive() const {
- return &camera == Camera::activeCam;
-}
-
 // TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
   body.applyThrust(1.f * maxThrust);
@@ -49,6 +45,21 @@ void FighterJet::onMouseMove(dvec2 mousePos) {
 void FighterJet::onMouseScroll(dvec2 offset) {
   camDistance -= offset.y;
   camDistance = glm::clamp(camDistance, 1.f, camDistanceMax);
+}
+
+bool FighterJet::isActive() const {
+ return &camera == Camera::activeCam;
+}
+
+void FighterJet::toggleAirbrake() {
+  body.airbrakeDeployed = !body.airbrakeDeployed;
+  body.airbrake.localRotation = glm::angleAxis(PI * 0.25f * body.airbrakeDeployed, vec3(1.f, 0.f, 0.f));
+}
+
+void FighterJet::toggleFlaps() {
+  body.flapsDeployed = !body.flapsDeployed;
+  auto q = glm::angleAxis(PI * 0.25f * body.flapsDeployed, vec3(-1.f, 0.f, 0.f));
+  body.leftFlap.localRotation = body.rightFlap.localRotation = q;
 }
 
 const float& FighterJet::getMaxThrust() const { return maxThrust; }

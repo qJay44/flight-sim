@@ -9,11 +9,14 @@ class FighterJet : public Moveable {
 public:
   FighterJet(const fspath& fbxFilepath, float jetMass);
 
-  bool isActive() const;
-
   void moveForward() override;
   void onMouseMove(dvec2 mousePos) override;
   void onMouseScroll(dvec2 offset) override;
+
+  bool isActive() const;
+
+  void toggleAirbrake();
+  void toggleFlaps();
 
   const float& getMaxThrust() const;
 

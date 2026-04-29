@@ -123,7 +123,8 @@ int main() {
 
   gui::camPtr = &cameraSpectate;
   gui::lightPtr = &light;
-  gui::fjetPtr= &f15;
+  gui::fjetPtr = &f15;
+  InputsHandler::controlledPlane = &f15;
 
   global::drawGlobalAxis = true;
 

@@ -1,75 +1,29 @@
 #include "FighterJetBody.hpp"
 
-#include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "utils/types.hpp"
 #include "../engine/mesh/fbx/model.hpp"
 
 FighterJetBody::FighterJetBody(const fspath& fbxFilepath, float totalMass) {
   fbx::Model model = fbx::load(fbxFilepath);
-  std::unordered_map<std::string, fbx::NamedMesh> meshMap;
+  std::unordered_map<std::string, fbx::UfbxMesh> meshMap;
   std::unordered_map<std::string, mat4> socketMap;
 
-  for (fbx::NamedMesh& nmesh : model.meshes)
+  for (fbx::UfbxMesh& nmesh : model.meshes)
     meshMap[nmesh.name] = std::move(nmesh);
 
-  fuselage     .mesh = std::move(meshMap["Fuselage"].mesh);
-  nose         .mesh = std::move(meshMap["Nose"].mesh);
-  cockpit      .mesh = std::move(meshMap["Cockpit"].mesh);
-  upperFuselage.mesh = std::move(meshMap["UpperFuselage"].mesh);
-  engines      .mesh = std::move(meshMap["Engines"].mesh);
-  wings        .mesh = std::move(meshMap["Wings"].mesh);
-  leftAileron  .mesh = std::move(meshMap["LeftAileron"].mesh);
-  rightAileron .mesh = std::move(meshMap["RightAileron"].mesh);
-  leftFlap     .mesh = std::move(meshMap["LeftFlap"].mesh);
-  rightFlap    .mesh = std::move(meshMap["RightFlap"].mesh);
-  leftElevator .mesh = std::move(meshMap["LeftElevator"].mesh);
-  rightElevator.mesh = std::move(meshMap["RightElevator"].mesh);
-  rudders      .mesh = std::move(meshMap["Rudders"].mesh);
-  leftRudder   .mesh = std::move(meshMap["LeftRudder"].mesh);
-  rightRudder  .mesh = std::move(meshMap["RightRudder"].mesh);
-  canopy       .mesh = std::move(meshMap["Canopy"].mesh);
-  airbrake     .mesh = std::move(meshMap["Airbrake"].mesh);
+  vec3 weightedPos{};
 
-  float finalTotalMass = 0.f;
+  for (AircraftPart* part : allParts) {
+    auto it = meshMap.find(part->name);
+    if (it == meshMap.end())
+      error("[FighterJetBody::FighterJetBody] Didn't find [{}] in map", part->name);
 
-  // NOTE: Total multipler goes above 1.0 (> 100%)
-  finalTotalMass += fuselage     .mass = totalMass * 0.18f;
-  finalTotalMass += nose         .mass = totalMass * 0.04f;
-  finalTotalMass += cockpit      .mass = totalMass * 0.07f;
-  finalTotalMass += upperFuselage.mass = totalMass * 0.18f;
-  finalTotalMass += engines      .mass = totalMass * 0.20f;
-  finalTotalMass += wings        .mass = totalMass * 0.14f;
-  finalTotalMass += leftAileron  .mass = totalMass * 0.01f;
-  finalTotalMass += rightAileron .mass = totalMass * 0.01f;
-  finalTotalMass += leftFlap     .mass = totalMass * 0.01f;
-  finalTotalMass += rightFlap    .mass = totalMass * 0.01f;
-  finalTotalMass += leftElevator .mass = totalMass * 0.01f;
-  finalTotalMass += rightElevator.mass = totalMass * 0.01f;
-  finalTotalMass += rudders      .mass = totalMass * 0.04f;
-  finalTotalMass += leftRudder   .mass = totalMass * 0.02f;
-  finalTotalMass += rightRudder  .mass = totalMass * 0.02f;
-  finalTotalMass += canopy       .mass = totalMass * 0.07f;
-  finalTotalMass += airbrake     .mass = totalMass * 0.01f;
-
-  // Assuming aircraft's center of mass at (0, 0, 0)
-  fuselage     .offset = meshMap["Fuselage"].averagePos;
-  nose         .offset = meshMap["Nose"].averagePos;
-  cockpit      .offset = meshMap["Cockpit"].averagePos;
-  upperFuselage.offset = meshMap["UpperFuselage"].averagePos;
-  engines      .offset = meshMap["Engines"].averagePos;
-  wings        .offset = meshMap["Wings"].averagePos;
-  leftAileron  .offset = meshMap["LeftAileron"].averagePos;
-  rightAileron .offset = meshMap["RightAileron"].averagePos;
-  leftFlap     .offset = meshMap["LeftFlap"].averagePos;
-  rightFlap    .offset = meshMap["RightFlap"].averagePos;
-  leftElevator .offset = meshMap["LeftElevator"].averagePos;
-  rightElevator.offset = meshMap["RightElevator"].averagePos;
-  rudders      .offset = meshMap["Rudders"].averagePos;
-  leftRudder   .offset = meshMap["LeftRudder"].averagePos;
-  rightRudder  .offset = meshMap["RightRudder"].averagePos;
-  canopy       .offset = meshMap["Canopy"].averagePos;
-  airbrake     .offset = meshMap["Airbrake"].averagePos;
+    part->mesh = std::move(it->second.mesh);
+    part->mass = totalMass * part->massPercent;
+    part->offset = it->second.averagePos;
+    weightedPos += part->mass * part->offset;
+  }
 
   canopy.color = vec3(1.f);
 
@@ -81,12 +35,8 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, float totalMass) {
   hardpoint1   = socketMap["Hardpoint1"];
   hardpoint2   = socketMap["Hardpoint2"];
 
-  vec3 weightedPos{};
-  for (AircraftPart* part : allParts)
-    weightedPos += part->mass * part->offset;
-
-  physicsCore.position = weightedPos / finalTotalMass;
-  physicsCore.mass = finalTotalMass;
+  physicsCore.position = weightedPos / totalMass;
+  physicsCore.mass = totalMass;
 }
 
 const vec3& FighterJetBody::getPosition() const { return physicsCore.position; }
@@ -94,27 +44,6 @@ const glm::quat& FighterJetBody::getOrientaion() const { return physicsCore.orie
 
 void FighterJetBody::applyThrust(float thrust) {
   physicsCore.applyThrust(thrust);
-}
-
-void FighterJetBody::translateAll(vec3 v) {
-  for (AircraftPart* part : allParts)
-    part->mesh.translate(v);
-
-  afterburner1 = glm::translate(afterburner1, v);
-  afterburner2 = glm::translate(afterburner2, v);
-  hardpoint1   = glm::translate(hardpoint1  , v);
-  hardpoint2   = glm::translate(hardpoint2  , v);
-}
-
-void FighterJetBody::rotateAll(glm::quat q) {
-  for (AircraftPart* part : allParts)
-    part->mesh.rotate(q);
-
-  mat4 rot = glm::mat4_cast(q);
-  afterburner1 = afterburner1 * rot;
-  afterburner2 = afterburner2 * rot;
-  hardpoint1   = hardpoint1   * rot;
-  hardpoint2   = hardpoint2   * rot;
 }
 
 void FighterJetBody::update(float dt) {
@@ -130,6 +59,7 @@ void FighterJetBody::update(float dt) {
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+
   for (AircraftPart* part : allParts)
     part->draw(camera, shader, forceNoWireframe);
 }
@@ -141,6 +71,7 @@ void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceN
 
 void FighterJetBody::updatePhysics(float dt) {
   physicsCore.applyGravity();
+  physicsCore.applyDrag(airbrakeDrag * airbrakeDeployed, flapsDrag * flapsDeployed);
 
   constexpr float groundHeight = 0.f;
   constexpr float stiffness = 100000.f;
@@ -169,11 +100,14 @@ void FighterJetBody::updateMesh() {
   mat4 bodyRot = glm::mat4_cast(physicsCore.orientation);
 
   for (AircraftPart* part : allParts) {
-    vec3 partWorldPos = physicsCore.position;
-    part->mesh.setMatTranslation(partWorldPos);
-    part->mesh.setMatRotation(bodyRot);
+    vec3 rotatedOffset = physicsCore.orientation * part->offset;
+    vec3 partWorldPos = physicsCore.position + rotatedOffset;
+    auto totalRotation = physicsCore.orientation * part->localRotation;
 
-    part->debugMassMesh.setMatTranslation(partWorldPos + physicsCore.orientation * part->offset);
+    part->mesh.setMatTranslation(partWorldPos);
+    part->mesh.setMatRotation(totalRotation);
+
+    part->debugMassMesh.setMatTranslation(partWorldPos);
     part->debugMassMesh.setMatRotation(bodyRot);
     part->debugMassMesh.setMatScale(physicsCore.mass / part->mass);
   }

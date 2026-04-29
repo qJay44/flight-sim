@@ -2,11 +2,13 @@
 
 #include "gui/gui.hpp"
 #include "global.hpp"
+#include <cassert>
 
 using global::window;
 
 dvec2 InputsHandler::mousePos;
 Moveable* InputsHandler::activeEntity = nullptr;
+FighterJet* InputsHandler::controlledPlane = nullptr;
 
 void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   switch (key) {
@@ -26,6 +28,18 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
       break;
     case GLFW_KEY_C:
       if (action == GLFW_PRESS) gui::toggleInfo();
+      break;
+    case GLFW_KEY_B:
+      if (action == GLFW_PRESS) {
+        assert(controlledPlane);
+        controlledPlane->toggleAirbrake();
+      }
+      break;
+    case GLFW_KEY_F:
+      if (action == GLFW_PRESS) {
+        assert(controlledPlane);
+        controlledPlane->toggleFlaps();
+      }
       break;
     case GLFW_KEY_N:
       if (action == GLFW_PRESS)

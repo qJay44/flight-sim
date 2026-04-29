@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Mesh.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 namespace fbx {
 
@@ -9,14 +10,14 @@ struct Socket {
   glm::mat4 transform;
 };
 
-struct NamedMesh {
+struct UfbxMesh {
   std::string name;
   Mesh mesh;
   vec3 averagePos;
 };
 
 struct Model {
-  std::vector<NamedMesh> meshes;
+  std::vector<UfbxMesh> meshes;
   std::vector<Socket> sockets;
 };
 

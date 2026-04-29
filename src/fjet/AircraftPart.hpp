@@ -1,13 +1,17 @@
 #pragma once
 
 #include "../engine/mesh/meshes.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 struct AircraftPart {
   std::string name;
+  float massPercent;
+
   Mesh mesh;
   float mass;
   vec3 offset;
   vec3 color{0.24377f, 0.355047f, 0.6226415f};
+  glm::quat localRotation{1.f, 0.f, 0.f, 0.f};
 
   bool bDrawDebug = false;
   Mesh debugMassMesh = meshes::circle();

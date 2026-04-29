@@ -2,6 +2,7 @@
 
 #include "AircraftPart.hpp"
 #include "PointMass.hpp"
+#include "MassConfig.hpp"
 
 class FighterJetBody {
 public:
@@ -11,8 +12,6 @@ public:
   const glm::quat& getOrientaion() const;
 
   void applyThrust(float normalizedValue); // [0, 1]
-  void translateAll(vec3 v);
-  void rotateAll(glm::quat q);
 
   void update(float dt);
 
@@ -20,25 +19,26 @@ public:
   void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
+  friend struct FighterJet;
   friend struct gui;
 
-  AircraftPart fuselage      {"Fuselage"};
-  AircraftPart nose          {"Nose"};
-  AircraftPart cockpit       {"Cockpit"};
-  AircraftPart upperFuselage {"UpperFuselage"};
-  AircraftPart engines       {"Engines"};
-  AircraftPart wings         {"Wings"};
-  AircraftPart leftAileron   {"LeftAileron"};
-  AircraftPart rightAileron  {"RightAileron"};
-  AircraftPart leftFlap      {"LeftFlap"};
-  AircraftPart rightFlap     {"RightFlap"};
-  AircraftPart leftElevator  {"LeftElevator"};
-  AircraftPart rightElevator {"RightElevator"};
-  AircraftPart rudders       {"Rudders"};
-  AircraftPart leftRudder    {"LeftRudder"};
-  AircraftPart rightRudder   {"RightRudder"};
-  AircraftPart canopy        {"Canopy"};
-  AircraftPart airbrake      {"Airbrake"};
+  AircraftPart fuselage      {"Fuselage"     , MassConfig::fuselage     };
+  AircraftPart nose          {"Nose"         , MassConfig::nose         };
+  AircraftPart cockpit       {"Cockpit"      , MassConfig::cockpit      };
+  AircraftPart upperFuselage {"UpperFuselage", MassConfig::upperFuselage};
+  AircraftPart engines       {"Engines"      , MassConfig::engines      };
+  AircraftPart wings         {"Wings"        , MassConfig::wings        };
+  AircraftPart leftAileron   {"LeftAileron"  , MassConfig::leftAileron  };
+  AircraftPart rightAileron  {"RightAileron" , MassConfig::rightAileron };
+  AircraftPart leftFlap      {"LeftFlap"     , MassConfig::leftFlap     };
+  AircraftPart rightFlap     {"RightFlap"    , MassConfig::rightFlap    };
+  AircraftPart leftElevator  {"LeftElevator" , MassConfig::leftElevator };
+  AircraftPart rightElevator {"RightElevator", MassConfig::rightElevator};
+  AircraftPart rudders       {"Rudders"      , MassConfig::rudders      };
+  AircraftPart leftRudder    {"LeftRudder"   , MassConfig::leftRudder   };
+  AircraftPart rightRudder   {"RightRudder"  , MassConfig::rightRudder  };
+  AircraftPart canopy        {"Canopy"       , MassConfig::canopy       };
+  AircraftPart airbrake      {"Airbrake"     , MassConfig::airbrake     };
   mat4 afterburner1; // left
   mat4 afterburner2; // right
   mat4 hardpoint1; // Weapon mount point (under left wing)
@@ -64,6 +64,12 @@ private:
     &canopy,
     &airbrake,
   };
+
+  float airbrakeDrag = 0.f;
+  float flapsDrag = 0.f;
+
+  bool airbrakeDeployed = false;
+  bool flapsDeployed = false;
 
 private:
   void updatePhysics(float dt);

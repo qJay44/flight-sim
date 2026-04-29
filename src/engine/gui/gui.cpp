@@ -88,6 +88,9 @@ void gui::draw() {
       Text("Mass: %.4f kg", core.mass);
       TextVec3("Position", core.position);
       TextVec3("Velocity", core.velocity);
+      TextVec3("Local Velocity", core.localVelocity);
+      TextVec3("Angular Velocity", core.angularVelocity);
+      TextVec3("Local Angular Velocity", core.localAngularVelocity);
     }
 
     SeparatorText("Center of mass");

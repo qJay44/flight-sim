@@ -72,6 +72,7 @@ Model load(const fspath& file, bool printInfo) {
 
     if (mesh) {
       vec3 avgPos{};
+      ufbx_matrix modelToWorld = node->node_to_world;
 
       for (size_t f = 0; f < mesh->faces.count; f++) {
         ufbx_face face = mesh->faces.data[f];
@@ -80,9 +81,10 @@ Model load(const fspath& file, bool printInfo) {
 
         for (u32 i = 0; i < numTris * 3; i++) {
           u32 idx = tris[i];
-          VertexPCTN vertex{};
-
           ufbx_vec3 position = ufbx_get_vertex_vec3(&mesh->vertex_position, idx);
+          position = ufbx_transform_position(&modelToWorld, position);
+
+          VertexPCTN vertex{};
           vertex.position = glm::make_vec3(position.v);
           avgPos += vertex.position;
 
@@ -105,10 +107,14 @@ Model load(const fspath& file, bool printInfo) {
         }
       }
 
+      vec3 pivot = avgPos / static_cast<float>(vertices.size());
+      for (auto& v : vertices)
+        v.position -= pivot;
+
       model.meshes.push_back({
         node->name.data,
         Mesh(vertices, GL_TRIANGLES, GL_STATIC_DRAW),
-        avgPos / static_cast<float>(vertices.size())
+        pivot
       });
 
     } else if (node->attrib_type == UFBX_ELEMENT_EMPTY) {
