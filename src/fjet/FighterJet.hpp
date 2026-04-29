@@ -15,14 +15,11 @@ public:
 
   bool isActive() const;
 
-  void toggleAirbrake();
-  void toggleFlaps();
+  FighterJetBody& getBody();
 
-  const float& getMaxThrust() const;
-
-  void setMaxThrust(float t);
   void setCamDistance(float val);
   void setCamSensitivity(float val);
+  void setMeshScale(float s);
 
   void update();
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
@@ -32,7 +29,6 @@ private:
   friend struct gui;
 
   FighterJetBody body;
-  float maxThrust;
 
   Camera camera;
   float camDistance = 10.f;

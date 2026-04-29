@@ -74,13 +74,13 @@ void gui::draw() {
 
   assert(fjetPtr);
   if (CollapsingHeader("F15 General")) {
-    SliderFloat("Max thrust", &fjetPtr->maxThrust, 0.f, 1e6f);
   }
 
   // ===== F15 Body ====================================================================================== //
 
   if (CollapsingHeader("F15 Body")) {
     auto& body = fjetPtr->body;
+    SliderFloat("Max thrust", &body.maxThrust, 0.f, 1e6f);
 
     SeparatorText("Physics core");
     {

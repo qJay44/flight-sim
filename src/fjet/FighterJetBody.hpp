@@ -10,7 +10,14 @@ public:
 
   const vec3& getPosition() const;
   const glm::quat& getOrientaion() const;
+  const float& getMaxThrust() const;
 
+  void setMaxThrust(float t);
+  void setStiffness(float s);
+  void setDampingCoeff(float c);
+
+  void toggleAirbrake();
+  void toggleFlaps();
   void applyThrust(float normalizedValue); // [0, 1]
 
   void update(float dt);
@@ -65,14 +72,19 @@ private:
     &airbrake,
   };
 
+  float maxThrust = 1.f;
+  float groundHeight = 0.f;
+  float stiffness = 100000.f;
+  float dampingCoeff = 5000.f;
   float airbrakeDrag = 0.f;
   float flapsDrag = 0.f;
+  float meshScale = 1.f;
 
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
 
 private:
   void updatePhysics(float dt);
-  void updateMesh();
+  void updateMesh(float dt);
 };
 

@@ -19,6 +19,7 @@ public:
   void setMatRotation(const mat4& m);
   void setMatRotation(glm::quat q);
 
+  void setMatScale(const mat4& m);
   void setMatScale(float s);
   void setMatScale(vec3 s);
 

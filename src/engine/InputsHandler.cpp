@@ -32,13 +32,13 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
     case GLFW_KEY_B:
       if (action == GLFW_PRESS) {
         assert(controlledPlane);
-        controlledPlane->toggleAirbrake();
+        controlledPlane->getBody().toggleAirbrake();
       }
       break;
     case GLFW_KEY_F:
       if (action == GLFW_PRESS) {
         assert(controlledPlane);
-        controlledPlane->toggleFlaps();
+        controlledPlane->getBody().toggleFlaps();
       }
       break;
     case GLFW_KEY_N:

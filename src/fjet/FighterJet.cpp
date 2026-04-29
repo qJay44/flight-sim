@@ -1,11 +1,11 @@
 #include "FighterJet.hpp"
 
+#include "glm/trigonometric.hpp"
 #include "global.hpp"
 
 FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   : Moveable({}, -PI_2, 0.f),
     body(fbxFilepath, jetMass),
-    maxThrust(jetMass * 5.f),
     camera(vec3{})
 {
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
@@ -15,7 +15,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
 
 // TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
-  body.applyThrust(1.f * maxThrust);
+  body.applyThrust(1.f);
 }
 
 void FighterJet::onMouseMove(dvec2 mousePos) {
@@ -51,20 +51,7 @@ bool FighterJet::isActive() const {
  return &camera == Camera::activeCam;
 }
 
-void FighterJet::toggleAirbrake() {
-  body.airbrakeDeployed = !body.airbrakeDeployed;
-  body.airbrake.localRotation = glm::angleAxis(PI * 0.25f * body.airbrakeDeployed, vec3(1.f, 0.f, 0.f));
-}
-
-void FighterJet::toggleFlaps() {
-  body.flapsDeployed = !body.flapsDeployed;
-  auto q = glm::angleAxis(PI * 0.25f * body.flapsDeployed, vec3(-1.f, 0.f, 0.f));
-  body.leftFlap.localRotation = body.rightFlap.localRotation = q;
-}
-
-const float& FighterJet::getMaxThrust() const { return maxThrust; }
-
-void FighterJet::setMaxThrust(float t) { maxThrust = t; }
+FighterJetBody& FighterJet::getBody() { return body; }
 
 void FighterJet::setCamDistance(float val) {
   camDistance = val;
@@ -73,6 +60,10 @@ void FighterJet::setCamDistance(float val) {
 
 void FighterJet::setCamSensitivity(float val) {
   camera.setSensitivity(val);
+}
+
+void FighterJet::setMeshScale(float s) {
+  body.meshScale = s;
 }
 
 void FighterJet::update() {

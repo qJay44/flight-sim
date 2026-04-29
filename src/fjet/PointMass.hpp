@@ -80,6 +80,11 @@ struct PointMass {
     velocity += acc * dt;
     position += velocity * dt;
 
+    if (position.y < 0.f) {
+      position.y = 0.f;
+      velocity.y = std::max(0.f, velocity.y);
+    }
+
     angularVelocity += torque / momentOfInertia * dt;
     glm::quat rotStep = glm::quat(0.f, angularVelocity * dt);
     orientation += rotStep * 0.5f * orientation;

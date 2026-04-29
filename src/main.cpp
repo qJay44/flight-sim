@@ -14,7 +14,6 @@
 #include "engine/InputsHandler.hpp"
 #include "engine/mesh/meshes.hpp"
 #include "engine/Light.hpp"
-#include "engine/texture/Texture2D.hpp"
 #include "utils/clrp.hpp"
 
 using global::window;
@@ -113,7 +112,12 @@ int main() {
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
   f15.setCamSensitivity(100.f);
-  f15.setMaxThrust(210000.f);
+  f15.setMeshScale(0.01f);
+
+  FighterJetBody& f15Body = f15.getBody();
+  f15Body.setStiffness(100000.f);
+  f15Body.setDampingCoeff(5000.f);
+  f15Body.setMaxThrust(210000.f);
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);

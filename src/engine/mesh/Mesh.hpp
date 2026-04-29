@@ -35,6 +35,7 @@ public:
   }
 
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void draw(const Camera* camera, Shader& shader, const mat4& model, bool forceNoWireframe = false) const;
   void clear();
 
 private:

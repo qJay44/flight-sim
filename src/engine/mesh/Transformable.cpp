@@ -42,11 +42,15 @@ void Transformable::setMatRotation(glm::quat q) {
   setMatRotation(glm::mat4_cast(q));
 }
 
+void Transformable::setMatScale(const mat4& m) {
+  matScale = m;
+}
+
 void Transformable::setMatScale(float s) {
   setMatScale(vec3(s));
 }
 
 void Transformable::setMatScale(vec3 s) {
-  matScale = glm::scale(mat4(1.f), s);
+  setMatScale(glm::scale(mat4(1.f), s));
 }
 

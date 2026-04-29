@@ -71,7 +71,6 @@ Model load(const fspath& file, bool printInfo) {
     std::vector<VertexPCTN> vertices;
 
     if (mesh) {
-      vec3 avgPos{};
       ufbx_matrix modelToWorld = node->node_to_world;
 
       for (size_t f = 0; f < mesh->faces.count; f++) {
@@ -86,7 +85,6 @@ Model load(const fspath& file, bool printInfo) {
 
           VertexPCTN vertex{};
           vertex.position = glm::make_vec3(position.v);
-          avgPos += vertex.position;
 
           if (mesh->vertex_color.exists) {
             ufbx_vec4 color = ufbx_get_vertex_vec4(&mesh->vertex_color, idx);
@@ -107,7 +105,8 @@ Model load(const fspath& file, bool printInfo) {
         }
       }
 
-      vec3 pivot = avgPos / static_cast<float>(vertices.size());
+      ufbx_vec3 pivotPos = node->local_transform.translation;
+      vec3 pivot = glm::make_vec3(pivotPos.v);
       for (auto& v : vertices)
         v.position -= pivot;
 
@@ -124,7 +123,7 @@ Model load(const fspath& file, bool printInfo) {
 
       model.sockets.push_back(s);
     } else {
-      error("[fbx::load] Unhandled attrib_type []", (int)node->attrib_type);
+      error("[fbx::load] Unhandled attrib_type [{}]", (int)node->attrib_type);
     }
   }
 

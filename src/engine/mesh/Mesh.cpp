@@ -151,6 +151,10 @@ void Mesh::screenDraw(const Camera* camera, Shader& shader) {
 }
 
 void Mesh::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  draw(camera, shader, getModel(), forceNoWireframe);
+}
+
+void Mesh::draw(const Camera* camera, Shader& shader, const mat4& model, bool forceNoWireframe) const {
   assert(count);
   assert(mode);
 
@@ -158,7 +162,7 @@ void Mesh::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) con
 
   setCamUniforms(camera, shader);
   setGlobalUniforms(shader);
-  shader.setUniformMatrix4f("u_model", getModel());
+  shader.setUniformMatrix4f("u_model", model);
 
   if (global::drawWireframe & !forceNoWireframe)
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
