@@ -15,15 +15,15 @@ uniform vec3 u_camPos;
 uniform vec3 u_color;
 uniform float u_time;
 
-vec3 directionalLight() {
+vec3 directionalLight(vec3 normal) {
   vec3 lightDistVec = u_lightPos - v_worldPos;
   float lightDist = length(lightDistVec);
 
   vec3 lightDir = normalize(lightDistVec);
   vec3 viewDir = normalize(u_camPos - v_worldPos);
-  vec3 reflectDir = reflect(-lightDir, v_normal);
+  vec3 reflectDir = reflect(-lightDir, normal);
 
-  float diffuse = max(dot(v_normal, lightDir), 0.f);
+  float diffuse = max(dot(normal, lightDir), 0.f);
   float ambient = 0.2f;
   float specularLight = 0.5f;
   float specAmount = pow(max(dot(viewDir, reflectDir), 0.f), 8);
@@ -36,7 +36,8 @@ vec3 directionalLight() {
 
 void main() {
   vec3 col = u_color;
-  col *= directionalLight();
+  vec3 normal = normalize(v_normal);
+  col *= directionalLight(normal);
 	FragColor = vec4(col, 1.f);
 }
 

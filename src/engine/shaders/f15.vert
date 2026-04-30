@@ -10,6 +10,7 @@ out vec3 v_color;
 out vec2 v_uv;
 out vec3 v_normal;
 
+uniform mat3 u_localRotation;
 uniform mat4 u_model;
 uniform mat4 u_camPV;
 
@@ -18,7 +19,7 @@ void main() {
   v_worldPos = worldPos.xyz;
   v_color = inColor;
   v_uv = inTex;
-  v_normal = inNormal;
+  v_normal = mat3(u_model) * u_localRotation * inNormal;
 	gl_Position = u_camPV * worldPos;
 }
 

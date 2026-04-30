@@ -64,8 +64,10 @@ void FighterJetBody::update(float dt) {
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  for (AircraftPart* part : allParts)
+  for (AircraftPart* part : allParts) {
+    shader.setUniformMatrix3f("u_localRotation", glm::mat3_cast(part->localRotation));
     part->draw(camera, shader, forceNoWireframe);
+  }
 }
 
 void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
