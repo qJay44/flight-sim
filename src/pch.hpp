@@ -49,3 +49,14 @@ using glm::mat4;
 #include <utility>
 #include <vector>
 
+#include "glm/gtx/norm.hpp"
+
+template<typename T>
+inline T normalizeSafe(const T& v) {
+  float lenSq = glm::length2(v);
+  if (lenSq > 1e-6f)
+    return v * glm::inversesqrt(lenSq);
+
+  return T(0.f);
+}
+

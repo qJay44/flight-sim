@@ -1,81 +1,35 @@
 #pragma once
 
-#include "glm/common.hpp"
 #include "glm/gtx/norm.hpp"
 
 struct PointMass {
   float mass{1.f};
   float momentOfInertia = 1000.f;
-  float Cd_forward = 0.02f;
-  float Cd_side = 0.50f;
-  float Cd_vertical = 0.80f;
   vec3 position{};
   vec3 velocity{};
-  vec3 lastVelocity{};
-  vec3 localVelocity{};
   vec3 angularVelocity{};
-  vec3 localAngularVelocity{};
-  vec3 localGForce{1.f};
-  vec3 localThustDir{0.f, 0.f, -1.f}; // NOTE: The plane looks at -Z initially;
   glm::quat orientation{};
 
   vec3 force{};
   vec3 torque{};
 
-  float angleOfAttack = 0.f;
-  float angleOfAttackYaw = 0.f;
-
-  void applyThrust(float thrust) {
-    vec3 worldThrustDir = orientation * localThustDir;
-    force += worldThrustDir * thrust;
+  void addForce(vec3 f) {
+    force += f;
   }
 
-  void applyGravity() {
-    force.y += -9.81f * mass;
+  void addRelativeForce(vec3 f) {
+    force += orientation * f;
   }
 
-  void applyDrag(float airbrakeDrag, float flapsDrag) {
-    if (glm::length2(localVelocity) < 0.1f)
-      return;
-
-    float totalForwardCd = Cd_forward + airbrakeDrag + flapsDrag;
-
-    vec3 lvAbs = abs(localVelocity);
-    vec3 dragForceLocal{
-      -localVelocity.x * lvAbs.x * Cd_side,
-      -localVelocity.y * lvAbs.y * Cd_vertical,
-      -localVelocity.z * lvAbs.z * totalForwardCd
-    };
-
-    vec3 dragForceWorld = orientation * dragForceLocal;
-    force += dragForceWorld;
+  void addTorque(vec3 t) {
+    torque += t;
   }
 
-  void calcState(float dt) {
-    auto invRotation = glm::conjugate(orientation);
-    localVelocity = invRotation * velocity;
-    localAngularVelocity = invRotation * angularVelocity;
+  void addGravity(float g) {
+    force.y += g * mass;
   }
 
-  void calcAngleOfAttack() {
-    if (glm::length2(localVelocity) < 0.1f) {
-      angleOfAttack = 0.f;
-      angleOfAttackYaw = 0.f;
-      return;
-    }
-
-    angleOfAttack = atan2(-localVelocity.y, localVelocity.z);
-    angleOfAttackYaw = atan2(localVelocity.x, localVelocity.z);
-  }
-
-  void calcGForce(float dt) {
-    auto invRotation = glm::conjugate(orientation);
-    vec3 acc = (velocity - lastVelocity) / dt;
-    localGForce = invRotation * acc;
-    lastVelocity = velocity;
-  }
-
-  void update(float dt) {
+  void applyForce(float dt) {
     vec3 acc = force / mass;
     velocity += acc * dt;
     position += velocity * dt;

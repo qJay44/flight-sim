@@ -3,13 +3,14 @@
 #include "AircraftPart.hpp"
 #include "PointMass.hpp"
 #include "MassConfig.hpp"
+#include "glm/trigonometric.hpp"
 
 class FighterJetBody {
 public:
-  FighterJetBody(const fspath& fbxFilepath, float totalMass);
+  FighterJetBody(const fspath& fbxFilepath, vec3 orientation, float totalMass);
 
   const vec3& getPosition() const;
-  const glm::quat& getOrientaion() const;
+  const glm::quat& getOrientation() const;
   const float& getMaxThrust() const;
 
   void setMaxThrust(float t);
@@ -18,7 +19,7 @@ public:
 
   void toggleAirbrake();
   void toggleFlaps();
-  void applyThrust(float normalizedValue); // [0, 1]
+  void addThrottle(float normalizedValue); // [0, 1]
 
   void update(float dt);
 
@@ -51,7 +52,7 @@ private:
   mat4 hardpoint1; // Weapon mount point (under left wing)
   mat4 hardpoint2; // Weapon mount point (under right wing)
 
-  PointMass physicsCore;
+  PointMass rigidbody;
   AircraftPart* allParts[17] = {
     &fuselage,
     &nose,
@@ -72,19 +73,52 @@ private:
     &airbrake,
   };
 
+  vec3 localOrientation;
+
+  vec3 velocity{};
+  vec3 lastVelocity{};
+  vec3 localVelocity{};
+  vec3 localAngularVelocity{};
+  vec3 localGForce{1.f};
+
+  float angleOfAttack = glm::radians(10.f);
+  float angleOfAttackYaw = 0.f;
+
+  // Drag
+  float Cd_forward = 0.02f;
+  float Cd_side = 0.50f;
+  float Cd_vertical = 0.80f;
+
+  float throttle = 0.f;
   float maxThrust = 1.f;
   float groundHeight = 0.f;
   float stiffness = 100000.f;
   float dampingCoeff = 5000.f;
   float airbrakeDrag = 0.f;
-  float flapsDrag = 0.f;
+  float flapsDrag = 2.f;
+  float flapsLiftPower = 0.5f;
+  float flapsAOABias = 10.f;
   float meshScale = 1.f;
+  float inducedDrag = 100.f;
+  float liftPower = 1.f;
+  float rudderPower = 1.f;
 
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
 
 private:
-  void updatePhysics(float dt);
+  static float getLiftCoeff(float angleRad);
+  static float getLiftCoeffYaw(float angleRad);
+
+  void calcState(float dt);
+  void calcAngleOfAttack();
+  void calcGForce(float dt);
+  vec3 calcLift(vec3 right, float liftPower, float liftCoeff);
+
+  void updateThrust();
+  void updateDrag();
+  void updateLift();
+  void updateForceFromParts(float dt);
   void updateMesh(float dt);
 };
 

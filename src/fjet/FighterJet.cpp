@@ -5,7 +5,7 @@
 
 FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   : Moveable({}, -PI_2, 0.f),
-    body(fbxFilepath, jetMass),
+    body(fbxFilepath, vec3(0.f, 0.f, -1.f), jetMass),
     camera(vec3{})
 {
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
@@ -15,7 +15,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
 
 // TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
-  body.applyThrust(1.f);
+  body.addThrottle(1.f);
 }
 
 void FighterJet::onMouseMove(dvec2 mousePos) {

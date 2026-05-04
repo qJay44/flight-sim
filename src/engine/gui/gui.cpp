@@ -81,35 +81,45 @@ void gui::draw() {
   if (CollapsingHeader("F15 Body")) {
     auto& body = fjetPtr->body;
     SliderFloat("Max thrust", &body.maxThrust, 0.f, 1e6f);
+    TextVec3("Local Velocity", body.localVelocity);
+    TextVec3("Local Angular Velocity", body.localAngularVelocity);
+    Text("Angle of attack     [%.2f]", body.angleOfAttack);
+    Text("Angle of attack yaw [%.2f]", body.angleOfAttackYaw);
+
+    Separator();
+    SliderFloat("Induced drag", &body.inducedDrag, 0.f, 100.f);
+    SliderFloat("Lift power", &body.liftPower, 0.f, 100.f);
+    SliderFloat("Rudder power", &body.rudderPower, 0.f, 100.f);
+    SliderFloat("Flaps lifst power", &body.flapsLiftPower, 0.f, 100.f);
+    SliderFloat("Flaps AOA bias", &body.flapsAOABias, 5.f, 15.f);
 
     SeparatorText("Physics core");
     {
-      auto& core = body.physicsCore;
+      auto& core = body.rigidbody;
       Text("Mass: %.4f kg", core.mass);
       TextVec3("Position", core.position);
       TextVec3("Velocity", core.velocity);
-      TextVec3("Local Velocity", core.localVelocity);
       TextVec3("Angular Velocity", core.angularVelocity);
-      TextVec3("Local Angular Velocity", core.localAngularVelocity);
     }
 
     SeparatorText("Center of mass");
     bool showAll = Button("Show all"); SameLine();
     bool hideAll = Button("Hide all");
 
-    SeparatorText("Parts");
+    if (TreeNode("Parts")) {
+      for (AircraftPart* p : body.allParts) {
+        p->bDrawDebug |= showAll;
+        p->bDrawDebug &= !hideAll;
 
-    for (AircraftPart* p : body.allParts) {
-      p->bDrawDebug |= showAll;
-      p->bDrawDebug &= !hideAll;
+        if (TreeNode(p->name.c_str())) {
+          Text("Mass: %.2f kg", p->mass);
+          ColorEdit3("Color", glm::value_ptr(p->color));
+          Checkbox("Show", &p->bDrawDebug);
 
-      if (TreeNode(p->name.c_str())) {
-        Text("Mass: %.2f kg", p->mass);
-        ColorEdit3("Color", glm::value_ptr(p->color));
-        Checkbox("Show", &p->bDrawDebug);
-
-        TreePop();
+          TreePop();
+        }
       }
+      TreePop();
     }
   }
 
