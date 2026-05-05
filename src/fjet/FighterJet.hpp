@@ -4,6 +4,7 @@
 
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
+#include "HUD.hpp"
 
 class FighterJet : public Moveable {
 public:
@@ -23,12 +24,15 @@ public:
 
   void update();
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawHUD(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
   friend struct gui;
 
   FighterJetBody body;
+  Font font{"res/fonts/FiraCodeNerdFontMono-Regular.ttf", 32};
+  HUD hud{&font};
 
   Camera camera;
   float camDistance = 10.f;
@@ -38,6 +42,7 @@ private:
   glm::quat rotateQuat = glm::identity<glm::quat>();
 
 private:
+  void updateHUD();
   void updateCamera();
 };
 

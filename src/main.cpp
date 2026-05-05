@@ -1,5 +1,3 @@
-#include "fjet/FighterJet.hpp"
-#include "fjet/HUD.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -121,8 +119,6 @@ int main() {
   f15Body.setDampingCoeff(5000.f);
   f15Body.setMaxThrust(210000.f);
 
-  HUD hud;
-
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
 
@@ -178,12 +174,12 @@ int main() {
     glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
 
     f15.draw(activeCam, airplaneShader);
+    f15.drawHUD(activeCam, hudShader);
     f15.drawDebug(activeCam, billboardColorShader);
 
     glDisable(GL_CULL_FACE);
 
     light.draw(activeCam, lightShader);
-    hud.draw(activeCam, hudShader);
 
     if (global::drawGlobalAxis)
       axis.draw(activeCam, linesShader);

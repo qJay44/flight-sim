@@ -11,6 +11,7 @@ project(MyProject VERSION 1.0)
 
 find_package(glfw3 REQUIRED)
 find_package(TIFF REQUIRED)
+find_package(Freetype REQUIRED)
 
 # ===== GLAD ====================================================== #
 
@@ -79,5 +80,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw TIFF::TIFF GLAD ImGui_GLFW_OpenGL ufbx Utils)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw TIFF::TIFF GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)
 

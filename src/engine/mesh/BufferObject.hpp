@@ -77,6 +77,11 @@ public:
     update(s.data(), s.size_bytes(), access);
   }
 
+  void updateSubData(const void* data, GLsizeiptr dataSize) const {
+    bind();
+    glBufferSubData(target, 0, dataSize, data);
+  }
+
   void unbind() const {
     glBindBuffer(target, 0);
   }

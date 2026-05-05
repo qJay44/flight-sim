@@ -9,8 +9,6 @@
 #include "global.hpp"
 #include <cassert>
 
-using namespace ImGui;
-
 static bool configCollapsed = true;
 static bool infoCollapsed = true;
 
@@ -23,7 +21,7 @@ u16 gui::fps = 1;
 namespace {
 
 void TextVec3(const char* label, const vec3& v) {
-  Text("%s: [%.2f, %.2f, %.2f]", label, v.x, v.y, v.z);
+  ImGui::Text("%s: [%.2f, %.2f, %.2f]", label, v.x, v.y, v.z);
 }
 
 } // namespace
@@ -61,124 +59,124 @@ void gui::draw() {
 
   // ::::: Config window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
-  SetNextWindowPos({0, 0}, ImGuiCond_FirstUseEver);
-  SetNextWindowCollapsed(configCollapsed);
+  ImGui::SetNextWindowPos({0, 0}, ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowCollapsed(configCollapsed);
 
   auto _task = global::profiler->startScopedTask("gui::draw");
 
-  Begin("Config");
+  ImGui::Begin("Config");
 
   ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
 
   // ===== F15 General =================================================================================== //
 
   assert(fjetPtr);
-  if (CollapsingHeader("F15 General")) {
+  if (ImGui::CollapsingHeader("F15 General")) {
   }
 
   // ===== F15 Body ====================================================================================== //
 
-  if (CollapsingHeader("F15 Body")) {
+  if (ImGui::CollapsingHeader("F15 Body")) {
     auto& body = fjetPtr->body;
-    SliderFloat("Max thrust", &body.maxThrust, 0.f, 1e6f);
+    ImGui::SliderFloat("Max thrust", &body.maxThrust, 0.f, 1e6f);
     TextVec3("Local Velocity", body.localVelocity);
     TextVec3("Local Angular Velocity", body.localAngularVelocity);
-    Text("Angle of attack     [%.2f]", body.angleOfAttack);
-    Text("Angle of attack yaw [%.2f]", body.angleOfAttackYaw);
+    ImGui::Text("Angle of attack     [%.2f]", body.angleOfAttack);
+    ImGui::Text("Angle of attack yaw [%.2f]", body.angleOfAttackYaw);
 
-    Separator();
-    SliderFloat("Induced drag", &body.inducedDrag, 0.f, 100.f);
-    SliderFloat("Lift power", &body.liftPower, 0.f, 100.f);
-    SliderFloat("Rudder power", &body.rudderPower, 0.f, 100.f);
-    SliderFloat("Flaps lifst power", &body.flapsLiftPower, 0.f, 100.f);
-    SliderFloat("Flaps AOA bias", &body.flapsAOABias, 5.f, 15.f);
+    ImGui::Separator();
+    ImGui::SliderFloat("Induced drag", &body.inducedDrag, 0.f, 100.f);
+    ImGui::SliderFloat("Lift power", &body.liftPower, 0.f, 100.f);
+    ImGui::SliderFloat("Rudder power", &body.rudderPower, 0.f, 100.f);
+    ImGui::SliderFloat("Flaps lifst power", &body.flapsLiftPower, 0.f, 100.f);
+    ImGui::SliderFloat("Flaps AOA bias", &body.flapsAOABias, 5.f, 15.f);
 
-    SeparatorText("Physics core");
+    ImGui::SeparatorText("Physics core");
     {
       auto& core = body.rigidbody;
-      Text("Mass: %.4f kg", core.mass);
+      ImGui::Text("Mass: %.4f kg", core.mass);
       TextVec3("Position", core.position);
       TextVec3("Velocity", core.velocity);
       TextVec3("Angular Velocity", core.angularVelocity);
     }
 
-    SeparatorText("Center of mass");
-    bool showAll = Button("Show all"); SameLine();
-    bool hideAll = Button("Hide all");
+    ImGui::SeparatorText("Center of mass");
+    bool showAll = ImGui::Button("Show all"); ImGui::SameLine();
+    bool hideAll = ImGui::Button("Hide all");
 
-    if (TreeNode("Parts")) {
+    if (ImGui::TreeNode("Parts")) {
       for (AircraftPart* p : body.allParts) {
         p->bDrawDebug |= showAll;
         p->bDrawDebug &= !hideAll;
 
-        if (TreeNode(p->name.c_str())) {
-          Text("Mass: %.2f kg", p->mass);
-          ColorEdit3("Color", glm::value_ptr(p->color));
-          Checkbox("Show", &p->bDrawDebug);
+        if (ImGui::TreeNode(p->name.c_str())) {
+          ImGui::Text("Mass: %.2f kg", p->mass);
+          ImGui::ColorEdit3("Color", glm::value_ptr(p->color));
+          ImGui::Checkbox("Show", &p->bDrawDebug);
 
-          TreePop();
+          ImGui::TreePop();
         }
       }
-      TreePop();
+      ImGui::TreePop();
     }
   }
 
   // ===== Spectate camera =============================================================================== //
 
   assert(camPtr);
-  if (CollapsingHeader("Spectate camera")) {
-    SliderFloat("Near##2", &camPtr->nearPlane, 0.01f, 1.f);
-    SliderFloat("Far##2", &camPtr->farPlane,  10.f, 1000.f);
-    SliderFloat("Speed##2", &camPtr->speedDefault, 1.f, 50.f);
-    SliderFloat("FOV##2", &camPtr->fov, 45.f, 179.f);
-    DragFloat("Yaw##2", &camPtr->yaw);
-    DragFloat("Pitch##2", &camPtr->pitch);
-    DragFloat3("Position", glm::value_ptr(camPtr->position));
+  if (ImGui::CollapsingHeader("Spectate camera")) {
+    ImGui::SliderFloat("Near##2", &camPtr->nearPlane, 0.01f, 1.f);
+    ImGui::SliderFloat("Far##2", &camPtr->farPlane,  10.f, 1000.f);
+    ImGui::SliderFloat("Speed##2", &camPtr->speedDefault, 1.f, 50.f);
+    ImGui::SliderFloat("FOV##2", &camPtr->fov, 45.f, 179.f);
+    ImGui::DragFloat("Yaw##2", &camPtr->yaw);
+    ImGui::DragFloat("Pitch##2", &camPtr->pitch);
+    ImGui::DragFloat3("Position", glm::value_ptr(camPtr->position));
 
-    if (TreeNode("Flags")) {
-      CheckboxFlags("Right", &camPtr->flags, CameraFlags_DrawRight);
-      CheckboxFlags("Up", &camPtr->flags, CameraFlags_DrawUp);
-      CheckboxFlags("Forward", &camPtr->flags, CameraFlags_DrawForward);
+    if (ImGui::TreeNode("Flags")) {
+      ImGui::CheckboxFlags("Right", &camPtr->flags, CameraFlags_DrawRight);
+      ImGui::CheckboxFlags("Up", &camPtr->flags, CameraFlags_DrawUp);
+      ImGui::CheckboxFlags("Forward", &camPtr->flags, CameraFlags_DrawForward);
 
-      TreePop();
+      ImGui::TreePop();
     }
   }
 
   // ===== Light ========================================================================================= //
 
   assert(lightPtr);
-  if (CollapsingHeader("Light")) {
-    DragFloat3("Position", glm::value_ptr(lightPtr->position));
-    DragFloat("Radius", &lightPtr->radius, 1.f, 0.f);
-    ColorEdit3("Color", glm::value_ptr(lightPtr->color));
+  if (ImGui::CollapsingHeader("Light")) {
+    ImGui::DragFloat3("Position", glm::value_ptr(lightPtr->position));
+    ImGui::DragFloat("Radius", &lightPtr->radius, 1.f, 0.f);
+    ImGui::ColorEdit3("Color", glm::value_ptr(lightPtr->color));
   };
 
   // ===== Other ========================================================================================= //
 
-  if (CollapsingHeader("Other")) {
-    Checkbox("Show global axis", &global::drawGlobalAxis);
+  if (ImGui::CollapsingHeader("Other")) {
+    ImGui::Checkbox("Show global axis", &global::drawGlobalAxis);
   }
 
-  End();
+  ImGui::End();
 
   _task.end();
 
   // ::::: Info window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
-  const ImGuiViewport* viewport = GetMainViewport();
+  const ImGuiViewport* viewport = ImGui::GetMainViewport();
   ImVec2 posBR = viewport->WorkPos + viewport->WorkSize;
 
-  SetNextWindowPos(posBR, ImGuiCond_Always, {1.f, 1.f});
-  SetNextWindowCollapsed(infoCollapsed);
+  ImGui::SetNextWindowPos(posBR, ImGuiCond_Always, {1.f, 1.f});
+  ImGui::SetNextWindowCollapsed(infoCollapsed);
 
-  Begin("Info");
+  ImGui::Begin("Info");
 
   ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
 
   assert(global::profiler);
   global::profiler->renderTasks(400, 200, 200, 0);
 
-  End();
+  ImGui::End();
 
   // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 

@@ -1,5 +1,6 @@
 #include "FighterJet.hpp"
 
+#include "glm/geometric.hpp"
 #include "glm/trigonometric.hpp"
 #include "global.hpp"
 
@@ -68,6 +69,7 @@ void FighterJet::setMeshScale(float s) {
 
 void FighterJet::update() {
   body.update(global::dt);
+  updateHUD();
   updateCamera();
 }
 
@@ -75,8 +77,17 @@ void FighterJet::draw(const Camera* camera, Shader& shader, bool forceNoWirefram
   body.draw(camera, shader, forceNoWireframe);
 }
 
+void FighterJet::drawHUD(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  hud.draw(camera, shader);
+}
+
 void FighterJet::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   body.drawDebug(camera, shader, forceNoWireframe);
+}
+
+void FighterJet::updateHUD() {
+  hud.updateSpeed(glm::length(body.velocity));
+  hud.updateAltitude(body.getPosition().y);
 }
 
 void FighterJet::updateCamera() {

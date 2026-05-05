@@ -26,12 +26,12 @@ Mesh axis() {
   return Mesh(vertices, GL_LINES, GL_STATIC_DRAW);
 }
 
-Mesh plane(vec3 color, GLenum mode) {
-  std::vector<VertexPCTN> vertices{
-    {{-1.f, -1.f, 0.f}, color, {0.f, 0.f}, {1.f, 0.f, 0.f}},
-    {{-1.f,  1.f, 0.f}, color, {0.f, 1.f}, {1.f, 0.f, 0.f}},
-    {{ 1.f,  1.f, 0.f}, color, {1.f, 1.f}, {1.f, 0.f, 0.f}},
-    {{ 1.f, -1.f, 0.f}, color, {1.f, 0.f}, {1.f, 0.f, 0.f}},
+Mesh rectangle(GLenum mode) {
+  std::vector<VertexPT> vertices{
+    {{-1.f, -1.f, 0.f}, {0.f, 0.f}},
+    {{-1.f,  1.f, 0.f}, {0.f, 1.f}},
+    {{ 1.f,  1.f, 0.f}, {1.f, 1.f}},
+    {{ 1.f, -1.f, 0.f}, {1.f, 0.f}},
   };
 
   std::vector<GLuint> indices;

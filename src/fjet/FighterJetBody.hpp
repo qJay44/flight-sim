@@ -10,6 +10,7 @@ public:
   FighterJetBody(const fspath& fbxFilepath, vec3 orientation, float totalMass);
 
   const vec3& getPosition() const;
+  const vec3& getVelocity() const;
   const glm::quat& getOrientation() const;
   const float& getMaxThrust() const;
 

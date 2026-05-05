@@ -73,6 +73,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
 }
 
 const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
+const vec3& FighterJetBody::getVelocity() const { return velocity; }
 const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orientation; }
 const float& FighterJetBody::getMaxThrust() const { return maxThrust; }
 

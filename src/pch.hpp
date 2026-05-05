@@ -42,6 +42,7 @@ using glm::mat4;
 #include <functional>
 #include <future>
 #include <list>
+#include <map>
 #include <span>
 #include <string>
 #include <unordered_map>

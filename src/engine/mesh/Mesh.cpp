@@ -175,6 +175,21 @@ void Mesh::draw(const Camera* camera, Shader& shader, const mat4& model, bool fo
   vao.unbind();
 }
 
+void Mesh::draw(const mat4& projection, Shader& shader) const {
+  assert(count);
+  assert(mode);
+
+  vao.bind();
+
+  setGlobalUniforms(shader);
+  shader.setUniformMatrix4f("u_model", projection * getModel());
+
+  shader.use();
+  drawFunc(mode, count);
+
+  vao.unbind();
+}
+
 void Mesh::setCamUniforms(const Camera* c, Shader& s) {
   s.setUniform1f      ("u_camNear"   , c->getNearPlane());
   s.setUniform1f      ("u_camFar"    , c->getFarPlane());
