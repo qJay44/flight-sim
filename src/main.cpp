@@ -1,4 +1,5 @@
 #include "fjet/FighterJet.hpp"
+#include "fjet/HUD.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -85,12 +86,13 @@ int main() {
 
   // ===== Shaders ============================================== //
 
-  Shader::setDirectoryLocation("src/engine/shaders");
+  Shader::setDirectoryLocation("src/shaders");
 
   Shader lightShader("light.vert", "light.frag");
   Shader linesShader("lines.vert", "lines.frag");
   Shader airplaneShader("f15.vert", "f15.frag");
   Shader billboardColorShader("billboardColor.vert", "billboardColor.frag");
+  Shader hudShader("hud.vert", "hud.frag");
 
   // ===== Cameras ============================================== //
 
@@ -118,6 +120,8 @@ int main() {
   f15Body.setStiffness(100000.f);
   f15Body.setDampingCoeff(5000.f);
   f15Body.setMaxThrust(210000.f);
+
+  HUD hud;
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
@@ -179,6 +183,7 @@ int main() {
     glDisable(GL_CULL_FACE);
 
     light.draw(activeCam, lightShader);
+    hud.draw(activeCam, hudShader);
 
     if (global::drawGlobalAxis)
       axis.draw(activeCam, linesShader);

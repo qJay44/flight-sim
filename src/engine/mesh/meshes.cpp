@@ -39,8 +39,8 @@ Mesh plane(vec3 color, GLenum mode) {
   switch (mode) {
     case GL_TRIANGLES: {
       indices = {
-        0, 1, 2,
-        2, 3, 0
+        2, 1, 0,
+        0, 3, 2,
       };
       break;
     }

@@ -20,7 +20,7 @@ const Texture2D& Texture2D::getDebug0Tex() {
 
 Texture2D::Texture2D(const image2D& img, const TextureDescriptor& d) : Texture(d) {
   if (desc.target != GL_TEXTURE_2D)
-    error("[Texture2D::Texture2D] Wrong tartget for [{}]", desc.uniformName);
+    error("[Texture2D::Texture2D] Wrong target for [{}]", desc.uniformName);
 
   glGenTextures(1, &id);
   bind();
