@@ -78,18 +78,18 @@ void gui::draw() {
 
   if (ImGui::CollapsingHeader("F15 Body")) {
     auto& body = fjetPtr->body;
-    ImGui::SliderFloat("Max thrust", &body.maxThrust, 0.f, 1e6f);
+    ImGui::SliderFloat("Max thrust", &body.cfg.maxThrust, 0.f, 1e6f);
     TextVec3("Local Velocity", body.localVelocity);
     TextVec3("Local Angular Velocity", body.localAngularVelocity);
     ImGui::Text("Angle of attack     [%.2f]", body.angleOfAttack);
     ImGui::Text("Angle of attack yaw [%.2f]", body.angleOfAttackYaw);
 
     ImGui::Separator();
-    ImGui::SliderFloat("Induced drag", &body.inducedDrag, 0.f, 100.f);
-    ImGui::SliderFloat("Lift power", &body.liftPower, 0.f, 100.f);
-    ImGui::SliderFloat("Rudder power", &body.rudderPower, 0.f, 100.f);
-    ImGui::SliderFloat("Flaps lifst power", &body.flapsLiftPower, 0.f, 100.f);
-    ImGui::SliderFloat("Flaps AOA bias", &body.flapsAOABias, 5.f, 15.f);
+    ImGui::SliderFloat("Induced drag", &body.cfg.inducedDrag, 0.f, 100.f);
+    ImGui::SliderFloat("Lift power", &body.cfg.liftPower, 0.f, 100.f);
+    ImGui::SliderFloat("Rudder power", &body.cfg.rudderPower, 0.f, 100.f);
+    ImGui::SliderFloat("Flaps lifst power", &body.cfg.flapsLiftPower, 0.f, 100.f);
+    ImGui::SliderFloat("Flaps AOA bias", &body.cfg.flapsAOABias, 5.f, 15.f);
 
     ImGui::SeparatorText("Physics core");
     {

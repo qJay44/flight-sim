@@ -8,10 +8,11 @@ public:
   mat4 getModel() const;
 
   void translate(const vec3& v);
-  void rotate(const float& angle, const vec3& axis);
+  void rotate(float angle, const vec3& axis);
   void rotate(const glm::quat& q);
-  void scale(const float& s);
+  void scale(float s);
   void scale(const vec2& s);
+  void scale(const vec3& s);
 
   void setMatTranslation(const mat4& m);
   void setMatTranslation(vec3 pos);

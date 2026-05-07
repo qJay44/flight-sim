@@ -1,3 +1,4 @@
+#include "other/Grid.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -91,6 +92,7 @@ int main() {
   Shader airplaneShader("f15.vert", "f15.frag");
   Shader billboardColorShader("billboardColor.vert", "billboardColor.frag");
   Shader hudShader("hud.vert", "hud.frag");
+  Shader gridShader("grid.vert", "grid.frag");
 
   // ===== Cameras ============================================== //
 
@@ -112,18 +114,20 @@ int main() {
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
   f15.setCamSensitivity(100.f);
-  f15.setMeshScale(0.01f);
 
-  FighterJetBody& f15Body = f15.getBody();
-  f15Body.setStiffness(100000.f);
-  f15Body.setDampingCoeff(5000.f);
-  f15Body.setMaxThrust(210000.f);
+  auto& f15Config = f15.getBodyConfig();
+  f15Config.stiffness = 100000.f;
+  f15Config.dampingCoeff = 5000.f;
+  f15Config.maxThrust = 200000.f;
+  f15Config.flapsLiftPower = 15.f;
+  f15Config.liftPower = 15.f;
+  f15Config.meshScale = 0.01f;
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
 
-  glCullFace(GL_BACK);
-  glFrontFace(GL_CCW);
+  Grid grid;
+  grid.scale(1e4f);
 
   gui::camPtr = &cameraSpectate;
   gui::lightPtr = &light;
@@ -131,6 +135,9 @@ int main() {
   InputsHandler::controlledPlane = &f15;
 
   global::drawGlobalAxis = true;
+
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CCW);
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
@@ -179,6 +186,7 @@ int main() {
 
     glDisable(GL_CULL_FACE);
 
+    grid.draw(activeCam, gridShader);
     light.draw(activeCam, lightShader);
 
     if (global::drawGlobalAxis)

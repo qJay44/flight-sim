@@ -14,12 +14,6 @@ public:
   const glm::quat& getOrientation() const;
   const float& getMaxThrust() const;
 
-  void setMaxThrust(float t);
-  void setStiffness(float s);
-  void setDampingCoeff(float c);
-
-  void toggleAirbrake();
-  void toggleFlaps();
   void addThrottle(float normalizedValue); // [0, 1]
 
   void update(float dt);
@@ -90,19 +84,21 @@ private:
   float Cd_side = 0.50f;
   float Cd_vertical = 0.80f;
 
-  float throttle = 0.f;
-  float maxThrust = 1.f;
-  float groundHeight = 0.f;
-  float stiffness = 100000.f;
-  float dampingCoeff = 5000.f;
-  float airbrakeDrag = 0.f;
-  float flapsDrag = 2.f;
-  float flapsLiftPower = 0.5f;
-  float flapsAOABias = 10.f;
-  float meshScale = 1.f;
-  float inducedDrag = 100.f;
-  float liftPower = 1.f;
-  float rudderPower = 1.f;
+  struct Config {
+    float throttle = 0.f;
+    float maxThrust = 1.f;
+    float groundHeight = 0.f;
+    float stiffness = 100000.f;
+    float dampingCoeff = 5000.f;
+    float airbrakeDrag = 0.f;
+    float flapsDrag = 2.f;
+    float flapsLiftPower = 0.5f;
+    float flapsAOABias = 10.f;
+    float meshScale = 1.f;
+    float inducedDrag = 100.f;
+    float liftPower = 1.f;
+    float rudderPower = 1.f;
+  } cfg;
 
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;

@@ -38,7 +38,7 @@ HUD::HUD(Font* font) {
   altitudeText.setOrigin(altitudeText.getBorderSize() * 0.5f);
   altitudeText.setColor(speedIndicator.color);
   altitudeText.setScale(arrowScaleScale);
-  altitudeText.setPos(winCenter + arrowTextOffset * vec2{1.f, -1.f} + vec2{arrowSize.x, 0.f}); // idk
+  altitudeText.setPos(winCenter + arrowTextOffset * vec2{1.f, -1.f} + vec2{arrowSize.x * 0.75f, 0.f}); // idk
 
   altitudeIndicator.mesh = meshes::rectangle();
   altitudeIndicator.mesh.translate(vec3(arrowOffset, 0.f));

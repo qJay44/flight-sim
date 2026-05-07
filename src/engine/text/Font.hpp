@@ -3,7 +3,6 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include "../mesh/Mesh.hpp"
 #include "../texture/Texture2D.hpp"
 #include "utils/utils.hpp"
 
@@ -14,11 +13,6 @@ public:
     ivec2 size;
     ivec2 bearing;
     long advance;
-  };
-
-  struct Glyph : public Mesh {
-    using Mesh::Mesh;
-    const Texture2D* tex;
   };
 
   Font(const Font&) = delete;

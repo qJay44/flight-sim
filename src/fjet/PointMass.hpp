@@ -36,7 +36,7 @@ struct PointMass {
 
     if (position.y < 0.f) {
       position.y = 0.f;
-      velocity.y = std::max(0.f, velocity.y);
+      velocity.y *= -0.1f;
     }
 
     angularVelocity += torque / momentOfInertia * dt;

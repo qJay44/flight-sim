@@ -16,11 +16,13 @@ public:
 
   bool isActive() const;
 
-  FighterJetBody& getBody();
+  FighterJetBody::Config& getBodyConfig();
 
   void setCamDistance(float val);
   void setCamSensitivity(float val);
-  void setMeshScale(float s);
+
+  void toggleAirbrake();
+  void toggleFlaps();
 
   void update();
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;

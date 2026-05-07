@@ -11,6 +11,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
 {
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
   camera.setOrientation(vec3(-0.577f));
+  camera.setFarPlane(1000.f);
   camera.update();
 }
 
@@ -52,7 +53,7 @@ bool FighterJet::isActive() const {
  return &camera == Camera::activeCam;
 }
 
-FighterJetBody& FighterJet::getBody() { return body; }
+FighterJetBody::Config& FighterJet::getBodyConfig() { return body.cfg; }
 
 void FighterJet::setCamDistance(float val) {
   camDistance = val;
@@ -63,8 +64,11 @@ void FighterJet::setCamSensitivity(float val) {
   camera.setSensitivity(val);
 }
 
-void FighterJet::setMeshScale(float s) {
-  body.meshScale = s;
+void FighterJet::toggleAirbrake() {
+  body.airbrakeDeployed = !body.airbrakeDeployed;
+}
+void FighterJet::toggleFlaps() {
+  body.flapsDeployed = !body.flapsDeployed;
 }
 
 void FighterJet::update() {

@@ -75,17 +75,9 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
 const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
 const vec3& FighterJetBody::getVelocity() const { return velocity; }
 const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orientation; }
-const float& FighterJetBody::getMaxThrust() const { return maxThrust; }
-
-void FighterJetBody::setMaxThrust(float t) { maxThrust = t; }
-void FighterJetBody::setStiffness(float s) { stiffness = s; }
-void FighterJetBody::setDampingCoeff(float c) { dampingCoeff = c; }
-
-void FighterJetBody::toggleAirbrake() { airbrakeDeployed = !airbrakeDeployed; }
-void FighterJetBody::toggleFlaps() { flapsDeployed = !flapsDeployed; }
 
 void FighterJetBody::addThrottle(float input) {
-  throttle = input;
+  cfg.throttle = input;
 }
 
 void FighterJetBody::update(float dt) {
@@ -150,7 +142,7 @@ vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) {
   vec3 liftDir = cross(right, liftVelocityNorm);
   vec3 lift = liftDir * liftForce;
 
-  float dragForce = liftCoeff * liftCoeff * inducedDrag;
+  float dragForce = liftCoeff * liftCoeff * cfg.inducedDrag;
   vec3 dragDir = -liftVelocityNorm;
   vec3 finalInduceDrag = dragDir * v2 * dragForce;
 
@@ -158,15 +150,15 @@ vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) {
 }
 
 void FighterJetBody::updateThrust() {
-  rigidbody.addRelativeForce(throttle * maxThrust * localOrientation);
+  rigidbody.addRelativeForce(cfg.throttle * cfg.maxThrust * localOrientation);
 }
 
 void FighterJetBody::updateDrag() {
   if (glm::length2(localVelocity) < 0.1f)
     return;
 
-  float ad = airbrakeDeployed * airbrakeDrag;
-  float fd = flapsDeployed * flapsDrag;
+  float ad = airbrakeDeployed * cfg.airbrakeDrag;
+  float fd = flapsDeployed * cfg.flapsDrag;
   float totalForwardCd = Cd_forward + ad + fd;
 
   vec3 lvAbs = abs(localVelocity);
@@ -184,14 +176,14 @@ void FighterJetBody::updateLift() {
   if (glm::length2(localVelocity) < 1.f)
     return;
 
-  float currFlapsLiftPower = flapsDeployed * flapsLiftPower;
-  float currFlapsAOABias = flapsDeployed * flapsAOABias;
+  float currFlapsLiftPower = flapsDeployed * cfg.flapsLiftPower;
+  float currFlapsAOABias = flapsDeployed * cfg.flapsAOABias;
 
   float flapsCoeff = getLiftCoeff(angleOfAttack + glm::radians(currFlapsAOABias));
-  vec3 liftForce = calcLift({1.f, 0.f, 0.f}, liftPower + currFlapsLiftPower, flapsCoeff);
+  vec3 liftForce = calcLift({1.f, 0.f, 0.f}, cfg.liftPower + currFlapsLiftPower, flapsCoeff);
 
   float rudderCoeff = getLiftCoeffYaw(angleOfAttackYaw);
-  vec3 liftForceYaw = calcLift({0.f, 1.f, 0.f}, rudderPower, rudderCoeff);
+  vec3 liftForceYaw = calcLift({0.f, 1.f, 0.f}, cfg.rudderPower, rudderCoeff);
 
   rigidbody.addRelativeForce(liftForce);
   rigidbody.addRelativeForce(liftForceYaw);
@@ -202,12 +194,12 @@ void FighterJetBody::updateForceFromParts(float dt) {
     vec3 rotatedOffset = rigidbody.orientation * part->offset;
     vec3 worldPos = rigidbody.position;
 
-    if (worldPos.y < groundHeight) {
-      float depth = glm::clamp(groundHeight - worldPos.y, 0.f, 0.5f);
-      float spring = depth * stiffness;
+    if (worldPos.y < cfg.groundHeight) {
+      float depth = glm::clamp(cfg.groundHeight - worldPos.y, 0.f, 0.5f);
+      float spring = depth * cfg.stiffness;
 
       vec3 partVel = rigidbody.velocity + cross(rigidbody.angularVelocity, rotatedOffset);
-      float damping = -partVel.y * dampingCoeff;
+      float damping = -partVel.y * cfg.dampingCoeff;
 
       vec3 force{0.f, spring + damping, 0.f};
       rigidbody.force += force;
@@ -247,7 +239,7 @@ void FighterJetBody::updateMesh(float dt) {
 
   mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);
   bodyTransform *= glm::mat4_cast(rigidbody.orientation);
-  bodyTransform *= glm::scale(mat4(1.f), vec3(meshScale));
+  bodyTransform *= glm::scale(mat4(1.f), vec3(cfg.meshScale));
 
   for (AircraftPart* part : allParts) {
     mat4 partMove = glm::translate(mat4(1.f), part->offset);

@@ -15,7 +15,7 @@ void Transformable::translate(const vec3& v) {
   matTranslation = glm::translate(matTranslation, v);
 }
 
-void Transformable::rotate(const float& angle, const vec3& axis) {
+void Transformable::rotate(float angle, const vec3& axis) {
   matRotation = glm::rotate(matRotation, angle, axis);
 }
 
@@ -23,34 +23,17 @@ void Transformable::rotate(const glm::quat& q) {
   matRotation = glm::mat4_cast(q) * matRotation;
 };
 
-void Transformable::scale(const float& s) { matScale = glm::scale(matScale, vec3(s)); }
-void Transformable::scale(const vec2& s)  { matScale = glm::scale(matScale, vec3(s, 1.f)); }
+void Transformable::scale(float s)       { matScale = glm::scale(matScale, vec3(s)); }
+void Transformable::scale(const vec2& s) { matScale = glm::scale(matScale, vec3(s, 1.f)); }
+void Transformable::scale(const vec3& s) { matScale = glm::scale(matScale, s); }
 
-void Transformable::setMatTranslation(const mat4& m) {
-  matTranslation = m;
-}
+void Transformable::setMatTranslation(const mat4& m) { matTranslation = m; }
+void Transformable::setMatTranslation(vec3 pos)      { matTranslation = glm::translate(mat4(1.f), pos); }
 
-void Transformable::setMatTranslation(vec3 pos) {
-  setMatTranslation(glm::translate(mat4(1.f), pos));
-}
+void Transformable::setMatRotation(const mat4& m) { matRotation = m; }
+void Transformable::setMatRotation(glm::quat q)   { matRotation = glm::mat4_cast(q); }
 
-void Transformable::setMatRotation(const mat4& m) {
-  matRotation = m;
-}
-
-void Transformable::setMatRotation(glm::quat q) {
-  setMatRotation(glm::mat4_cast(q));
-}
-
-void Transformable::setMatScale(const mat4& m) {
-  matScale = m;
-}
-
-void Transformable::setMatScale(float s) {
-  setMatScale(vec3(s));
-}
-
-void Transformable::setMatScale(vec3 s) {
-  setMatScale(glm::scale(mat4(1.f), s));
-}
+void Transformable::setMatScale(const mat4& m) { matScale = m; }
+void Transformable::setMatScale(float s)       { matScale = glm::scale(mat4(1.f), vec3(s)); }
+void Transformable::setMatScale(vec3 s)        { matScale = glm::scale(mat4(1.f), s); }
 
