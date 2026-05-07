@@ -23,10 +23,10 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
           glfwSetCursorPos(window, winCenter.x, winCenter.y);
       }
       break;
-    case GLFW_KEY_E:
+    case GLFW_KEY_C:
       if (action == GLFW_PRESS) gui::toggleConfig();
       break;
-    case GLFW_KEY_C:
+    case GLFW_KEY_V:
       if (action == GLFW_PRESS) gui::toggleInfo();
       break;
     case GLFW_KEY_B:
@@ -76,7 +76,7 @@ void InputsHandler::cursorPosCallback(GLFWwindow* window, double xpos, double yp
 }
 
 void InputsHandler::process() {
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, GLFW_TRUE);
 
   if (!global::guiFocused && activeEntity) {
@@ -87,6 +87,10 @@ void InputsHandler::process() {
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) activeEntity->moveLeft();
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) activeEntity->moveBack();
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) activeEntity->moveRight();
+
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) controlledPlane->roll(-1.f);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) controlledPlane->roll( 1.f);
+
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) activeEntity->moveUp();
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) activeEntity->moveDown();

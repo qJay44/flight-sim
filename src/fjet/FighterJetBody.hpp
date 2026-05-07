@@ -75,6 +75,7 @@ private:
   vec3 localVelocity{};
   vec3 localAngularVelocity{};
   vec3 localGForce{1.f};
+  vec3 controlInput{}; // pitch, yaw, roll; [-1, 1]
 
   float angleOfAttack = glm::radians(10.f);
   float angleOfAttackYaw = 0.f;
@@ -98,6 +99,8 @@ private:
     float inducedDrag = 100.f;
     float liftPower = 1.f;
     float rudderPower = 1.f;
+    float turnSpeed = 1.f;
+    float turnAcceleration = 1.f;
   } cfg;
 
   bool airbrakeDeployed = false;
@@ -110,11 +113,13 @@ private:
   void calcState(float dt);
   void calcAngleOfAttack();
   void calcGForce(float dt);
-  vec3 calcLift(vec3 right, float liftPower, float liftCoeff);
+  vec3 calcLift(vec3 right, float liftPower, float liftCoeff) const;
+  float calcSteering(float dt, float angularVelocity, float targetVelocity, float acc) const;
 
   void updateThrust();
   void updateDrag();
   void updateLift();
+  void updateSteering(float dt);
   void updateForceFromParts(float dt);
   void updateMesh(float dt);
 };

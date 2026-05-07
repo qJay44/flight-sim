@@ -11,8 +11,13 @@ public:
   FighterJet(const fspath& fbxFilepath, float jetMass);
 
   void moveForward() override;
+  void moveLeft() override;
+  void moveRight() override;
+  void moveUp() override;
+  void moveDown() override;
   void onMouseMove(dvec2 mousePos) override;
   void onMouseScroll(dvec2 offset) override;
+  void roll(float dir);
 
   bool isActive() const;
 

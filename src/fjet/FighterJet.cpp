@@ -20,6 +20,22 @@ void FighterJet::moveForward() {
   body.addThrottle(1.f);
 }
 
+void FighterJet::moveLeft() {
+  body.controlInput.y = 1.f;
+}
+
+void FighterJet::moveRight() {
+  body.controlInput.y = -1.f;
+}
+
+void FighterJet::moveUp() {
+  body.controlInput.x = 1.f;
+}
+
+void FighterJet::moveDown() {
+  body.controlInput.x = -1.f;
+}
+
 void FighterJet::onMouseMove(dvec2 mousePos) {
   dvec2 winSize = global::getWinSize();
   dvec2 winCenter = winSize * 0.5;
@@ -47,6 +63,10 @@ void FighterJet::onMouseMove(dvec2 mousePos) {
 void FighterJet::onMouseScroll(dvec2 offset) {
   camDistance -= offset.y;
   camDistance = glm::clamp(camDistance, 1.f, camDistanceMax);
+}
+
+void FighterJet::roll(float dir) {
+  body.controlInput.z = dir;
 }
 
 bool FighterJet::isActive() const {

@@ -25,6 +25,10 @@ struct PointMass {
     torque += t;
   }
 
+  void addRelativeTorqueInstantly(vec3 t) {
+    angularVelocity += orientation * t;
+  }
+
   void addGravity(float g) {
     force.y += g * mass;
   }

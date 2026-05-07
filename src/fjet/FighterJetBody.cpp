@@ -2,18 +2,24 @@
 
 #include "PointMass.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "glm/ext/quaternion_trigonometric.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/trigonometric.hpp"
 #include "utils/types.hpp"
 #include "../engine/mesh/fbx/model.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 static vec3 projectOnPlane(vec3 vec, vec3 normal) {
   vec3 n = glm::normalize(normal);
   float d = glm::dot(vec, n);
 
   return vec - (d * n);
+}
+
+static float sigmoid(float x) {
+  return 1.f / (1.f + glm::exp(x));
 }
 
 float FighterJetBody::getLiftCoeff(float angleRad) {
@@ -88,12 +94,14 @@ void FighterJetBody::update(float dt) {
   updateThrust();
   updateDrag();
   updateLift();
+  updateSteering(dt);
   updateForceFromParts(dt);
 
   rigidbody.addGravity(-9.81f);
   rigidbody.applyForce(dt);
 
   updateMesh(dt);
+  controlInput *= 0.1f * dt;
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -133,7 +141,7 @@ void FighterJetBody::calcGForce(float dt) {
   lastVelocity = velocity;
 }
 
-vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) {
+vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) const {
   vec3 liftVelocity = projectOnPlane(localVelocity, right);
   vec3 liftVelocityNorm = normalizeSafe(liftVelocity);
   float v2 = glm::length2(liftVelocity);
@@ -147,6 +155,13 @@ vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) {
   vec3 finalInduceDrag = dragDir * v2 * dragForce;
 
   return lift + finalInduceDrag;
+}
+
+float FighterJetBody::calcSteering(float dt, float angularVelocity, float targetVelocity, float acc) const {
+  float err = targetVelocity - angularVelocity;
+  float a = acc * dt;
+
+  return glm::clamp(err, -a, a);
 }
 
 void FighterJetBody::updateThrust() {
@@ -168,7 +183,7 @@ void FighterJetBody::updateDrag() {
     -localVelocity.z * lvAbs.z * totalForwardCd
   };
 
-  vec3 dragForceWorld = rigidbody.orientation * dragForceLocal;
+  vec3 dragForceWorld = dragForceLocal;
   rigidbody.addRelativeForce(dragForceWorld);
 }
 
@@ -187,6 +202,22 @@ void FighterJetBody::updateLift() {
 
   rigidbody.addRelativeForce(liftForce);
   rigidbody.addRelativeForce(liftForceYaw);
+}
+
+void FighterJetBody::updateSteering(float dt) {
+  float speed = glm::max(0.f, localVelocity.z);
+  float steeringPower = glm::clamp(sigmoid(speed), 0.f, 1.f);
+
+  vec3 targetAV = controlInput * cfg.turnSpeed;
+  vec3 av = glm::degrees(localAngularVelocity);
+
+  vec3 correction {
+    calcSteering(dt, av.x, targetAV.x, cfg.turnAcceleration * steeringPower),
+    calcSteering(dt, av.y, targetAV.y, cfg.turnAcceleration * steeringPower),
+    calcSteering(dt, av.z, targetAV.z, cfg.turnAcceleration * steeringPower),
+  };
+
+  rigidbody.addRelativeTorqueInstantly(glm::radians(correction));
 }
 
 void FighterJetBody::updateForceFromParts(float dt) {
@@ -235,6 +266,56 @@ void FighterJetBody::updateMesh(float dt) {
 
     auto q = glm::angleAxis(currentAngle, vec3(-1.f, 0.f, 0.f));
     airbrake.localRotation = q;
+  }
+
+  // Pitch animation
+  {
+    constexpr float maxAngle = glm::radians(20.f);
+    constexpr float rotSpeed = maxAngle * 2.f;
+    static float currentAngle = 0.f;
+
+    float rotDir = controlInput.x;
+    currentAngle += rotSpeed * rotDir * dt;
+    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
+
+    auto q = glm::angleAxis(currentAngle, vec3(-1.f, 0.f, 0.f));
+    leftElevator.localRotation = rightElevator.localRotation = q;
+
+    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
+  }
+
+  // Roll animation
+  {
+    constexpr float maxAngle = glm::radians(20.f);
+    constexpr float rotSpeed = maxAngle * 2.f;
+    constexpr vec3 leftAileronHinge{0.906308f, 0.0f, -0.422618f}; // Rotated left by 25 degrees around up
+    static float currentAngle = 0.f;
+
+    float rotDir = controlInput.z; // Clockwise roll if left aileron up (and right aileron is down (looking from the back))
+    currentAngle += rotSpeed * rotDir * dt;
+    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
+
+    auto q = glm::angleAxis(currentAngle, leftAileronHinge);
+    leftAileron.localRotation = q;
+    rightAileron.localRotation = {q.w, -q.x, q.y, q.z};
+
+    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
+  }
+
+  // Yaw animation
+  {
+    constexpr float maxAngle = glm::radians(20.f);
+    constexpr float rotSpeed = maxAngle * 2.f;
+    static float currentAngle = 0.f;
+
+    float rotDir = controlInput.y;
+    currentAngle += rotSpeed * rotDir * dt;
+    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
+
+    auto q = glm::angleAxis(currentAngle, vec3(0.f, 1.f, 0.f));
+    leftRudder.localRotation = rightRudder.localRotation = q;
+
+    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
   }
 
   mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);

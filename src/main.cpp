@@ -122,6 +122,8 @@ int main() {
   f15Config.flapsLiftPower = 15.f;
   f15Config.liftPower = 15.f;
   f15Config.meshScale = 0.01f;
+  f15Config.turnSpeed = 10.f;
+  f15Config.turnAcceleration = 10.f;
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
