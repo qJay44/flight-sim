@@ -4,7 +4,7 @@
 
 struct Grid : public Mesh {
   float baseColor = 1.f;
-  float gridSize = 10.f;
+  float gridSize = 20.f;
   Mesh mesh = meshes::plane(2);
 
   void scale(float s) {

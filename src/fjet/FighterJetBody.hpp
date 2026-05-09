@@ -68,6 +68,7 @@ private:
   };
 
   vec3 localOrientation;
+  glm::quat initialRotation;
 
   vec3 velocity{};
   vec3 lastVelocity{};

@@ -6,7 +6,7 @@
 
 FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
   : Moveable({}, -PI_2, 0.f),
-    body(fbxFilepath, vec3(0.f, 0.f, -1.f), jetMass),
+    body(fbxFilepath, vec3(0.f, 0.f, 1.f), jetMass),
     camera(vec3{})
 {
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
@@ -29,11 +29,11 @@ void FighterJet::moveRight() {
 }
 
 void FighterJet::moveUp() {
-  body.controlInput.x = 1.f;
+  body.controlInput.x = -1.f;
 }
 
 void FighterJet::moveDown() {
-  body.controlInput.x = -1.f;
+  body.controlInput.x =  1.f;
 }
 
 void FighterJet::onMouseMove(dvec2 mousePos) {

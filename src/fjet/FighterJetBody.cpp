@@ -18,10 +18,6 @@ static vec3 projectOnPlane(vec3 vec, vec3 normal) {
   return vec - (d * n);
 }
 
-static float sigmoid(float x) {
-  return 1.f / (1.f + glm::exp(x));
-}
-
 float FighterJetBody::getLiftCoeff(float angleRad) {
   float a = glm::degrees(std::abs(angleRad));
   float cl = 0.f;
@@ -84,6 +80,8 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f };
   rigidbody.drag = 0.02f;
   rigidbody.angularDrag = 1.5f;
+
+  initialRotation = glm::angleAxis(PI, vec3{0.f, 1.f, 0.f});
 }
 
 const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
@@ -112,7 +110,7 @@ void FighterJetBody::update(float dt) {
     updateMesh(dt);
   }
 
-  controlInput *= 0.1f * dt;
+  controlInput *= 0.9f;
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -146,8 +144,8 @@ void FighterJetBody::calcAngleOfAttack() {
     return;
   }
 
-  angleOfAttack = atan2(localVelocity.y, -localVelocity.z);
-  angleOfAttackYaw = atan2(localVelocity.x, -localVelocity.z);
+  angleOfAttack = atan2(-localVelocity.y, localVelocity.z);
+  angleOfAttackYaw = atan2(localVelocity.x, localVelocity.z);
 }
 
 void FighterJetBody::calcGForce(float dt) {
@@ -223,7 +221,7 @@ void FighterJetBody::updateLift() {
 
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
-  float steeringPower = glm::clamp(sigmoid(speed), 0.f, 1.f);
+  float steeringPower = glm::clamp(speed * 0.02f, 0.1f, 1.f);
 
   vec3 targetAV = controlInput * cfg.turnSpeed;
   vec3 av = glm::degrees(localAngularVelocity);
@@ -268,7 +266,7 @@ void FighterJetBody::updateForceFromParts(float dt) {
 
     if (lowestY < cfg.groundHeight) {
       float depth = cfg.groundHeight - lowestY;
-      // rigidbody.position.y += depth;
+      rigidbody.position.y += depth;
 
       vec3 r = contactCorner - rigidbody.position;
       vec3 force{};
@@ -360,7 +358,7 @@ void FighterJetBody::updateMesh(float dt) {
   }
 
   mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);
-  bodyTransform *= glm::mat4_cast(rigidbody.orientation);
+  bodyTransform *= glm::mat4_cast(rigidbody.orientation * initialRotation);
   bodyTransform *= glm::scale(mat4(1.f), vec3(cfg.meshScale));
 
   for (AircraftPart* part : parts) {
