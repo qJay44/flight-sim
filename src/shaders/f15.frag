@@ -9,17 +9,14 @@ out vec4 FragColor;
 
 layout(binding = 0) uniform sampler2D u_debug0Tex;
 
-uniform vec3 u_lightPos;
-uniform vec3 u_lightColor;
 uniform vec3 u_camPos;
 uniform vec3 u_color;
+uniform vec3 u_sunDir;
+uniform vec3 u_sunColor;
 uniform float u_time;
 
 vec3 directionalLight(vec3 normal) {
-  vec3 lightDistVec = u_lightPos - v_worldPos;
-  float lightDist = length(lightDistVec);
-
-  vec3 lightDir = normalize(lightDistVec);
+  vec3 lightDir = u_sunDir;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
   vec3 reflectDir = reflect(-lightDir, normal);
 
@@ -31,13 +28,14 @@ vec3 directionalLight(vec3 normal) {
 
   float lightAmount = (diffuse + specular) + ambient;
 
-  return u_lightColor * lightAmount;
+  return u_sunColor * lightAmount;
 }
 
 void main() {
   vec3 col = u_color;
   vec3 normal = normalize(v_normal);
   col *= directionalLight(normal);
+
 	FragColor = vec4(col, 1.f);
 }
 

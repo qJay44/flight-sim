@@ -33,6 +33,7 @@ public:
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawHUD(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
   friend struct gui;

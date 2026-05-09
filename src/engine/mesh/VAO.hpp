@@ -7,7 +7,7 @@ struct VAO {
   }
 
   static const VAO& getEmpty() {
-    static VAO emptyVAO;
+    static VAO emptyVAO{};
 
     if (!emptyVAO.id)
       emptyVAO.gen();

@@ -17,7 +17,7 @@ void main() {
 
   float color = u_baseColor - smoothstep(0.f, 1.f, lineMn);
 
-  float distance = length(v_worldPos.xz - u_camPos.xz);
+  float distance = length(v_worldPos.xz - u_camPos.xz) * 0.5f;
   float alpha = exp(-0.01f * distance) * color;
 
   FragColor = vec4(vec3(color), alpha);

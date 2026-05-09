@@ -144,6 +144,7 @@ void Mesh::screenDraw(const Camera* camera, Shader& shader) {
   static const VAO& vao = VAO::getEmpty();
   setCamUniforms(camera, shader);
   setGlobalUniforms(shader);
+  shader.use();
 
   vao.bind();
   glDrawArrays(GL_TRIANGLES, 0, 6);

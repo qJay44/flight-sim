@@ -54,14 +54,18 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   for (fbx::UfbxMesh& nmesh : model.meshes)
     meshMap[nmesh.name] = std::move(nmesh);
 
-  for (AircraftPart* part : allParts) {
+  for (AircraftPart* part : parts) {
     auto it = meshMap.find(part->name);
     if (it == meshMap.end())
       error("[FighterJetBody::FighterJetBody] Didn't find [{}] in map", part->name);
 
-    part->mesh = std::move(it->second.mesh);
+    auto& ufbxMesh = it->second;
+
+    part->mesh = std::move(ufbxMesh.mesh);
     part->mass = totalMass * part->massPercent;
-    part->offset = it->second.averagePos;
+    part->offset = ufbxMesh.offset;
+    part->localBoxMin = ufbxMesh.minPos;
+    part->localBoxMax = ufbxMesh.maxPos;
   }
 
   canopy.color = vec3(1.f);
@@ -75,45 +79,57 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   hardpoint2   = socketMap["Hardpoint2"];
 
   rigidbody.mass = totalMass;
-  rigidbody.position.y = 20.f;
+  rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
+  rigidbody.position.y = 10.f;
+  rigidbody.localInertia = { 471906.f, 684784.f, 212878.f };
+  rigidbody.drag = 0.02f;
+  rigidbody.angularDrag = 1.5f;
 }
 
 const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
 const vec3& FighterJetBody::getVelocity() const { return velocity; }
 const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orientation; }
 
-void FighterJetBody::addThrottle(float input) {
-  cfg.throttle = input;
-}
-
 void FighterJetBody::update(float dt) {
-  calcState(dt);
-  calcAngleOfAttack();
-  calcGForce(dt);
+  constexpr int substeps = 1;
+  constexpr float stepDt = 1.f / substeps;
+  dt *= stepDt;
 
-  updateThrust();
-  updateDrag();
-  updateLift();
-  updateSteering(dt);
-  updateForceFromParts(dt);
+  for (int i = 0; i < substeps; i++) {
+    calcState(dt);
+    calcAngleOfAttack();
+    calcGForce(dt);
 
-  rigidbody.addGravity(-9.81f);
-  rigidbody.applyForce(dt);
+    updateThrust();
+    updateDrag();
+    updateLift();
+    updateSteering(dt);
+    updateForceFromParts(dt);
 
-  updateMesh(dt);
+    rigidbody.addForce({0.f, -9.81f * rigidbody.mass, 0.f});
+    rigidbody.update(dt);
+
+    updateMesh(dt);
+  }
+
   controlInput *= 0.1f * dt;
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  for (AircraftPart* part : allParts) {
+  for (AircraftPart* part : parts) {
     shader.setUniformMatrix3f("u_localRotation", glm::mat3_cast(part->localRotation));
     part->draw(camera, shader, forceNoWireframe);
   }
 }
 
 void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  for (AircraftPart* part : allParts)
-    part->drawDebug(camera, shader, forceNoWireframe);
+  for (AircraftPart* part : parts)
+    part->drawDebugMass(camera, shader, forceNoWireframe);
+}
+
+void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  for (AircraftPart* part : parts)
+    part->drawDebugBoundaries(camera, shader, forceNoWireframe);
 }
 
 void FighterJetBody::calcState(float dt) {
@@ -166,6 +182,7 @@ float FighterJetBody::calcSteering(float dt, float angularVelocity, float target
 
 void FighterJetBody::updateThrust() {
   rigidbody.addRelativeForce(cfg.throttle * cfg.maxThrust * localOrientation);
+  cfg.throttle *= 0.9f;
 }
 
 void FighterJetBody::updateDrag() {
@@ -221,20 +238,44 @@ void FighterJetBody::updateSteering(float dt) {
 }
 
 void FighterJetBody::updateForceFromParts(float dt) {
-  for (AircraftPart* part : allParts) {
-    vec3 rotatedOffset = rigidbody.orientation * part->offset;
-    vec3 worldPos = rigidbody.position;
+  for (AircraftPart* part : parts) {
+    vec3 bbCenterLocal = part->getLocalBoxCenter() * cfg.meshScale;
+    vec3 bbSizeH = part->getLocalBoxSize() * 0.5f * cfg.meshScale; // Distance from bb center to its edges
 
-    if (worldPos.y < cfg.groundHeight) {
-      float depth = glm::clamp(cfg.groundHeight - worldPos.y, 0.f, 0.5f);
-      float spring = depth * cfg.stiffness;
+    // Actual box center position
+    vec3 bbRotatedCenterLocal = rigidbody.orientation * bbCenterLocal;
+    vec3 worldPos = rigidbody.position + bbRotatedCenterLocal;
 
-      vec3 partVel = rigidbody.velocity + cross(rigidbody.angularVelocity, rotatedOffset);
-      float damping = -partVel.y * cfg.dampingCoeff;
+    vec3 corners[8] = {
+      worldPos + rigidbody.orientation * bbSizeH,
+      worldPos + rigidbody.orientation * vec3{-bbSizeH.x,  bbSizeH.y,  bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{-bbSizeH.x, -bbSizeH.y,  bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{-bbSizeH.x, -bbSizeH.y, -bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{ bbSizeH.x, -bbSizeH.y,  bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{ bbSizeH.x, -bbSizeH.y, -bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{ bbSizeH.x,  bbSizeH.y, -bbSizeH.z},
+      worldPos + rigidbody.orientation * vec3{-bbSizeH.x,  bbSizeH.y, -bbSizeH.z},
+    };
 
-      vec3 force{0.f, spring + damping, 0.f};
-      rigidbody.force += force;
-      rigidbody.torque += cross(rotatedOffset, force);
+    float lowestY = corners[0].y;
+    vec3 contactCorner{};
+    for (const vec3& corner : corners) {
+      if (corner.y < lowestY) {
+        lowestY = corner.y;
+        contactCorner = corner;
+      }
+    }
+
+    if (lowestY < cfg.groundHeight) {
+      float depth = cfg.groundHeight - lowestY;
+      // rigidbody.position.y += depth;
+
+      vec3 r = contactCorner - rigidbody.position;
+      vec3 force{};
+      force.y = depth * cfg.stiffness;
+
+      rigidbody.addForce(force);
+      rigidbody.addTorque(cross(r, force));
     }
   }
 }
@@ -288,7 +329,7 @@ void FighterJetBody::updateMesh(float dt) {
   {
     constexpr float maxAngle = glm::radians(20.f);
     constexpr float rotSpeed = maxAngle * 2.f;
-    constexpr vec3 leftAileronHinge{0.906308f, 0.0f, -0.422618f}; // Rotated left by 25 degrees around up
+    constexpr vec3 leftAileronHinge{0.906308f, 0.0f, -0.422618f}; // The rotated Left by 25 degrees around the Up
     static float currentAngle = 0.f;
 
     float rotDir = controlInput.z; // Clockwise roll if left aileron up (and right aileron is down (looking from the back))
@@ -322,11 +363,18 @@ void FighterJetBody::updateMesh(float dt) {
   bodyTransform *= glm::mat4_cast(rigidbody.orientation);
   bodyTransform *= glm::scale(mat4(1.f), vec3(cfg.meshScale));
 
-  for (AircraftPart* part : allParts) {
-    mat4 partMove = glm::translate(mat4(1.f), part->offset);
-    partMove *= glm::mat4_cast(part->localRotation);
+  for (AircraftPart* part : parts) {
+    mat4 partTranslation = glm::translate(mat4(1.f), part->offset);
+    mat4 partRotation = glm::mat4_cast(part->localRotation);
 
-    part->model = bodyTransform * partMove;
+    part->model = bodyTransform * partTranslation * partRotation;
+
+    vec3 size = part->getLocalBoxSize();
+    vec3 center = part->getLocalBoxCenter();
+    mat4 partBoxTranslation = glm::translate(mat4(1.f), center);
+    mat4 partBoxScale = glm::scale(mat4(1.f), size * 0.5f);
+
+    part->boxModel = bodyTransform * partBoxTranslation * partRotation * partBoxScale;
   }
 }
 

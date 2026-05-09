@@ -13,7 +13,9 @@ struct Socket {
 struct UfbxMesh {
   std::string name;
   Mesh mesh;
-  vec3 averagePos;
+  vec3 offset;
+  vec3 minPos;
+  vec3 maxPos;
 };
 
 struct Model {

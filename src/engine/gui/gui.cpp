@@ -13,7 +13,7 @@ static bool configCollapsed = true;
 static bool infoCollapsed = true;
 
 Camera* gui::camPtr = nullptr;
-Light* gui::lightPtr = nullptr;
+Sun* gui::sunPtr = nullptr;
 FighterJet* gui::fjetPtr = nullptr;
 
 u16 gui::fps = 1;
@@ -101,11 +101,12 @@ void gui::draw() {
     }
 
     ImGui::SeparatorText("Center of mass");
-    bool showAll = ImGui::Button("Show all"); ImGui::SameLine();
-    bool hideAll = ImGui::Button("Hide all");
 
     if (ImGui::TreeNode("Parts")) {
-      for (AircraftPart* p : body.allParts) {
+      bool showAll = ImGui::Button("Show all"); ImGui::SameLine();
+      bool hideAll = ImGui::Button("Hide all");
+
+      for (AircraftPart* p : body.parts) {
         p->bDrawDebug |= showAll;
         p->bDrawDebug &= !hideAll;
 
@@ -142,13 +143,15 @@ void gui::draw() {
     }
   }
 
-  // ===== Light ========================================================================================= //
+  // ===== Sun =========================================================================================== //
 
   assert(lightPtr);
   if (ImGui::CollapsingHeader("Light")) {
-    ImGui::DragFloat3("Position", glm::value_ptr(lightPtr->position));
-    ImGui::DragFloat("Radius", &lightPtr->radius, 1.f, 0.f);
-    ImGui::ColorEdit3("Color", glm::value_ptr(lightPtr->color));
+    ImGui::DragFloat("Focus", &sunPtr->focus, 1.f);
+    ImGui::DragFloat("Intensity", &sunPtr->intensity, 1.f);
+    ImGui::SliderAngle("Yaw", &sunPtr->yaw, -180.f, 180.f);
+    ImGui::SliderAngle("Pitch", &sunPtr->pitch, -90.f, 90.f);
+    ImGui::ColorEdit3("Color", glm::value_ptr(sunPtr->color));
   };
 
   // ===== Other ========================================================================================= //

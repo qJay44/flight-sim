@@ -1,10 +1,16 @@
 #pragma once
 
+#include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/norm.hpp"
+#include "glm/gtx/matrix_operation.hpp"
+#include "glm/matrix.hpp"
 
 struct PointMass {
-  float mass{1.f};
-  float momentOfInertia = 1000.f;
+  float mass = 1.f;
+  float inverseMass = 1.f;
+  float drag = 1.f;
+  float angularDrag= 1.f;
+  vec3 localInertia{1.f, 1.f, 1.f};
   vec3 position{};
   vec3 velocity{};
   vec3 angularVelocity{};
@@ -29,12 +35,17 @@ struct PointMass {
     angularVelocity += orientation * t;
   }
 
-  void addGravity(float g) {
-    force.y += g * mass;
+  void applyDamping(float dt) {
+    velocity *= 1.f / (1.f + drag * dt);
+    angularVelocity *= 1.f / (1.f + angularDrag * dt);
   }
 
-  void applyForce(float dt) {
-    vec3 acc = force / mass;
+  void update(float dt) {
+    mat3 R = glm::mat3_cast(orientation);
+    mat3 invIntertiaWorld = R * glm::diagonal3x3(1.f / localInertia) * glm::transpose(R);
+    vec3 angularAcc = invIntertiaWorld * torque;
+
+    vec3 acc = force * inverseMass;
     velocity += acc * dt;
     position += velocity * dt;
 
@@ -43,13 +54,16 @@ struct PointMass {
       velocity.y *= -0.1f;
     }
 
-    angularVelocity += torque / momentOfInertia * dt;
+    angularVelocity += angularAcc * dt;
+
     glm::quat rotStep = glm::quat(0.f, angularVelocity * dt);
     orientation += rotStep * 0.5f * orientation;
     orientation = glm::normalize(orientation);
 
     force *= 0.f;
     torque *= 0.f;
+
+    applyDamping(dt);
   }
 };
 

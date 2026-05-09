@@ -17,7 +17,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
 
 // TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
-  body.addThrottle(1.f);
+  body.cfg.throttle = 1.f;
 }
 
 void FighterJet::moveLeft() {
@@ -107,6 +107,10 @@ void FighterJet::drawHUD(const Camera* camera, Shader& shader, bool forceNoWiref
 
 void FighterJet::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   body.drawDebug(camera, shader, forceNoWireframe);
+}
+
+void FighterJet::drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+  body.drawDebugBoundaries(camera, shader, forceNoWireframe);
 }
 
 void FighterJet::updateHUD() {

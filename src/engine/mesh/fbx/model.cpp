@@ -1,7 +1,9 @@
 #include "model.hpp"
 
+#include <cfloat>
 #include <print>
 
+#include "glm/ext/scalar_common.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "ufbx.h"
 #include "utils/utils.hpp"
@@ -69,6 +71,8 @@ Model load(const fspath& file, bool printInfo) {
     }
 
     std::vector<VertexPCTN> vertices;
+    vec3 minPos(FLT_MAX);
+    vec3 maxPos(-FLT_MAX);
 
     if (mesh) {
       ufbx_matrix modelToWorld = node->node_to_world;
@@ -85,6 +89,9 @@ Model load(const fspath& file, bool printInfo) {
 
           VertexPCTN vertex{};
           vertex.position = glm::make_vec3(position.v);
+
+          minPos = glm::min(minPos, vertex.position);
+          maxPos = glm::max(maxPos, vertex.position);
 
           if (mesh->vertex_color.exists) {
             ufbx_vec4 color = ufbx_get_vertex_vec4(&mesh->vertex_color, idx);
@@ -106,14 +113,16 @@ Model load(const fspath& file, bool printInfo) {
       }
 
       ufbx_vec3 pivotPos = node->local_transform.translation;
-      vec3 pivot = glm::make_vec3(pivotPos.v);
+      vec3 offset = glm::make_vec3(pivotPos.v);
       for (auto& v : vertices)
-        v.position -= pivot;
+        v.position -= offset;
 
       model.meshes.push_back({
         node->name.data,
         Mesh(vertices, GL_TRIANGLES, GL_STATIC_DRAW),
-        pivot
+        offset,
+        minPos,
+        maxPos,
       });
 
     } else if (node->attrib_type == UFBX_ELEMENT_EMPTY) {

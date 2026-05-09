@@ -14,12 +14,11 @@ public:
   const glm::quat& getOrientation() const;
   const float& getMaxThrust() const;
 
-  void addThrottle(float normalizedValue); // [0, 1]
-
   void update(float dt);
 
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
   friend struct FighterJet;
@@ -48,7 +47,7 @@ private:
   mat4 hardpoint2; // Weapon mount point (under right wing)
 
   PointMass rigidbody;
-  AircraftPart* allParts[17] = {
+  AircraftPart* parts[17] = {
     &fuselage,
     &nose,
     &cockpit,
@@ -90,13 +89,12 @@ private:
     float maxThrust = 1.f;
     float groundHeight = 0.f;
     float stiffness = 100000.f;
-    float dampingCoeff = 5000.f;
-    float airbrakeDrag = 0.f;
+    float airbrakeDrag = 1.f;
     float flapsDrag = 2.f;
     float flapsLiftPower = 0.5f;
     float flapsAOABias = 10.f;
     float meshScale = 1.f;
-    float inducedDrag = 100.f;
+    float inducedDrag = 10.f;
     float liftPower = 1.f;
     float rudderPower = 1.f;
     float turnSpeed = 1.f;

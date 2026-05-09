@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Light.hpp"
+#include "../../other/Sun.hpp"
 #include "../../fjet/FighterJet.hpp"
 
 struct gui {
   static Camera* camPtr;
-  static Light* lightPtr;
+  static Sun* sunPtr;
   static FighterJet* fjetPtr;
   static u16 fps;
 

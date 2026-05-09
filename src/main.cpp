@@ -1,4 +1,5 @@
 #include "other/Grid.hpp"
+#include "other/Sun.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -87,12 +88,13 @@ int main() {
 
   Shader::setDirectoryLocation("src/shaders");
 
-  Shader lightShader("light.vert", "light.frag");
-  Shader linesShader("lines.vert", "lines.frag");
+  Shader environmentShader("environment.vert", "environment.frag");
+  Shader colorShader("color.vert", "color.frag");
   Shader airplaneShader("f15.vert", "f15.frag");
   Shader billboardColorShader("billboardColor.vert", "billboardColor.frag");
   Shader hudShader("hud.vert", "hud.frag");
   Shader gridShader("grid.vert", "grid.frag");
+  Shader edgesShader("edges.vert", "edges.frag", "edges.geom");
 
   // ===== Cameras ============================================== //
 
@@ -109,21 +111,24 @@ int main() {
 
   // ============================================================ //
 
-  Light light({0.f, 200.f, 0.f});
+  Sun sun;
+  sun.pitch = PI_6;
+  sun.updateDir();
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
   f15.setCamSensitivity(100.f);
 
   auto& f15Config = f15.getBodyConfig();
-  f15Config.stiffness = 100000.f;
-  f15Config.dampingCoeff = 5000.f;
-  f15Config.maxThrust = 200000.f;
-  f15Config.flapsLiftPower = 15.f;
-  f15Config.liftPower = 15.f;
+  f15Config.stiffness = 500.f;
+  f15Config.maxThrust = 6e5f;
+  f15Config.flapsLiftPower = 0.5f;
+  f15Config.flapsAOABias = 5.f;
+  f15Config.liftPower = 10.f;
   f15Config.meshScale = 0.01f;
-  f15Config.turnSpeed = 10.f;
-  f15Config.turnAcceleration = 10.f;
+  f15Config.inducedDrag = 0.5f;
+  f15Config.turnSpeed = 90.f;
+  f15Config.turnAcceleration = 3e5f;
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
@@ -132,7 +137,7 @@ int main() {
   grid.scale(1e4f);
 
   gui::camPtr = &cameraSpectate;
-  gui::lightPtr = &light;
+  gui::sunPtr = &sun;
   gui::fjetPtr = &f15;
   InputsHandler::controlledPlane = &f15;
 
@@ -174,25 +179,32 @@ int main() {
     global::profiler->clearTasks();
 
     f15.update();
-    light.update();
-    light.setUniforms(airplaneShader);
+
+    sun.setUniforms(airplaneShader);
+    sun.setUniforms(environmentShader);
+    sun.setUniformsEnvironment(environmentShader);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_CULL_FACE); // Disable for plane meshes, enable for volumetric meshes
-    glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+
+    sun.draw(activeCam, environmentShader);
+
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 
     f15.draw(activeCam, airplaneShader);
     f15.drawHUD(activeCam, hudShader);
     f15.drawDebug(activeCam, billboardColorShader);
+    f15.drawDebugBoundaries(activeCam, edgesShader);
 
     glDisable(GL_CULL_FACE);
 
     grid.draw(activeCam, gridShader);
-    light.draw(activeCam, lightShader);
 
     if (global::drawGlobalAxis)
-      axis.draw(activeCam, linesShader);
+      axis.draw(activeCam, colorShader);
 
     // ============================================================ //
 
