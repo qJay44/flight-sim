@@ -14,14 +14,13 @@ uniform vec3 u_sunColor;
 uniform float u_sunFocus;
 uniform float u_sunIntensity;
 uniform mat4 u_camInv;
+uniform mat4 u_camPV;
 
 void main() {
   vec2 ndc = v_uv * 2.f - 1.f;
-  vec4 clipPos = vec4(ndc, -1.f, 1.f);
-  vec4 worldPos = u_camInv * clipPos;
-  worldPos /= worldPos.w;
+  mat3 rotationOnly = mat3(u_camInv);
 
-  vec3 rayDir = normalize(worldPos.xyz - u_camPos);
+  vec3 rayDir = normalize(rotationOnly * vec3(ndc, -1.f));
   vec3 lightDir = -u_sunDir;
 
   float skyGradientT = pow(smoothstep(0.f, 0.4f, rayDir.y), 0.35f);

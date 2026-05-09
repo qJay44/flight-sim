@@ -1,3 +1,4 @@
+#include "engine/texture/TextureCubemap.hpp"
 #include "other/Grid.hpp"
 #include "other/Sun.hpp"
 #ifdef _WIN32
@@ -95,6 +96,7 @@ int main() {
   Shader hudShader("hud.vert", "hud.frag");
   Shader gridShader("grid.vert", "grid.frag");
   Shader edgesShader("edges.vert", "edges.frag", "edges.geom");
+  Shader skyboxShader("skybox.vert", "skybox.frag");
 
   // ===== Cameras ============================================== //
 
@@ -113,6 +115,7 @@ int main() {
 
   Sun sun;
   sun.pitch = PI_6;
+  sun.yaw = 0.f;
   sun.updateDir();
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
@@ -122,19 +125,35 @@ int main() {
   auto& f15Config = f15.getBodyConfig();
   f15Config.stiffness = 500.f;
   f15Config.maxThrust = 6e5f;
-  f15Config.flapsLiftPower = 0.5f;
-  f15Config.flapsAOABias = 5.f;
-  f15Config.liftPower = 10.f;
+  f15Config.flapsLiftPower = 2.f;
+  f15Config.flapsAOABias = 10.f;
+  f15Config.liftPower = 5.f;
   f15Config.meshScale = 0.01f;
-  f15Config.inducedDrag = 0.5f;
-  f15Config.turnSpeed = 90.f;
-  f15Config.turnAcceleration = 3e5f;
+  f15Config.inducedDrag = 10.5f;
+  f15Config.turnSpeed = vec3(40.f, 20.f, 180.f);
+  f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
 
   Mesh axis = meshes::axis();
   axis.scale(1e4f);
 
   Grid grid;
   grid.scale(1e4f);
+
+  TextureDescriptor cubemapTexDesc;
+  cubemapTexDesc.uniformName = "u_skyboxTex";
+  cubemapTexDesc.unit = 0;
+  cubemapTexDesc.target = GL_TEXTURE_CUBE_MAP;
+  cubemapTexDesc.minFilter = GL_LINEAR;
+  cubemapTexDesc.magFilter = GL_LINEAR;
+  cubemapTexDesc.wrapS = GL_CLAMP_TO_EDGE;
+  cubemapTexDesc.wrapT = GL_CLAMP_TO_EDGE;
+  cubemapTexDesc.wrapR = GL_CLAMP_TO_EDGE;
+  cubemapTexDesc.genMipMap = false;
+
+  TextureCubemap skyboxTex(cubemapTexDesc);
+  skyboxTex.loadFromImage("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
+
+  Mesh skyboxCube = Mesh::loadObj("res/obj/Cube.obj");
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &sun;
@@ -189,7 +208,10 @@ int main() {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    sun.draw(activeCam, environmentShader);
+    skyboxTex.bind();
+    glDepthFunc(GL_LEQUAL);
+    skyboxCube.draw(activeCam, skyboxShader);
+    glDepthFunc(GL_LESS);
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);

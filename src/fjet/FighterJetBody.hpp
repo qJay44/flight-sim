@@ -98,8 +98,8 @@ private:
     float inducedDrag = 10.f;
     float liftPower = 1.f;
     float rudderPower = 1.f;
-    float turnSpeed = 1.f;
-    float turnAcceleration = 1.f;
+    vec3 turnSpeed{};
+    vec3 turnAcceleration{};
   } cfg;
 
   bool airbrakeDeployed = false;

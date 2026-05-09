@@ -37,7 +37,7 @@ struct PointMass {
 
   void applyDamping(float dt) {
     velocity *= 1.f / (1.f + drag * dt);
-    angularVelocity *= 1.f / (1.f + angularDrag * dt);
+    angularVelocity *= glm::pow(angularDrag, dt);
   }
 
   void update(float dt) {

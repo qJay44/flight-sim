@@ -39,7 +39,7 @@ private:
   friend struct gui;
 
   FighterJetBody body;
-  Font font{"res/fonts/FiraCodeNerdFontMono-Regular.ttf", 32};
+  Font font{"res/fonts/FiraCodeNerdFontMono-Bold.ttf", 32};
   HUD hud{&font};
 
   Camera camera;

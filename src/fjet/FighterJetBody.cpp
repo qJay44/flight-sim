@@ -79,7 +79,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.position.y = 10.f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f };
   rigidbody.drag = 0.02f;
-  rigidbody.angularDrag = 1.5f;
+  rigidbody.angularDrag = 0.5f;
 
   initialRotation = glm::angleAxis(PI, vec3{0.f, 1.f, 0.f});
 }
@@ -89,26 +89,20 @@ const vec3& FighterJetBody::getVelocity() const { return velocity; }
 const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orientation; }
 
 void FighterJetBody::update(float dt) {
-  constexpr int substeps = 1;
-  constexpr float stepDt = 1.f / substeps;
-  dt *= stepDt;
+  calcState(dt);
+  calcAngleOfAttack();
+  calcGForce(dt);
 
-  for (int i = 0; i < substeps; i++) {
-    calcState(dt);
-    calcAngleOfAttack();
-    calcGForce(dt);
+  updateThrust();
+  updateDrag();
+  updateLift();
+  updateSteering(dt);
+  updateForceFromParts(dt);
 
-    updateThrust();
-    updateDrag();
-    updateLift();
-    updateSteering(dt);
-    updateForceFromParts(dt);
+  rigidbody.addForce({0.f, -9.81f * rigidbody.mass, 0.f});
+  rigidbody.update(dt);
 
-    rigidbody.addForce({0.f, -9.81f * rigidbody.mass, 0.f});
-    rigidbody.update(dt);
-
-    updateMesh(dt);
-  }
+  updateMesh(dt);
 
   controlInput *= 0.9f;
 }
@@ -161,7 +155,7 @@ vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) cons
   float v2 = glm::length2(liftVelocity);
 
   float liftForce = v2 * liftCoeff * liftPower;
-  vec3 liftDir = cross(right, liftVelocityNorm);
+  vec3 liftDir = cross(liftVelocityNorm, right);
   vec3 lift = liftDir * liftForce;
 
   float dragForce = liftCoeff * liftCoeff * cfg.inducedDrag;
@@ -198,19 +192,18 @@ void FighterJetBody::updateDrag() {
     -localVelocity.z * lvAbs.z * totalForwardCd
   };
 
-  vec3 dragForceWorld = dragForceLocal;
-  rigidbody.addRelativeForce(dragForceWorld);
+  rigidbody.addRelativeForce(dragForceLocal);
 }
 
 void FighterJetBody::updateLift() {
   if (glm::length2(localVelocity) < 1.f)
     return;
 
-  float currFlapsLiftPower = flapsDeployed * cfg.flapsLiftPower;
-  float currFlapsAOABias = flapsDeployed * cfg.flapsAOABias;
+  float flapsLiftPower = flapsDeployed * cfg.flapsLiftPower;
+  float flapsAOABias = flapsDeployed * cfg.flapsAOABias;
 
-  float flapsCoeff = getLiftCoeff(angleOfAttack + glm::radians(currFlapsAOABias));
-  vec3 liftForce = calcLift({1.f, 0.f, 0.f}, cfg.liftPower + currFlapsLiftPower, flapsCoeff);
+  float flapsCoeff = getLiftCoeff(angleOfAttack + glm::radians(flapsAOABias));
+  vec3 liftForce = calcLift({1.f, 0.f, 0.f}, cfg.liftPower + flapsLiftPower, flapsCoeff);
 
   float rudderCoeff = getLiftCoeffYaw(angleOfAttackYaw);
   vec3 liftForceYaw = calcLift({0.f, 1.f, 0.f}, cfg.rudderPower, rudderCoeff);
@@ -221,15 +214,15 @@ void FighterJetBody::updateLift() {
 
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
-  float steeringPower = glm::clamp(speed * 0.02f, 0.1f, 1.f);
+  float steeringPower = glm::clamp(glm::log(speed), 0.1f, 1.f);
 
   vec3 targetAV = controlInput * cfg.turnSpeed;
   vec3 av = glm::degrees(localAngularVelocity);
 
   vec3 correction {
-    calcSteering(dt, av.x, targetAV.x, cfg.turnAcceleration * steeringPower),
-    calcSteering(dt, av.y, targetAV.y, cfg.turnAcceleration * steeringPower),
-    calcSteering(dt, av.z, targetAV.z, cfg.turnAcceleration * steeringPower),
+    calcSteering(dt, av.x, targetAV.x, cfg.turnAcceleration.x * steeringPower),
+    calcSteering(dt, av.y, targetAV.y, cfg.turnAcceleration.y * steeringPower),
+    calcSteering(dt, av.z, targetAV.z, cfg.turnAcceleration.z * steeringPower),
   };
 
   rigidbody.addRelativeTorqueInstantly(glm::radians(correction));
@@ -282,7 +275,7 @@ void FighterJetBody::updateMesh(float dt) {
   // Flaps deploy animation
   {
     constexpr float maxAngle = glm::radians(-30.f);
-    constexpr float rotSpeed = maxAngle * 0.5f;
+    constexpr float rotSpeed = maxAngle;
     static float currentAngle = 0.f;
 
     float rotDir = flapsDeployed * 2.f - 1.f;
@@ -296,7 +289,7 @@ void FighterJetBody::updateMesh(float dt) {
   // Airbrake deploy animation
   {
     constexpr float maxAngle = glm::radians(10.f);
-    constexpr float rotSpeed = maxAngle * 0.5f;
+    constexpr float rotSpeed = maxAngle;
     static float currentAngle = 0.f;
 
     float rotDir = airbrakeDeployed * 2.f - 1.f;

@@ -2,3 +2,4 @@ Build/
 .cache/
 res/tex/hud
 compile_commands.json
+res/tex/Cubemaps
