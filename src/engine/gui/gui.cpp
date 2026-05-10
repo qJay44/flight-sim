@@ -72,6 +72,9 @@ void gui::draw() {
 
   assert(fjetPtr);
   if (ImGui::CollapsingHeader("F15 General")) {
+    ImGui::Checkbox("Show HUD", &fjetPtr->bDrawHUD);
+    ImGui::Checkbox("Show parts masses", &fjetPtr->bDrawDebugMass);
+    ImGui::Checkbox("Show BB", &fjetPtr->bDrawDebugBoundaries);
   }
 
   // ===== F15 Body ====================================================================================== //
@@ -103,17 +106,10 @@ void gui::draw() {
     ImGui::SeparatorText("Center of mass");
 
     if (ImGui::TreeNode("Parts")) {
-      bool showAll = ImGui::Button("Show all"); ImGui::SameLine();
-      bool hideAll = ImGui::Button("Hide all");
-
       for (AircraftPart* p : body.parts) {
-        p->bDrawDebug |= showAll;
-        p->bDrawDebug &= !hideAll;
-
         if (ImGui::TreeNode(p->name.c_str())) {
           ImGui::Text("Mass: %.2f kg", p->mass);
-          ImGui::ColorEdit3("Color", glm::value_ptr(p->color));
-          ImGui::Checkbox("Show", &p->bDrawDebug);
+          ImGui::ColorEdit3("Debug color", glm::value_ptr(p->color));
 
           ImGui::TreePop();
         }

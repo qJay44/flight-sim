@@ -77,7 +77,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
   rigidbody.position.y = 10.f;
-  rigidbody.localInertia = { 471906.f, 684784.f, 212878.f };
+  rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // TODO: Calculate at runtime (compile time?) based on mass
   rigidbody.drag = 0.02f;
   rigidbody.angularDrag = 0.5f;
 
@@ -104,7 +104,7 @@ void FighterJetBody::update(float dt) {
 
   updateMesh(dt);
 
-  controlInput *= 0.9f;
+  controlInput *= 0.5f;
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -114,7 +114,7 @@ void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWire
   }
 }
 
-void FighterJetBody::drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   for (AircraftPart* part : parts)
     part->drawDebugMass(camera, shader, forceNoWireframe);
 }
@@ -214,9 +214,9 @@ void FighterJetBody::updateLift() {
 
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
-  float steeringPower = glm::clamp(glm::log(speed), 0.1f, 1.f);
+  float steeringPower = glm::clamp((speed * speed) / 2e3f, 0.1f, 1.f);
 
-  vec3 targetAV = controlInput * cfg.turnSpeed;
+  vec3 targetAV = controlInput * cfg.turnSpeed * steeringPower;
   vec3 av = glm::degrees(localAngularVelocity);
 
   vec3 correction {

@@ -32,7 +32,7 @@ public:
   void update();
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawHUD(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-  void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:
@@ -45,9 +45,12 @@ private:
   Camera camera;
   float camDistance = 10.f;
   float camDistanceMax = 20.f;
+  glm::quat camQuat = glm::identity<glm::quat>();
 
-  glm::quat turnQuat   = glm::identity<glm::quat>();
-  glm::quat rotateQuat = glm::identity<glm::quat>();
+  // Better to move to main.cpp
+  bool bDrawHUD = true;
+  bool bDrawDebugMass = false;
+  bool bDrawDebugBoundaries = false;
 
 private:
   void updateHUD();

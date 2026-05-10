@@ -120,14 +120,15 @@ int main() {
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f);
   f15.setCamDistance(30.f);
-  f15.setCamSensitivity(100.f);
+  f15.setCamSensitivity(1.f);
 
   auto& f15Config = f15.getBodyConfig();
   f15Config.stiffness = 500.f;
   f15Config.maxThrust = 6e5f;
   f15Config.flapsLiftPower = 2.f;
   f15Config.flapsAOABias = 10.f;
-  f15Config.liftPower = 5.f;
+  f15Config.liftPower = 50.f;
+  f15Config.rudderPower = 50.f;
   f15Config.meshScale = 0.01f;
   f15Config.inducedDrag = 10.5f;
   f15Config.turnSpeed = vec3(40.f, 20.f, 180.f);
@@ -218,7 +219,7 @@ int main() {
 
     f15.draw(activeCam, airplaneShader);
     f15.drawHUD(activeCam, hudShader);
-    f15.drawDebug(activeCam, billboardColorShader);
+    f15.drawDebugMass(activeCam, billboardColorShader);
     f15.drawDebugBoundaries(activeCam, edgesShader);
 
     glDisable(GL_CULL_FACE);

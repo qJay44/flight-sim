@@ -1,5 +1,6 @@
 #include "Moveable.hpp"
 
+#include "glm/ext/scalar_common.hpp"
 #include "glm/gtx/vector_angle.hpp"
 #include "global.hpp"
 
@@ -30,7 +31,7 @@ void Moveable::setSpeedDefault(float n)      { speedDefault = n;   }
 void Moveable::setSpeedMultiplier(float n)   { speedMul     = n;   }
 void Moveable::setSensitivity(float n)       { sensitivity  = n;   }
 void Moveable::setYaw(float n)               { yaw          = n;   }
-void Moveable::setPitch(float n)             { pitch        = n;   }
+void Moveable::setPitch(float n)             { pitch        = glm::clamp(pitch, -89.f, 89.f); }
 void Moveable::setOrientation(const vec3& o) { orientation  = o;   }
 void Moveable::setPosition(const vec3& pos)  { position     = pos; }
 void Moveable::setUp(const vec3& up)         { this->up     = up;  }
@@ -41,6 +42,9 @@ void Moveable::setView(const Moveable* rhs) {
   pitch = rhs->pitch;
   orientation = rhs->orientation;
 }
+
+void Moveable::addYaw(float n)   { yaw   += n; }
+void Moveable::addPitch(float n) { pitch = glm::clamp(pitch + n, -89.f, 89.f); }
 
 void Moveable::moveForward() { position +=  orientation * speed * global::dt; }
 void Moveable::moveBack()    { position += -orientation * speed * global::dt; }

@@ -19,10 +19,9 @@ struct AircraftPart {
   vec3 boxColor{0.f, 1.f, 0.f};
   mat4 boxModel;
 
-  bool bDrawDebug = false;
-  Mesh debugMassMesh = meshes::circle();
+  Mesh debugMeshMass = meshes::circle();
 
-  Mesh debugRect = Mesh::loadObj("res/obj/Cube.obj");
+  Mesh debugMeshBB = Mesh::loadObj("res/obj/Cube.obj");
   mat4 rectScale{1.f};
 
   vec3 getLocalBoxSize() const {
@@ -39,16 +38,13 @@ struct AircraftPart {
   }
 
   void drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const {
-    if (!bDrawDebug)
-      return;
-
     shader.setUniform3f("u_color", 1.f - color);
-    debugMassMesh.draw(camera, shader, model, forceNoWireframe);
+    debugMeshMass.draw(camera, shader, model, forceNoWireframe);
   }
 
   void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const {
     shader.setUniform3f("u_color", boxColor);
-    debugRect.draw(camera, shader, boxModel, forceNoWireframe);
+    debugMeshBB.draw(camera, shader, boxModel, forceNoWireframe);
   }
 };
 

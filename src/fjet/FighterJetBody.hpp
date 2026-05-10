@@ -17,7 +17,7 @@ public:
   void update(float dt);
 
   void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-  void drawDebug(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
   void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
 
 private:

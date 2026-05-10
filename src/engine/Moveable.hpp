@@ -32,6 +32,9 @@ public:
   void setUp(const vec3& up);
   void setView(const Moveable* rhs);
 
+  void addYaw(float n);
+  void addPitch(float n);
+
   virtual void moveForward();
   virtual void moveBack();
   virtual void moveLeft();
