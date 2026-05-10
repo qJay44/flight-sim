@@ -1,5 +1,6 @@
 #include "FighterJetBody.hpp"
 
+#include "Animation.hpp"
 #include "PointMass.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
@@ -8,7 +9,6 @@
 #include "utils/types.hpp"
 #include "../engine/mesh/fbx/model.hpp"
 
-#include <algorithm>
 #include <cmath>
 
 static vec3 projectOnPlane(vec3 vec, vec3 normal) {
@@ -82,6 +82,36 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.angularDrag = 0.5f;
 
   initialRotation = glm::angleAxis(PI, vec3{0.f, 1.f, 0.f});
+
+  float flapsMaxAngle = glm::radians(-20.f);
+  animFlaps.maxAngleRad = 0.f;
+  animFlaps.minAngleRad = flapsMaxAngle;
+  animFlaps.rotSpeedRad = flapsMaxAngle * 2.f;
+  animFlaps.rotAxis     = {-1.f, 0.f, 0.f};
+
+  float airbrakeMaxAngle = glm::radians(20.f);
+  animAirbrake.maxAngleRad = airbrakeMaxAngle;
+  animAirbrake.minAngleRad = 0.f;
+  animAirbrake.rotSpeedRad = airbrakeMaxAngle * 2.f;
+  animAirbrake.rotAxis     = {-1.f, 0.f, 0.f};
+
+  float pitchMaxAngle = glm::radians(20.f);
+  animPitch.maxAngleRad = pitchMaxAngle;
+  animPitch.minAngleRad = -pitchMaxAngle;
+  animPitch.rotSpeedRad = pitchMaxAngle * 2.f;
+  animPitch.rotAxis     = {-1.f, 0.f, 0.f};
+
+  float rollMaxAngle = glm::radians(20.f);
+  animRoll.maxAngleRad = rollMaxAngle;
+  animRoll.minAngleRad = -rollMaxAngle;
+  animRoll.rotSpeedRad = rollMaxAngle * 2.f;
+  animRoll.rotAxis     = {0.906308f, 0.0f, -0.422618f}; // The rotated Left by 25 degrees around the Up
+
+  float yawMaxAngle = glm::radians(20.f);
+  animYaw.maxAngleRad = yawMaxAngle;
+  animYaw.minAngleRad = -yawMaxAngle;
+  animYaw.rotSpeedRad = yawMaxAngle * 2.f;
+  animYaw.rotAxis     = {0.f, 1.f, 0.f};
 }
 
 const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
@@ -104,7 +134,7 @@ void FighterJetBody::update(float dt) {
 
   updateMesh(dt);
 
-  controlInput *= 0.5f;
+  controlInput *= 0.9f;
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
@@ -214,7 +244,7 @@ void FighterJetBody::updateLift() {
 
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
-  float steeringPower = glm::clamp((speed * speed) / 2e3f, 0.1f, 1.f);
+  float steeringPower = glm::clamp(glm::log(speed), 0.1f, 1.f);
 
   vec3 targetAV = controlInput * cfg.turnSpeed * steeringPower;
   vec3 av = glm::degrees(localAngularVelocity);
@@ -272,83 +302,18 @@ void FighterJetBody::updateForceFromParts(float dt) {
 }
 
 void FighterJetBody::updateMesh(float dt) {
-  // Flaps deploy animation
-  {
-    constexpr float maxAngle = glm::radians(-30.f);
-    constexpr float rotSpeed = maxAngle;
-    static float currentAngle = 0.f;
+  leftFlap.localRotation = rightFlap.localRotation = animFlaps.rot(flapsDeployed * 2.f - 1.f, dt);
+  airbrake.localRotation = animAirbrake.rot(airbrakeDeployed * 2.f - 1.f, dt);
+  leftElevator.localRotation = rightElevator.localRotation = animPitch.rot(controlInput.x, dt);
+  leftRudder.localRotation = rightRudder.localRotation = animYaw.rot(controlInput.y, dt);
 
-    float rotDir = flapsDeployed * 2.f - 1.f;
-    currentAngle += rotSpeed * rotDir * dt;
-    currentAngle = std::clamp(currentAngle, maxAngle, 0.f);
+  auto q = animRoll.rot(controlInput.z, dt);
+  leftAileron.localRotation = q;
+  rightAileron.localRotation = {q.w, -q.x, q.y, q.z};
 
-    auto q = glm::angleAxis(currentAngle, vec3(-1.f, 0.f, 0.f));
-    leftFlap.localRotation = rightFlap.localRotation = q;
-  }
-
-  // Airbrake deploy animation
-  {
-    constexpr float maxAngle = glm::radians(10.f);
-    constexpr float rotSpeed = maxAngle;
-    static float currentAngle = 0.f;
-
-    float rotDir = airbrakeDeployed * 2.f - 1.f;
-    currentAngle += rotSpeed * rotDir * dt;
-    currentAngle = std::clamp(currentAngle, 0.f, maxAngle);
-
-    auto q = glm::angleAxis(currentAngle, vec3(-1.f, 0.f, 0.f));
-    airbrake.localRotation = q;
-  }
-
-  // Pitch animation
-  {
-    constexpr float maxAngle = glm::radians(20.f);
-    constexpr float rotSpeed = maxAngle * 2.f;
-    static float currentAngle = 0.f;
-
-    float rotDir = controlInput.x;
-    currentAngle += rotSpeed * rotDir * dt;
-    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
-
-    auto q = glm::angleAxis(currentAngle, vec3(-1.f, 0.f, 0.f));
-    leftElevator.localRotation = rightElevator.localRotation = q;
-
-    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
-  }
-
-  // Roll animation
-  {
-    constexpr float maxAngle = glm::radians(20.f);
-    constexpr float rotSpeed = maxAngle * 2.f;
-    constexpr vec3 leftAileronHinge{0.906308f, 0.0f, -0.422618f}; // The rotated Left by 25 degrees around the Up
-    static float currentAngle = 0.f;
-
-    float rotDir = controlInput.z; // Clockwise roll if left aileron up (and right aileron is down (looking from the back))
-    currentAngle += rotSpeed * rotDir * dt;
-    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
-
-    auto q = glm::angleAxis(currentAngle, leftAileronHinge);
-    leftAileron.localRotation = q;
-    rightAileron.localRotation = {q.w, -q.x, q.y, q.z};
-
-    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
-  }
-
-  // Yaw animation
-  {
-    constexpr float maxAngle = glm::radians(20.f);
-    constexpr float rotSpeed = maxAngle * 2.f;
-    static float currentAngle = 0.f;
-
-    float rotDir = controlInput.y;
-    currentAngle += rotSpeed * rotDir * dt;
-    currentAngle = std::clamp(currentAngle, -maxAngle, maxAngle);
-
-    auto q = glm::angleAxis(currentAngle, vec3(0.f, 1.f, 0.f));
-    leftRudder.localRotation = rightRudder.localRotation = q;
-
-    currentAngle -= rotSpeed * -rotDir * 0.1f + currentAngle * 0.1f;
-  }
+  animPitch.rotBack(controlInput.x, 0.1f);
+  animRoll.rotBack(controlInput.z, 0.1f);
+  animYaw.rotBack(controlInput.y, 0.1f);
 
   mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);
   bodyTransform *= glm::mat4_cast(rigidbody.orientation * initialRotation);

@@ -1,5 +1,7 @@
 #include "FighterJet.hpp"
 
+#include "glm/common.hpp"
+#include "glm/exponential.hpp"
 #include "glm/geometric.hpp"
 #include "global.hpp"
 
@@ -102,11 +104,15 @@ void FighterJet::updateHUD() {
 }
 
 void FighterJet::updateCamera() {
-  vec3 back = camera.getBack();
-  vec3 pos = body.getPosition() + back * camDistance;
+  float followSpeed = 20.f;
+  float lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
+  vec3 back = body.rigidbody.orientation * vec3(0.f, 0.34202f, -0.93969f);
+  vec3 currPos = camera.getPosition();
+  vec3 targetPos = body.getPosition() + back * camDistance;
+  vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
 
   camera.setOrientation(-back);
-  camera.setPosition(pos);
+  camera.setPosition(nextPos);
   camera.update();
 }
 

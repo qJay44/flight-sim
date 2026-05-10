@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AircraftPart.hpp"
+#include "Animation.hpp"
 #include "PointMass.hpp"
 #include "MassConfig.hpp"
 #include "glm/trigonometric.hpp"
@@ -101,6 +102,12 @@ private:
     vec3 turnSpeed{};
     vec3 turnAcceleration{};
   } cfg;
+
+  Animation animFlaps;
+  Animation animAirbrake;
+  Animation animPitch;
+  Animation animRoll;
+  Animation animYaw;
 
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
