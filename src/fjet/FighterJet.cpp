@@ -106,6 +106,7 @@ void FighterJet::updateHUD() {
 void FighterJet::updateCamera() {
   float followSpeed = 20.f;
   float lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
+
   vec3 back = body.rigidbody.orientation * vec3(0.f, 0.34202f, -0.93969f);
   vec3 currPos = camera.getPosition();
   vec3 targetPos = body.getPosition() + back * camDistance;

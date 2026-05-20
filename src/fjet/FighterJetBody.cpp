@@ -129,7 +129,7 @@ void FighterJetBody::update(float dt) {
   updateSteering(dt);
   updateForceFromParts(dt);
 
-  rigidbody.addForce({0.f, -9.81f * rigidbody.mass, 0.f});
+  rigidbody.addForce({0.f, -9.81f * rigidbody.mass * 2.f, 0.f});
   rigidbody.update(dt);
 
   updateMesh(dt);
@@ -302,18 +302,24 @@ void FighterJetBody::updateForceFromParts(float dt) {
 }
 
 void FighterJetBody::updateMesh(float dt) {
-  leftFlap.localRotation = rightFlap.localRotation = animFlaps.rot(flapsDeployed * 2.f - 1.f, dt);
-  airbrake.localRotation = animAirbrake.rot(airbrakeDeployed * 2.f - 1.f, dt);
-  leftElevator.localRotation = rightElevator.localRotation = animPitch.rot(controlInput.x, dt);
-  leftRudder.localRotation = rightRudder.localRotation = animYaw.rot(controlInput.y, dt);
+  animFlaps.rotate(flapsDeployed * 2.f - 1.f, dt);
+  animAirbrake.rotate(airbrakeDeployed * 2.f - 1.f, dt);
+  animPitch.rotate(controlInput.x, dt);
+  animYaw.rotate(controlInput.y, dt);
+  animRoll.rotate(controlInput.z, dt);
 
-  auto q = animRoll.rot(controlInput.z, dt);
+  leftFlap.localRotation = rightFlap.localRotation = animFlaps.currentRotation;
+  airbrake.localRotation = animAirbrake.currentRotation;
+  leftElevator.localRotation = rightElevator.localRotation = animPitch.currentRotation;
+  leftRudder.localRotation = rightRudder.localRotation = animYaw.currentRotation;
+
+  auto q = animRoll.currentRotation;
   leftAileron.localRotation = q;
   rightAileron.localRotation = {q.w, -q.x, q.y, q.z};
 
-  animPitch.rotBack(controlInput.x, 0.1f);
-  animRoll.rotBack(controlInput.z, 0.1f);
-  animYaw.rotBack(controlInput.y, 0.1f);
+  animPitch.rotateBack(controlInput.x, 0.1f);
+  animRoll.rotateBack(controlInput.z, 0.1f);
+  animYaw.rotateBack(controlInput.y, 0.1f);
 
   mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);
   bodyTransform *= glm::mat4_cast(rigidbody.orientation * initialRotation);

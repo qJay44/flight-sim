@@ -9,16 +9,16 @@ struct Animation {
   vec3 rotAxis;
 
   float currentAngleRad = 0.f;
+  glm::quat currentRotation;
 
-  [[nodiscard]]
-  glm::quat rot(float rotDir, float dt) {
+  void rotate(float rotDir, float dt) {
     currentAngleRad += rotSpeedRad * rotDir * dt;
     currentAngleRad = std::clamp(currentAngleRad, minAngleRad, maxAngleRad);
 
-    return glm::angleAxis(currentAngleRad, rotAxis);
+    currentRotation = glm::angleAxis(currentAngleRad, rotAxis);
   }
 
-  void rotBack(float rotDir, float scale) {
+  void rotateBack(float rotDir, float scale) {
     currentAngleRad -= rotSpeedRad * rotDir * scale + currentAngleRad * scale;
   }
 };

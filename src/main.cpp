@@ -131,7 +131,7 @@ int main() {
   f15Config.rudderPower = 50.f;
   f15Config.meshScale = 0.01f;
   f15Config.inducedDrag = 10.5f;
-  f15Config.turnSpeed = vec3(40.f, 20.f, 180.f);
+  f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
 
   Mesh axis = meshes::axis();
