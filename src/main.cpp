@@ -1,4 +1,3 @@
-#include "other/markup.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -12,8 +11,9 @@
 #include "engine/Camera.hpp"
 #include "engine/Shader.hpp"
 #include "engine/InputsHandler.hpp"
+#include "Environment.hpp"
+#include "other/markup.hpp"
 #include "utils/clrp.hpp"
-#include "engine/texture/TextureCubemap.hpp"
 #include "other/Grid.hpp"
 #include "other/Sun.hpp"
 
@@ -96,7 +96,6 @@ int main() {
   Shader hudShader("hud.vert", "hud.frag");
   Shader gridShader("grid.vert", "grid.frag");
   Shader edgesShader("edges.vert", "edges.frag", "edges.geom");
-  Shader skyboxShader("skybox.vert", "skybox.frag");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
 
@@ -113,14 +112,9 @@ int main() {
   glfwSetKeyCallback(window, InputsHandler::keyCallback);
   glfwSetCursorPosCallback(window, InputsHandler::cursorPosCallback);
 
-  // ============================================================ //
+  // ===== Jet ================================================== //
 
   Font textFont("res/fonts/FiraCodeNerdFontMono-Bold.ttf", 20);
-
-  Sun sun;
-  sun.pitch = PI_6;
-  sun.yaw = 0.f;
-  sun.updateDir();
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f, &textFont, &textShader);
   f15.setCamDistance(30.f);
@@ -128,6 +122,7 @@ int main() {
 
   auto& f15Config = f15.getBodyConfig();
   f15Config.stiffness = 500.f;
+  f15Config.airbrakeDrag = 10.f;
   f15Config.maxThrust = 6e5f;
   f15Config.flapsLiftPower = 2.f;
   f15Config.flapsAOABias = 10.f;
@@ -138,22 +133,15 @@ int main() {
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
 
+  // ============================================================ //
+
   Grid grid{};
   grid.scale(1e4f);
 
-  TextureDescriptor cubemapTexDesc{};
-  cubemapTexDesc.target = GL_TEXTURE_CUBE_MAP;
-  cubemapTexDesc.minFilter = GL_LINEAR;
-  cubemapTexDesc.magFilter = GL_LINEAR;
-  cubemapTexDesc.wrapS = GL_CLAMP_TO_EDGE;
-  cubemapTexDesc.wrapT = GL_CLAMP_TO_EDGE;
-  cubemapTexDesc.wrapR = GL_CLAMP_TO_EDGE;
-  cubemapTexDesc.genMipMap = false;
-
-  TextureCubemap skyboxTex = TextureCubemap::loadFromImage("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png", cubemapTexDesc);
+  Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
 
   gui::camPtr = &cameraSpectate;
-  gui::sunPtr = &sun;
+  gui::sunPtr = &env.sun;
   gui::fjetPtr = &f15;
   InputsHandler::controlledPlane = &f15;
 
@@ -196,17 +184,15 @@ int main() {
 
     f15.update();
 
-    sun.setUniforms(airplaneShader);
-    sun.setUniforms(environmentShader);
-    sun.setUniformsEnvironment(environmentShader);
+    env.sun.setUniforms(airplaneShader);
+    env.sun.setUniforms(environmentShader);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    skyboxTex.bind(0);
-    Mesh::drawScreen(activeCam, skyboxShader);
+    env.draw(activeCam, environmentShader);
 
     grid.draw(activeCam, gridShader);
 
@@ -222,10 +208,7 @@ int main() {
 
     f15.drawHUD(activeCam, hudShader);
 
-    markup::drawCross(activeCam, markupShader);
-
-    // if (global::drawGlobalAxis)
-    //   axis.draw(activeCam, colorShader);
+    // markup::drawCross(activeCam, markupShader);
 
     // ============================================================ //
 

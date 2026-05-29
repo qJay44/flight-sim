@@ -17,9 +17,9 @@ public:
 
   void update(float dt);
 
-  void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-  void drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
-  void drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe = false) const;
+  void draw(const Camera* camera, Shader& shader) const;
+  void drawDebugMass(const Camera* camera, Shader& shader) const;
+  void drawDebugBoundaries(const Camera* camera, Shader& shader) const;
 
 private:
   friend struct FighterJet;

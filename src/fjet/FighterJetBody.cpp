@@ -136,19 +136,19 @@ void FighterJetBody::update(float dt) {
   controlInput *= 0.9f;
 }
 
-void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJetBody::draw(const Camera* camera, Shader& shader) const {
   for (AircraftPart* part : parts) {
     shader.setUniformMatrix3f("u_localRotation", glm::mat3_cast(part->localRotation));
     part->draw(camera, shader);
   }
 }
 
-void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader) const {
   for (AircraftPart* part : parts)
     part->drawDebugMass(camera, shader);
 }
 
-void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader) const {
   for (AircraftPart* part : parts)
     part->drawDebugBoundaries(camera, shader);
 }

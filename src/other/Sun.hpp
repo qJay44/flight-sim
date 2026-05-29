@@ -29,12 +29,6 @@ struct Sun {
     shader.setUniform3f("u_sunColor", color);
   }
 
-  void setUniformsEnvironment(Shader& shader) {
-    shader.setUniform3f("u_skyHorizonColor", skyHorizonColor);
-    shader.setUniform3f("u_skyZenithColor", skyZenithColor);
-    shader.setUniform3f("u_groundColor", groundColor);
-  }
-
   void draw(const Camera* cam, Shader& shader) {
     setUniforms(shader);
     shader.setUniformMatrix4f("u_camInv", cam->getProjViewInv());

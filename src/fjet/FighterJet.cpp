@@ -18,9 +18,11 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont,
   camera.update();
 }
 
-// TODO: Using gamepad's stick should pass value from 0.0 to 1.0?
 void FighterJet::moveForward() {
   body.cfg.throttle = 1.f;
+}
+
+void FighterJet::moveBack() {
 }
 
 void FighterJet::moveLeft() {
@@ -49,7 +51,7 @@ void FighterJet::onMouseScroll(dvec2 offset) {
 }
 
 void FighterJet::roll(float dir) {
-  body.controlInput.z = dir;
+  body.controlInput.z += dir * 0.2f;
 }
 
 bool FighterJet::isActive() const {
@@ -80,23 +82,23 @@ void FighterJet::update() {
   updateCamera();
 }
 
-void FighterJet::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  body.draw(camera, shader, forceNoWireframe);
+void FighterJet::draw(const Camera* camera, Shader& shader) const {
+  body.draw(camera, shader);
 }
 
-void FighterJet::drawHUD(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJet::drawHUD(const Camera* camera, Shader& shader) const {
   if (bDrawHUD)
     hud.draw(camera, shader);
 }
 
-void FighterJet::drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJet::drawDebugMass(const Camera* camera, Shader& shader) const {
   if (bDrawDebugMass)
-    body.drawDebugMass(camera, shader, forceNoWireframe);
+    body.drawDebugMass(camera, shader);
 }
 
-void FighterJet::drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void FighterJet::drawDebugBoundaries(const Camera* camera, Shader& shader) const {
   if (bDrawDebugBoundaries)
-    body.drawDebugBoundaries(camera, shader, forceNoWireframe);
+    body.drawDebugBoundaries(camera, shader);
 }
 
 void FighterJet::updateHUD() {
@@ -105,15 +107,25 @@ void FighterJet::updateHUD() {
 }
 
 void FighterJet::updateCamera() {
-  float followSpeed = 20.f;
+  float followSpeed = 25.f;
   float lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
 
-  vec3 back = body.rigidbody.orientation * vec3(0.f, 0.34202f, -0.93969f);
-  vec3 currPos = camera.getPosition();
-  vec3 targetPos = body.getPosition() + back * camDistance;
-  vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
+  vec3 jetForward = body.rigidbody.orientation * body.localOrientation;
+  jetForward = glm::normalize(jetForward);
 
-  camera.setOrientation(-back);
+  vec3 camRight = glm::normalize(glm::cross(jetForward, global::up));
+  vec3 camUp = glm::cross(camRight, jetForward);
+
+  // Look slightly above
+  vec3 camOffsetDir = camUp * 0.34202f + jetForward * -0.93969f;
+  camOffsetDir = glm::normalize(camOffsetDir);
+
+  vec3 currPos = camera.getPosition();
+  vec3 targetPos = body.getPosition() + camOffsetDir * camDistance;
+  vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
+  vec3 lookAtCenter = body.getPosition() - nextPos;
+
+  camera.setOrientation(glm::normalize(lookAtCenter));
   camera.setPosition(nextPos);
   camera.update();
 }
