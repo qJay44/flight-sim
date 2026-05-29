@@ -1,48 +1,44 @@
 #pragma once
 
 #include <cassert>
+#include <string_view>
 
-#include "../mesh/Mesh.hpp"
-#include "../mesh/Transformable.hpp"
+#include "../mesh/MeshArrays.hpp"
 #include "../Camera.hpp"
 #include "Font.hpp"
 
-class Text : private Transformable {
-public:
-  Text() = default;
+#define TEXT_MAX_LEN 256u
 
-  Text(const std::string& text);
+class Text {
+public:
+  Text();
+  Text(Font* font, const std::string& text);
 
   vec2 getPos() const;
   vec2 getOrigin() const;
-  vec2 getBorderSize() const;
+  vec2 getRectSize() const;
 
   void setFont(Font* font);
   void setText(std::string text);
-  void setColor(vec3 color);
-  void setPos(vec2 pos);
-  void setScale(float scale);
   void setOrigin(vec2 o);
+  void setOriginCenter();
+  void setPos(vec2 pos);
+  void setColor(vec3 color);
 
   void draw(const Camera* camera, Shader& shader) const;
 
+  float maxHeight = FLT_MIN;
 private:
   Font* font = nullptr;
 
-  std::string text = "";
+  vec2 origin{}; // Bottom-left initially
+  vec2 rectSize{};
   vec3 color{1.f};
-  vec2 borderSize{};
-  vec2 origin{}; // Bottom-left
+  vec3 colorOutline{0.f};
 
-  struct Glyph : public Mesh {
-    using Mesh::Mesh;
-    const Texture2D* tex;
-    float offset;
-  };
-
-  std::vector<Glyph> glyphs;
+  MeshArrays mesh;
 
 private:
-  void generate();
+  void generate(std::string_view text);
 };
 

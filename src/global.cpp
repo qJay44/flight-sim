@@ -1,3 +1,5 @@
+#include "engine/Shader.hpp"
+
 #include "global.hpp"
 
 namespace global {

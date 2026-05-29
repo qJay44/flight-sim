@@ -1,34 +1,43 @@
 #include "Text.hpp"
 
-#include "glm/ext/matrix_clip_space.hpp"
-#include "global.hpp"
-#include "utils/utils.hpp"
-#include "../mesh/Vertex.hpp"
+#include <string_view>
 
-Text::Text(const std::string& text) {
+#include "global.hpp"
+#include "../mesh/MeshData.hpp"
+
+Text::Text() {
+  MeshData data{};
+  data.verticesSize = sizeof(vertex::PT) * TEXT_MAX_LEN * 6;
+  data.layout = vertex::PT_LAYOUT;
+  data.usage = GL_DYNAMIC_DRAW;
+
+  mesh = MeshArrays(data);
+}
+
+Text::Text(Font* font, const std::string& text = "") : Text() {
+  this->font = font;
+
   setText(text);
 }
 
 vec2 Text::getPos() const {
-  return matTranslation[3];
+  return mesh.getMatTranslation()[3];
 }
 
 vec2 Text::getOrigin() const {
   return origin;
 }
 
-vec2 Text::getBorderSize() const {
-  return borderSize;
+vec2 Text::getRectSize() const {
+  return rectSize;;
 }
 
 void Text::setFont(Font* font) {
   this->font = font;
-  generate();
 }
 
 void Text::setText(std::string text) {
-  this->text = std::move(text);
-  generate();
+  generate(text);
 }
 
 void Text::setColor(vec3 color) {
@@ -36,73 +45,77 @@ void Text::setColor(vec3 color) {
 }
 
 void Text::setPos(vec2 pos) {
-  setMatTranslation({pos - origin, 0.f});
-}
-
-void Text::setScale(float scale) {
-  setMatScale(scale);
+  mesh.setMatTranslation(pos - origin);
 }
 
 void Text::setOrigin(vec2 o) {
   origin = o;
 }
 
-void Text::draw(const Camera* camera, Shader& shader) const {
-  vec2 winSize = global::getWinSize();
-  mat4 projection = glm::ortho(0.f, winSize.x, 0.f, winSize.y);
-  projection *= getModel();
-
-  for (const Glyph& g : glyphs) {
-    shader.setUniform3f("u_color", color);
-    g.tex->bind();
-
-    g.draw(camera, shader, projection * g.getMatTranslation());
-  }
+void Text::setOriginCenter() {
+  origin = rectSize * 0.25f; // idk
 }
 
-void Text::generate() {
-  if (!font)
-    error("[Text::generate] Trying to generate text but no font provided");
+void Text::draw(const Camera* camera, Shader& shader) const {
+  shader.setUniformMatrix4f("u_proj", global::getScreenProjection());
+  shader.setUniform3f("u_color", color);
+  shader.setUniform3f("u_colorOutline", colorOutline);
 
-  glyphs.clear();
-  float cursorX = 0.f;
+  glDepthMask(GL_FALSE);
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  for (char c : text) {
-    const auto* chPtr = font->getCharacter(c);
+  font->bindAtlas(0);
+  mesh.draw(camera, shader);
 
-    if (!chPtr) {
-      warning("[Text::update] Didn't get char [{}] from font", c);
-      continue;
-    }
+  glDepthMask(GL_TRUE);
+  glDisable(GL_BLEND);
+}
 
-    const auto& ch = *chPtr;
+void Text::generate(std::string_view text) {
+  const size_t textLen = text.length();
 
-    float x = ch.bearing.x;
-    float y = -(ch.size.y - ch.bearing.y);
-    float w = ch.size.x;
-    float h = ch.size.y;
-
-    std::vector<VertexPT> vertices =  {
-      {{x    , y + h, 0.f}, {0.f, 0.f}},
-      {{x    , y    , 0.f}, {0.f, 1.f}},
-      {{x + w, y    , 0.f}, {1.f, 1.f}},
-
-      {{x    , y + h, 0.f}, {0.f, 0.f}},
-      {{x + w, y    , 0.f}, {1.f, 1.f}},
-      {{x + w, y + h, 0.f}, {1.f, 0.f}},
-    };
-
-    Glyph glyph(vertices, GL_TRIANGLES, GL_STATIC_DRAW);
-    glyph.tex = &ch.tex;
-    glyph.offset = cursorX;
-    glyph.translate({cursorX, 0.f, 0.f});
-
-    glyphs.push_back(std::move(glyph));
-
-    cursorX += ch.advance >> 6;
-    borderSize.y = std::max(borderSize.y, h);
+  if (textLen > TEXT_MAX_LEN) {
+    fprintf(stderr, "[Text::generate] Text length [%zu] exceeds limit [%u]\n", textLen, TEXT_MAX_LEN);
+    exit(EXIT_FAILURE);
   }
 
-  borderSize.x = cursorX;
+  float cursorX = 0.f;
+
+  MeshData meshData;
+  vertex::PT vertices[TEXT_MAX_LEN * 6];
+  size_t verticesCount = 0;
+
+  for (size_t i = 0; i < textLen; i++) {
+    if (text[i] == '\0')
+      break;
+
+    const auto& g = font->getGlyph(text[i]);
+    size_t triIdx = i * 6;
+
+    float x = cursorX + g.bearingX;
+    float y = -(float)g.height + g.bearingY;
+    float w = g.width;
+    float h = g.height;
+
+    vertices[triIdx + 0] = {{x    , y + h, 0.f}, {g.uv0.x, g.uv0.y}};
+    vertices[triIdx + 1] = {{x    , y    , 0.f}, {g.uv0.x, g.uv1.y}};
+    vertices[triIdx + 2] = {{x + w, y    , 0.f}, {g.uv1.x, g.uv1.y}};
+
+    vertices[triIdx + 3] = {{x    , y + h, 0.f}, {g.uv0.x, g.uv0.y}};
+    vertices[triIdx + 4] = {{x + w, y    , 0.f}, {g.uv1.x, g.uv1.y}};
+    vertices[triIdx + 5] = {{x + w, y + h, 0.f}, {g.uv1.x, g.uv0.y}};
+
+    cursorX += g.advance;
+    rectSize.y = fmaxf(rectSize.y, h);
+    verticesCount += 6;
+  }
+
+  meshData.vertices = (float*)vertices;
+  meshData.verticesSize = sizeof(vertices[0]) * verticesCount;
+  meshData.layout = vertex::PT_LAYOUT;
+
+  rectSize.x = cursorX;
+  mesh.updateBufferVBO(meshData);
 }
 

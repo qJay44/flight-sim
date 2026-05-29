@@ -6,7 +6,6 @@
 #include "glm/matrix.hpp"
 #include "glm/trigonometric.hpp"
 
-#include "mesh/meshes.hpp"
 #include "global.hpp"
 
 std::vector<Camera*> Camera::cameraPool;
@@ -39,7 +38,20 @@ mat4 Camera::getProjViewInv() const {
 
 void Camera::setNearPlane(float p) { nearPlane = p; }
 void Camera::setFarPlane(float p) { farPlane = p; }
-void Camera::setFlags(u32 f) { flags = f; }
+
+void Camera::setUniforms(Shader& shader) const {
+  shader.setUniform1f      ("u_camNear"   , getNearPlane());
+  shader.setUniform1f      ("u_camFar"    , getFarPlane());
+  shader.setUniform1f      ("u_camFov"    , getFov());
+  shader.setUniform3f      ("u_camPos"    , getPosition());
+  shader.setUniform3f      ("u_camRight"  , getRight());
+  shader.setUniform3f      ("u_camUp"     , getUp());
+  shader.setUniform3f      ("u_camForward", getForward());
+  shader.setUniformMatrix4f("u_camProj"   , getProj());
+  shader.setUniformMatrix4f("u_camView"   , getView());
+  shader.setUniformMatrix4f("u_camPV"     , getProjView());
+  shader.setUniformMatrix4f("u_camInvPV"  , getProjViewInv());
+}
 
 void Camera::update() {
   vec2 winSize = global::getWinSize();
@@ -52,20 +64,5 @@ void Camera::update() {
   dvec2 winCenter = global::getWinCenter();
   if (!global::guiFocused)
     glfwSetCursorPos(global::window, winCenter.x, winCenter.y);
-}
-
-void Camera::draw(const Camera* cam, Shader& shader) const {
-  if (this != cam) {
-    const vec3& p = position;
-
-    if (flags & CameraFlags_DrawRight)
-      meshes::line(p, p + getRight(), global::red).draw(cam, shader);
-
-    if (flags & CameraFlags_DrawUp)
-      meshes::line(p, p + up, global::green).draw(cam, shader);
-
-    if (flags & CameraFlags_DrawForward)
-      meshes::line(p, p + getForward(), global::blue).draw(cam, shader);
-  }
 }
 

@@ -3,14 +3,6 @@
 #include "Moveable.hpp"
 #include "Shader.hpp"
 
-enum CameraFlags : u32 {
-  CameraFlags_None        = 0,
-  CameraFlags_DrawRight   = 1,
-  CameraFlags_DrawUp      = 1 << 1,
-  CameraFlags_DrawForward = 1 << 2,
-  CameraFlags_DrawDirections = CameraFlags_DrawRight | CameraFlags_DrawUp | CameraFlags_DrawForward,
-};
-
 class Camera : public Moveable {
 public:
   static Camera* activeCam;
@@ -35,9 +27,9 @@ public:
   void setNearPlane(float p);
   void setFarPlane(float p);
   void setFlags(u32 f);
+  void setUniforms(Shader& shader) const;
 
   void update();
-  void draw(const Camera* cam, Shader& shader) const;
 
 protected:
   friend struct gui;
@@ -53,8 +45,6 @@ protected:
   mat4 proj = mat4(1.f);
   mat4 view = mat4(1.f);
   mat4 pv   = mat4(1.f);
-
-  u32 flags = CameraFlags_None;
 
 private:
   static std::vector<Camera*> cameraPool;

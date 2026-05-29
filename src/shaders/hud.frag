@@ -4,7 +4,8 @@ in vec2 v_uv;
 
 out vec4 FragColor;
 
-uniform sampler2D u_tex;
+layout(binding = 0) uniform sampler2D u_tex;
+
 uniform vec3 u_color;
 
 void main() {

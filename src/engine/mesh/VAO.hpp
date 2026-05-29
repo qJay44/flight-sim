@@ -48,11 +48,6 @@ struct VAO {
     id = 0;
   }
 
-  void linkAttrib(GLuint layout, GLuint numComponents, GLenum type, GLsizei stride, void* offset) const {
-    glEnableVertexAttribArray(layout);
-    glVertexAttribPointer(layout, numComponents, type, GL_FALSE, stride, offset);
-  }
-
 private:
   static constexpr GLsizei size = 1;
   GLuint id = 0;

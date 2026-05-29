@@ -8,7 +8,7 @@
 
 class FighterJet : public Moveable {
 public:
-  FighterJet(const fspath& fbxFilepath, float jetMass);
+  FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont, Shader* textShader);
 
   void moveForward() override;
   void moveLeft() override;
@@ -39,8 +39,7 @@ private:
   friend struct gui;
 
   FighterJetBody body;
-  Font font{"res/fonts/FiraCodeNerdFontMono-Bold.ttf", 32};
-  HUD hud{&font};
+  HUD hud;
 
   Camera camera;
   float camDistance = 10.f;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ProfilerManager.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
 
 namespace global {
 
@@ -19,20 +20,25 @@ extern bool drawWireframe;
 extern bool drawNormals;
 extern bool drawGlobalAxis;
 
-inline ivec2 getWinSize() {
+static inline ivec2 getWinSize() {
   ivec2 res;
   glfwGetWindowSize(global::window, &res.x, &res.y);
   return res;
 }
 
-inline dvec2 getWinCenter() {
+static inline dvec2 getWinCenter() {
   return dvec2(getWinSize()) * 0.5;
 }
 
-inline dvec2 getMousePos() {
+static inline dvec2 getMousePos() {
   dvec2 res;
   glfwGetCursorPos(global::window, &res.x, &res.y);
   return res;
+}
+
+static inline mat4 getScreenProjection() {
+  vec2 winSize = getWinSize();
+  return glm::ortho(0.f, winSize.x, 0.f, winSize.y);
 }
 
 } // namespace global

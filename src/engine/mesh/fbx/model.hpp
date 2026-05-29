@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Mesh.hpp"
+#include "../MeshArrays.hpp"
 #include "glm/gtc/quaternion.hpp"
 
 namespace fbx {
@@ -12,7 +12,7 @@ struct Socket {
 
 struct UfbxMesh {
   std::string name;
-  Mesh mesh;
+  MeshArrays mesh;
   vec3 offset;
   vec3 minPos;
   vec3 maxPos;

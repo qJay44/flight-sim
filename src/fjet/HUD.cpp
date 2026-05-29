@@ -1,55 +1,57 @@
 #include "HUD.hpp"
 
 #include "glm/ext/quaternion_trigonometric.hpp"
-#include "../engine/mesh/meshes.hpp"
 #include "global.hpp"
 
-HUD::HUD(Font* font) {
-  TextureDescriptor desc;
-  desc.uniformName = "u_tex";
+HUD::HUD(Font* font, Shader* shaderText) : shaderText(shaderText) {
+  TextureDescriptor desc{};
   desc.internalFormat = GL_RGBA;
   desc.format = GL_RGBA;
 
-  indicatorTex = Texture2D("res/tex/hud/indicator.png", desc);;
+  indicatorTex = Texture2D("res/tex/hud/indicator.png", desc);
 
-  vec2 winSize = global::getWinSize();
-  vec2 winCenter = winSize * 0.5f;
-
-  float arrowScaleScale = 0.5f; // Scaling initial proportions
-  vec2 arrowOffset{0.3f, 0.f};
-  vec2 arrowScale = vec2{0.085f, 0.05f} * arrowScaleScale;
-  vec2 arrowSize = winSize * arrowScale;
-  vec2 arrowTextOffset = arrowOffset * winCenter - vec2{arrowSize} * 0.25f;
+  const vec2 winSize = global::getWinSize();
+  const vec2 winCenter = winSize * 0.5f;
+  const vec2 imgScale{65.f, 25.f};
+  const vec2 imgOffsetFromCenter = {winSize.x * 0.15f, 0.f};
 
   speedText.setFont(font);
-  speedText.setText("Test");
-  speedText.setOrigin(speedText.getBorderSize() * 0.5f);
-  speedText.setColor(speedIndicator.color);
-  speedText.setScale(arrowScaleScale);
-  speedText.setPos(winCenter - arrowTextOffset);
-
-  speedIndicator.mesh = meshes::rectangle();
-  speedIndicator.mesh.translate(vec3(-arrowOffset, 0.f));
-  speedIndicator.mesh.scale(arrowScale);
-  speedIndicator.tex = &indicatorTex;
+  speedText.setColor({0.f, 1.f, 0.f});
 
   altitudeText.setFont(font);
-  altitudeText.setText("Test");
-  altitudeText.setOrigin(altitudeText.getBorderSize() * 0.5f);
-  altitudeText.setColor(speedIndicator.color);
-  altitudeText.setScale(arrowScaleScale);
-  altitudeText.setPos(winCenter + arrowTextOffset * vec2{1.f, -1.f} + vec2{arrowSize.x * 0.75f, 0.f}); // idk
+  altitudeText.setColor({0.f, 1.f, 0.f});
+  altitudeText.setPos(winCenter);
+  altitudeText.setPos(imgOffsetFromCenter);
 
-  altitudeIndicator.mesh = meshes::rectangle();
-  altitudeIndicator.mesh.translate(vec3(arrowOffset, 0.f));
-  altitudeIndicator.mesh.rotate(glm::angleAxis(PI, vec3{0.f, 0.f, -1.f}));
-  altitudeIndicator.mesh.scale(arrowScale);
-  altitudeIndicator.tex = &indicatorTex;
+  speedImg.translate(winCenter);
+  speedImg.translate(-imgOffsetFromCenter);
+  speedImg.scale(imgScale);
+
+  altitudeImg.translate(winCenter);
+  altitudeImg.translate(imgOffsetFromCenter);
+  altitudeImg.scale(imgScale);
+  altitudeImg.rotate(glm::angleAxis(PI, vec3{0.f, 0.f, -1.f}));
 }
 
 void HUD::updateSpeed(float s) {
   int speedInt = static_cast<int>(s);
-  speedText.setText(std::to_string(speedInt));
+  const auto speedStr = std::to_string(speedInt);
+  speedText.setText(speedStr);
+
+  const vec2 winSize = global::getWinSize();
+  const vec2 winCenter = winSize * 0.5f;
+  const vec2 imgOffsetFromCenter = {winSize.x * 0.15f, 0.f};
+  const vec2 imgScale{65.f, 25.f};
+  const vec2 txtOffsetL = imgOffsetFromCenter + vec2{imgScale.x * 0.55f, 0.f};
+
+  vec2 txtOffsetR = txtOffsetL;
+  txtOffsetR.x -= altitudeText.getRectSize().x / speedStr.size();
+
+  speedText.setOriginCenter();
+  speedText.setPos(winCenter - txtOffsetL);
+
+  altitudeText.setOriginCenter();
+  altitudeText.setPos(winCenter + txtOffsetR);
 }
 
 void HUD::updateAltitude(float a) {
@@ -57,23 +59,22 @@ void HUD::updateAltitude(float a) {
   altitudeText.setText(std::to_string(altitudeInt));
 }
 
-void HUD::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
+void HUD::draw(const Camera* camera, Shader& shader) const {
   glDepthMask(GL_FALSE);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  speedIndicator.draw(camera, shader, forceNoWireframe);
-  speedText.draw(camera, shader);
-  altitudeIndicator.draw(camera, shader, forceNoWireframe);
-  altitudeText.draw(camera, shader);
+  shader.setUniform3f("u_color", {0.f, 1.f, 0.f});
+  shader.setUniformMatrix4f("u_proj", global::getScreenProjection());
+
+  indicatorTex.bind();
+  speedImg.draw(camera, shader);
+  altitudeImg.draw(camera, shader);
+
+  speedText.draw(camera, *shaderText);
+  altitudeText.draw(camera, *shaderText);
 
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
-}
-
-void HUD::Indicator::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
-  shader.setUniform3f("u_color", color);
-  tex->bind();
-  mesh.draw(camera, shader, forceNoWireframe);
 }
 

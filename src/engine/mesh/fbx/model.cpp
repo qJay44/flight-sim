@@ -3,7 +3,6 @@
 #include <cfloat>
 #include <print>
 
-#include "glm/ext/scalar_common.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "ufbx.h"
 #include "utils/utils.hpp"
@@ -70,7 +69,7 @@ Model load(const fspath& file, bool printInfo) {
       puts("");
     }
 
-    std::vector<VertexPCTN> vertices;
+    std::vector<vertex::PCTN> vertices;
     vec3 minPos(FLT_MAX);
     vec3 maxPos(-FLT_MAX);
 
@@ -87,7 +86,7 @@ Model load(const fspath& file, bool printInfo) {
           ufbx_vec3 position = ufbx_get_vertex_vec3(&mesh->vertex_position, idx);
           position = ufbx_transform_position(&modelToWorld, position);
 
-          VertexPCTN vertex{};
+          vertex::PCTN vertex{};
           vertex.position = glm::make_vec3(position.v);
 
           minPos = glm::min(minPos, vertex.position);
@@ -117,9 +116,14 @@ Model load(const fspath& file, bool printInfo) {
       for (auto& v : vertices)
         v.position -= offset;
 
+      MeshData data;
+      data.vertices = (float*)vertices.data();
+      data.verticesSize = vertices.size() * sizeof(vertices[0]);
+      data.layout = vertex::PCTN_LAYOUT;
+
       model.meshes.push_back({
         node->name.data,
-        Mesh(vertices, GL_TRIANGLES, GL_STATIC_DRAW),
+        MeshArrays(data),
         offset,
         minPos,
         maxPos,

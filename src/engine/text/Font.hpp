@@ -8,11 +8,11 @@
 
 class Font {
 public:
-  struct Character {
-    Texture2D tex;
-    ivec2 size;
-    ivec2 bearing;
-    long advance;
+  struct Glyph {
+    vec2 uv0, uv1;
+    u32 width, height;
+    FT_Int bearingX, bearingY;
+    FT_Pos advance;
   };
 
   Font(const Font&) = delete;
@@ -38,52 +38,74 @@ public:
     FT_Done_FreeType(ft);
   }
 
-  const Character* getCharacter(char c) const {
-    auto it = characters.find(c);
-    if (it == characters.end())
-      return nullptr;
+  const Font::Glyph& getGlyph(char c) {
+    return glyphs[(int)c];
+  }
 
-    return &it->second;
+  void bindAtlas(GLuint unit) const {
+    atlas.bind(unit);
   }
 
 private:
+
   FT_Library ft;
   FT_Face face;
-
-  std::map<char, Character> characters;
+  Glyph glyphs[128];
+  Texture2D atlas;
 
 private:
   void loadCharacters() {
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    for (u32 c = 0; c < 128; c++) {
+    TextureDescriptor texDesc{};
+    texDesc.internalFormat = GL_RED;
+    texDesc.format = GL_RED;
+
+    u32 atlasSize = 512;
+    float atlasSizeInv = 1.f / (float)atlasSize;
+
+    atlas = Texture2D(ivec2(atlasSize), texDesc);
+    int atlasX = 0;
+    int atlasY = 0;
+    u32 maxRowHeight = 0;
+    atlas.bind();
+
+    for (u8 c = 0; c < 128; c++) {
       if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
         warning("[Font::loadCharacters] Failed to load glyph [{}]", c);
         continue;
       }
 
-      ivec2 size{face->glyph->bitmap.width, face->glyph->bitmap.rows};
-      image2D img;
-      img.width = size.x;
-      img.height = size.y;
-      img.pixels = face->glyph->bitmap.buffer;
+      FT_Render_Glyph(face->glyph, FT_RENDER_MODE_SDF);
 
-      Texture2D tex = Texture2D(img, {
-        .uniformName = "u_tex",
-        .internalFormat = GL_RED,
-        .format = GL_RED
-      });
+      FT_Bitmap bmp = face->glyph->bitmap;
+      Glyph& glyph = glyphs[c];
 
-      Character character = {
-        std::move(tex),
-        size,
-        {face->glyph->bitmap_left, face->glyph->bitmap_top},
-        face->glyph->advance.x
-      };
+      if (atlasX + bmp.width >= atlasSize) {
+        atlasX = 0;
+        atlasY += maxRowHeight + 1;
+        maxRowHeight = 0;
+      }
 
-      characters.emplace(c, std::move(character));
+      if (bmp.width > 0 && bmp.rows > 0)
+        glTexSubImage2D(GL_TEXTURE_2D, 0, atlasX, atlasY, bmp.width, bmp.rows, GL_RED, GL_UNSIGNED_BYTE, bmp.buffer);
 
-      img.pixels = nullptr;
+      glyph.uv0.x = (float)atlasX * atlasSizeInv;
+      glyph.uv0.y = (float)atlasY * atlasSizeInv;
+      glyph.uv1.x = (float)(atlasX + bmp.width) * atlasSizeInv;
+      glyph.uv1.y = (float)(atlasY + bmp.rows) * atlasSizeInv;
+
+      glyph.width = bmp.width;
+      glyph.height = bmp.rows;
+      glyph.bearingX = face->glyph->bitmap_left;
+      glyph.bearingY = face->glyph->bitmap_top;
+      glyph.advance = face->glyph->advance.x >> 6;
+
+      glyphs[c] = glyph;
+
+      atlasX += bmp.width + 1;
+      if (bmp.rows > maxRowHeight)
+        maxRowHeight = bmp.rows;
     }
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);

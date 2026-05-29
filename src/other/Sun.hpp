@@ -43,7 +43,7 @@ struct Sun {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
 
-    Mesh::screenDraw(cam, shader);
+    Mesh::drawScreen(cam, shader);
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);

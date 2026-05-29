@@ -129,19 +129,11 @@ void gui::draw() {
     ImGui::DragFloat("Yaw##2", &camPtr->yaw);
     ImGui::DragFloat("Pitch##2", &camPtr->pitch);
     ImGui::DragFloat3("Position", glm::value_ptr(camPtr->position));
-
-    if (ImGui::TreeNode("Flags")) {
-      ImGui::CheckboxFlags("Right", &camPtr->flags, CameraFlags_DrawRight);
-      ImGui::CheckboxFlags("Up", &camPtr->flags, CameraFlags_DrawUp);
-      ImGui::CheckboxFlags("Forward", &camPtr->flags, CameraFlags_DrawForward);
-
-      ImGui::TreePop();
-    }
   }
 
   // ===== Sun =========================================================================================== //
 
-  assert(lightPtr);
+  assert(sunPtr);
   if (ImGui::CollapsingHeader("Light")) {
     ImGui::DragFloat("Focus", &sunPtr->focus, 1.f);
     ImGui::DragFloat("Intensity", &sunPtr->intensity, 1.f);

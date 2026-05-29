@@ -1,65 +1,48 @@
 #include "meshes.hpp"
 
-#include "global.hpp"
+#include <cstdio>
+
+#include "MeshData.hpp"
 
 namespace meshes {
 
-Mesh line(vec3 p1, vec3 p2, vec3 color) {
-  std::vector<VertexPC> vertices{
-    {p1, color},
-    {p2, color}
-  };
+MeshArrays line(vec3 p1, vec3 p2) {
+  vec3 vertices[] = {p1, p2};
 
-  return Mesh(vertices, GL_LINES, GL_STATIC_DRAW);
+  MeshData data;
+  data.vertices = (float*)vertices;
+  data.verticesSize = sizeof(vertices);
+  data.layout = vertex::P_LAYOUT;
+  data.mode = GL_LINES;
+
+  return MeshArrays(data);
 }
 
-Mesh axis() {
-  std::vector<VertexPC> vertices{
-    {{0.f, 0.f, 0.f}, global::red},
-    {{1.f, 0.f, 0.f}, global::red},
-    {{0.f, 0.f, 0.f}, global::green},
-    {{0.f, 1.f, 0.f}, global::green},
-    {{0.f, 0.f, 0.f}, global::blue},
-    {{0.f, 0.f, 1.f}, global::blue},
-  };
-
-  return Mesh(vertices, GL_LINES, GL_STATIC_DRAW);
-}
-
-Mesh rectangle(GLenum mode) {
-  std::vector<VertexPT> vertices{
+MeshElements rectangle() {
+  vertex::PT vertices[] = {
     {{-1.f, -1.f, 0.f}, {0.f, 0.f}},
     {{-1.f,  1.f, 0.f}, {0.f, 1.f}},
     {{ 1.f,  1.f, 0.f}, {1.f, 1.f}},
     {{ 1.f, -1.f, 0.f}, {1.f, 0.f}},
   };
 
-  std::vector<GLuint> indices;
+  GLuint indices[] = {
+    3, 2, 1,
+    1, 0, 3,
+  };
 
-  switch (mode) {
-    case GL_TRIANGLES: {
-      indices = {
-        2, 1, 0,
-        0, 3, 2,
-      };
-      break;
-    }
-    case GL_PATCHES: {
-      indices = {
-        0, 1,
-        2, 3,
-      };
-      break;
-    }
-    default:
-      error("[meshes::plane] Unhandled mode [{}]", mode);
-  }
+  MeshData data{};
+  data.vertices = (float*)vertices;
+  data.verticesSize = sizeof(vertices);
+  data.indices = indices;
+  data.indicesSize = sizeof(indices);
+  data.layout = vertex::PT_LAYOUT;
 
-  return Mesh(vertices, indices, mode);
+  return MeshElements(data);
 }
 
-Mesh plane(size_t resolution, GLenum mode, vec3 up) {
-  std::vector<VertexPT> vertices;
+MeshElements plane(size_t resolution, GLenum mode, vec3 up) {
+  std::vector<vertex::PT> vertices;
   std::vector<GLuint> indices;
   size_t triIndex = 0;
 
@@ -117,7 +100,7 @@ Mesh plane(size_t resolution, GLenum mode, vec3 up) {
       float percentX = x / (resolution - 1.f);
       vec3 pX = (percentX - 0.5f) * 2.f * axisA;
 
-      VertexPT& vert = vertices[idx];
+      vertex::PT& vert = vertices[idx];
       vert.position = up + pX + pY;
       vert.texture = {percentX, percentY};
 
@@ -126,20 +109,34 @@ Mesh plane(size_t resolution, GLenum mode, vec3 up) {
     }
   }
 
-  return Mesh(vertices, indices, mode);
+  MeshData data;
+  data.vertices = (float*)vertices.data();
+  data.verticesSize = vertices.size() * sizeof(vertices[0]);
+  data.indices = indices.data();
+  data.indicesSize = indices.size() * sizeof(indices[0]);
+  data.layout = vertex::PT_LAYOUT;
+  data.mode = mode;
+
+  return MeshElements(data);
 }
 
-Mesh circle(int resolution) {
+MeshArrays circle(int resolution) {
   float angleStep = (PI * 2.f) / resolution;
   float theta = 0.f;
-  std::vector<VertexP> vertices(resolution);
+  std::vector<vertex::P> vertices(resolution);
 
   for (int i = 0; i < resolution; i++) {
     vertices[i].position = {cos(theta), sin(theta), 0.f};
     theta += angleStep;
   }
 
-  return Mesh(vertices, GL_TRIANGLE_FAN, GL_STATIC_DRAW);
+  MeshData data;
+  data.vertices = (float*)vertices.data();
+  data.verticesSize = vertices.size() * sizeof(vertices[0]);
+  data.layout = vertex::P_LAYOUT;
+  data.mode = GL_TRIANGLE_FAN;
+
+  return MeshArrays(data);
 }
 
 } // namespace meshes

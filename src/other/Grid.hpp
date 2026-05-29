@@ -2,16 +2,16 @@
 
 #include "../engine/mesh/meshes.hpp"
 
-struct Grid : public Mesh {
+struct Grid {
   float baseColor = 1.f;
   float gridSize = 20.f;
-  Mesh mesh = meshes::plane(2);
+  MeshElements mesh = meshes::plane(2);
 
   void scale(float s) {
     mesh.scale(vec3{s, 1.f, s});
   }
 
-  void draw(const Camera* camera, Shader& shader, bool forceNoWireframe = false) {
+  void draw(const Camera* camera, Shader& shader) {
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -20,7 +20,7 @@ struct Grid : public Mesh {
     shader.setUniform1f("u_gridSize", gridSize);
 
     mesh.setMatTranslation(camera->getPosition() * vec3(1.f, 0.f, 1.f));
-    mesh.draw(camera, shader, forceNoWireframe);
+    mesh.draw(camera, shader);
 
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);

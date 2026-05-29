@@ -1,6 +1,4 @@
-#include "engine/texture/TextureCubemap.hpp"
-#include "other/Grid.hpp"
-#include "other/Sun.hpp"
+#include "other/markup.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -14,9 +12,10 @@
 #include "engine/Camera.hpp"
 #include "engine/Shader.hpp"
 #include "engine/InputsHandler.hpp"
-#include "engine/mesh/meshes.hpp"
-#include "engine/Light.hpp"
 #include "utils/clrp.hpp"
+#include "engine/texture/TextureCubemap.hpp"
+#include "other/Grid.hpp"
+#include "other/Sun.hpp"
 
 using global::window;
 
@@ -84,6 +83,7 @@ int main() {
   glDebugMessageCallback(MessageCallback, 0);
 
   gui::init();
+  markup::init();
 
   // ===== Shaders ============================================== //
 
@@ -97,6 +97,8 @@ int main() {
   Shader gridShader("grid.vert", "grid.frag");
   Shader edgesShader("edges.vert", "edges.frag", "edges.geom");
   Shader skyboxShader("skybox.vert", "skybox.frag");
+  Shader textShader("text.vert", "text.frag");
+  Shader markupShader("markup.vert", "markup.frag");
 
   // ===== Cameras ============================================== //
 
@@ -113,12 +115,14 @@ int main() {
 
   // ============================================================ //
 
+  Font textFont("res/fonts/FiraCodeNerdFontMono-Bold.ttf", 20);
+
   Sun sun;
   sun.pitch = PI_6;
   sun.yaw = 0.f;
   sun.updateDir();
 
-  FighterJet f15("res/fbx/f15.fbx", 13000.f);
+  FighterJet f15("res/fbx/f15.fbx", 13000.f, &textFont, &textShader);
   f15.setCamDistance(30.f);
   f15.setCamSensitivity(1.f);
 
@@ -134,15 +138,10 @@ int main() {
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
 
-  Mesh axis = meshes::axis();
-  axis.scale(1e4f);
-
-  Grid grid;
+  Grid grid{};
   grid.scale(1e4f);
 
-  TextureDescriptor cubemapTexDesc;
-  cubemapTexDesc.uniformName = "u_skyboxTex";
-  cubemapTexDesc.unit = 0;
+  TextureDescriptor cubemapTexDesc{};
   cubemapTexDesc.target = GL_TEXTURE_CUBE_MAP;
   cubemapTexDesc.minFilter = GL_LINEAR;
   cubemapTexDesc.magFilter = GL_LINEAR;
@@ -151,10 +150,7 @@ int main() {
   cubemapTexDesc.wrapR = GL_CLAMP_TO_EDGE;
   cubemapTexDesc.genMipMap = false;
 
-  TextureCubemap skyboxTex(cubemapTexDesc);
-  skyboxTex.loadFromImage("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
-
-  Mesh skyboxCube = Mesh::loadObj("res/obj/Cube.obj");
+  TextureCubemap skyboxTex = TextureCubemap::loadFromImage("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png", cubemapTexDesc);
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &sun;
@@ -209,25 +205,27 @@ int main() {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    skyboxTex.bind();
-    glDepthFunc(GL_LEQUAL);
-    skyboxCube.draw(activeCam, skyboxShader);
-    glDepthFunc(GL_LESS);
+    skyboxTex.bind(0);
+    Mesh::drawScreen(activeCam, skyboxShader);
+
+    grid.draw(activeCam, gridShader);
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
     f15.draw(activeCam, airplaneShader);
-    f15.drawHUD(activeCam, hudShader);
     f15.drawDebugMass(activeCam, billboardColorShader);
     f15.drawDebugBoundaries(activeCam, edgesShader);
 
     glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
 
-    grid.draw(activeCam, gridShader);
+    f15.drawHUD(activeCam, hudShader);
 
-    if (global::drawGlobalAxis)
-      axis.draw(activeCam, colorShader);
+    markup::drawCross(activeCam, markupShader);
+
+    // if (global::drawGlobalAxis)
+    //   axis.draw(activeCam, colorShader);
 
     // ============================================================ //
 

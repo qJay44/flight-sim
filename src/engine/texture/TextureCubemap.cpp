@@ -1,29 +1,29 @@
 #include "TextureCubemap.hpp"
 
-#include "utils/utils.hpp"
-
-TextureCubemap::TextureCubemap(const TextureDescriptor& desc)
-  : Texture(desc)
-{
+void TextureCubemap::onInit(const TextureDescriptor& desc) {
   if (desc.target != GL_TEXTURE_CUBE_MAP)
-    error("[TextureCubemap::TextureCubemap] Wrong tartget for [{}]", desc.uniformName);
+    error("[TextureCubemap::TextureCubemap] Wrong target ({:#x})", desc.target);
+
+  target = desc.target;
 
   glGenTextures(1, &id);
-  bind();
+  bind(0);
   glTexParameteri(desc.target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
   glTexParameteri(desc.target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
   glTexParameteri(desc.target, GL_TEXTURE_WRAP_S, desc.wrapS);
   glTexParameteri(desc.target, GL_TEXTURE_WRAP_T, desc.wrapT);
   glTexParameteri(desc.target, GL_TEXTURE_WRAP_R, desc.wrapR);
-  unbind();
 }
 
-void TextureCubemap::loadFromImage(const fspath& path) {
-  loadFromImage(image2D(path));
+TextureCubemap TextureCubemap::loadFromImage(const fspath& path, const TextureDescriptor& desc) {
+  return loadFromImage(image2D(path), desc);
 }
 
-void TextureCubemap::loadFromImage(const image2D& img) {
-  bind();
+TextureCubemap TextureCubemap::loadFromImage(const image2D& img, const TextureDescriptor& desc) {
+  TextureCubemap tex;
+
+  tex.onInit(desc);
+  tex.bind(0);
 
   //     +Y
   //  -X +Z +X -Z
@@ -46,6 +46,8 @@ void TextureCubemap::loadFromImage(const image2D& img) {
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
   glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
-  unbind();
+  tex.unbind();
+
+  return tex;
 }
 

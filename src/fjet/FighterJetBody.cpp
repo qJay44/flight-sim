@@ -1,15 +1,14 @@
 #include "FighterJetBody.hpp"
 
+#include "../engine/mesh/fbx/model.hpp"
 #include "Animation.hpp"
+#include "FighterJetBody.hpp"
 #include "PointMass.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/trigonometric.hpp"
 #include "utils/types.hpp"
-#include "../engine/mesh/fbx/model.hpp"
-
-#include <cmath>
 
 static vec3 projectOnPlane(vec3 vec, vec3 normal) {
   vec3 n = glm::normalize(normal);
@@ -140,18 +139,18 @@ void FighterJetBody::update(float dt) {
 void FighterJetBody::draw(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   for (AircraftPart* part : parts) {
     shader.setUniformMatrix3f("u_localRotation", glm::mat3_cast(part->localRotation));
-    part->draw(camera, shader, forceNoWireframe);
+    part->draw(camera, shader);
   }
 }
 
 void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   for (AircraftPart* part : parts)
-    part->drawDebugMass(camera, shader, forceNoWireframe);
+    part->drawDebugMass(camera, shader);
 }
 
 void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader, bool forceNoWireframe) const {
   for (AircraftPart* part : parts)
-    part->drawDebugBoundaries(camera, shader, forceNoWireframe);
+    part->drawDebugBoundaries(camera, shader);
 }
 
 void FighterJetBody::calcState(float dt) {

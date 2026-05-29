@@ -3,12 +3,10 @@
 Texture2D Texture2D::debug0Tex;
 
 const Texture2D& Texture2D::getDebug0Tex() {
-  if (debug0Tex.desc.uniformName.empty())
+  if (debug0Tex.id == 0)
     debug0Tex = Texture2D(
       {"res/tex/debug/uvChecker.jpg", IMAGE2D_LOAD_STB , true},
       {
-        .uniformName = "u_debug0Tex",
-        .unit = 0,
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
         .wrapS = GL_REPEAT,
@@ -18,17 +16,19 @@ const Texture2D& Texture2D::getDebug0Tex() {
   return debug0Tex;
 }
 
-Texture2D::Texture2D(const image2D& img, const TextureDescriptor& d) : Texture(d) {
+Texture2D::Texture2D(const image2D& img, const TextureDescriptor& desc) {
   if (desc.target != GL_TEXTURE_2D)
-    error("[Texture2D::Texture2D] Wrong target for [{}]", desc.uniformName);
+    error("[Texture2D::Texture2D] Wrong target ({:#x})", desc.target);
+
+  target = desc.target;
 
   glGenTextures(1, &id);
-  bind();
-  glTexParameteri(desc.target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
-  glTexParameteri(desc.target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
-  glTexParameteri(desc.target, GL_TEXTURE_WRAP_S, desc.wrapS);
-  glTexParameteri(desc.target, GL_TEXTURE_WRAP_T, desc.wrapT);
-  glTexImage2D(desc.target, 0, desc.internalFormat, img.width, img.height, 0, desc.format, desc.type, img.pixels);
+  bind(0);
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, desc.wrapS);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, desc.wrapT);
+  glTexImage2D(target, 0, desc.internalFormat, img.width, img.height, 0, desc.format, desc.type, img.pixels);
 
   if (desc.genMipMap)
     glGenerateMipmap(desc.target);
@@ -42,9 +42,9 @@ Texture2D::Texture2D(const ivec2& size, const TextureDescriptor& desc)
 Texture2D::Texture2D(const fspath& path, const TextureDescriptor& desc)
   : Texture2D(image2D(path), desc) {}
 
-void Texture2D::upload(ivec2 coord, ivec2 size, const void* data, GLenum type) const {
-  bind();
-  glTexSubImage2D(desc.target, 0, coord.x, coord.y, size.x, size.y, desc.format, type, data);
+void Texture2D::upload(ivec2 coord, ivec2 size, const void* data, GLenum format, GLenum type) const {
+  bind(0);
+  glTexSubImage2D(target, 0, coord.x, coord.y, size.x, size.y, format, type, data);
   unbind();
 }
 

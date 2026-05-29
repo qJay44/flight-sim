@@ -5,9 +5,10 @@
 #include "glm/geometric.hpp"
 #include "global.hpp"
 
-FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass)
+FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont, Shader* textShader)
   : Moveable({}, -PI_2, 0.f),
     body(fbxFilepath, vec3(0.f, 0.f, 1.f), jetMass),
+    hud(textFont, textShader),
     camera(vec3{})
 {
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);

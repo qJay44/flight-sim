@@ -49,11 +49,6 @@ public:
     unbind();
   }
 
-  void allocate(std::ranges::contiguous_range auto const& container, GLenum usage) const {
-    auto s = std::span(container);
-    allocate(s.data(), s.size_bytes(), usage);
-  }
-
   void bind() const {
     glBindBuffer(target, id);
   }
@@ -62,7 +57,7 @@ public:
     glBindBufferBase(target, index, id);
   }
 
-  void update(const void* data, GLsizeiptr dataSize, GLbitfield access) const {
+  void updateRange(const void* data, GLsizeiptr dataSize, GLbitfield access) const {
     bind();
 
     void* ptr = glMapBufferRange(target, 0, dataSize, access);
@@ -72,14 +67,10 @@ public:
     unbind();
   }
 
-  void update(std::ranges::contiguous_range auto const& container, GLbitfield access) const {
-    auto s = std::span(container);
-    update(s.data(), s.size_bytes(), access);
-  }
-
-  void updateSubData(const void* data, GLsizeiptr dataSize) const {
+  void updateSubData(const void* data, GLsizeiptr dataSize, GLintptr offset = 0) const {
     bind();
-    glBufferSubData(target, 0, dataSize, data);
+    glBufferSubData(target, offset, dataSize, data);
+    unbind();
   }
 
   void unbind() const {

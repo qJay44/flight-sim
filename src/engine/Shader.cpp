@@ -51,11 +51,6 @@ GLint Shader::getUniformLoc(const std::string& name) {
   GLint loc = glGetUniformLocation(program, name.c_str());
   locs.emplace(name, loc);
 
-  #ifndef NDEBUG
-    if (loc == -1)
-      warning("[Shader::getUniformLoc] Didn't found location [{}]", name);
-  #endif
-
   return loc;
 }
 

@@ -3,15 +3,16 @@
 #include "utils/utils.hpp"
 
 Texture2DArray::Texture2DArray(GLint slots, ivec2 size, const TextureDescriptor& desc)
-  : Texture(desc),
-    slots(slots),
+  : slots(slots),
     size(size)
 {
   if (desc.target != GL_TEXTURE_2D_ARRAY)
-    error("[Texture2DArray::Texture2DArray] Wrong target for [{}]", desc.uniformName);
+    error("[Texture2DArray::Texture2DArray] Wrong target ({:#x})", desc.target);
+
+  target = desc.target;
 
   glGenTextures(1, &id);
-  bind();
+  bind(0);
   glTexParameteri(desc.target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
   glTexParameteri(desc.target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
   glTexParameteri(desc.target, GL_TEXTURE_WRAP_S, desc.wrapS);
@@ -28,13 +29,9 @@ const ivec2& Texture2DArray::getSize() const {
   return size;
 }
 
-void Texture2DArray::upload(GLint slot, const void* pixels, GLenum type) const {
-  bind();
-  glTexSubImage3D(desc.target, 0, 0, 0, slot, size.x, size.y, 1, desc.format, type, pixels);
-
-  if (desc.genMipMap)
-    glGenerateMipmap(desc.target);
-
+void Texture2DArray::upload(GLint slot, const void* pixels, GLenum format, GLenum type) const {
+  bind(0);
+  glTexSubImage3D(target, 0, 0, 0, slot, size.x, size.y, 1, format, type, pixels);
   unbind();
 }
 
