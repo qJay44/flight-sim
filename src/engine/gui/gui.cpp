@@ -86,6 +86,7 @@ void gui::draw() {
     TextVec3("Local Angular Velocity", body.localAngularVelocity);
     ImGui::Text("Angle of attack     [%.2f]", body.angleOfAttack);
     ImGui::Text("Angle of attack yaw [%.2f]", body.angleOfAttackYaw);
+    ImGui::Text("G [%.2f]", body.lastG);
 
     ImGui::Separator();
     ImGui::SliderFloat("Induced drag", &body.cfg.inducedDrag, 0.f, 100.f);

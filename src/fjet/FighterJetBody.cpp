@@ -175,17 +175,19 @@ vec3 FighterJetBody::calcGForceLimit(vec3 controlInput) const {
   return input * 9.81f;
 }
 
-vec3 FighterJetBody::calcGForce(vec3 angularVelocity, vec3 velocity) const {
-  return glm::cross(angularVelocity, velocity);
+vec3 FighterJetBody::calcGForce(vec3 angularVelocity, vec3 vel) const {
+  return glm::cross(angularVelocity, vel);
 }
 
-float FighterJetBody::calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity) const {
+float FighterJetBody::calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity) {
   vec3 maxInput = normalizeSafe(controlInput);
   vec3 limit = calcGForceLimit(maxInput);
   vec3 maxGForce = calcGForce(maxInput * maxAngularVelocity, localVelocity);
 
   float maxGForceLen = glm::length(maxGForce);
   float limitLen = glm::length(limit);
+  lastG = maxGForceLen / 9.81f;
+
   if (maxGForceLen > limitLen)
     return limitLen / maxGForceLen;
 
@@ -257,7 +259,7 @@ void FighterJetBody::updateLift() {
 
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
-  float steeringPower = glm::clamp(glm::log(speed), 0.1f, 1.f);
+  float steeringPower = glm::clamp(speed / 20.f, 0.1f, 1.f);
   float gForceScaleing = calcGLimitter(controlInput, glm::radians(cfg.turnSpeed) * steeringPower);
 
   vec3 targetAV = controlInput * cfg.turnSpeed * steeringPower * gForceScaleing;

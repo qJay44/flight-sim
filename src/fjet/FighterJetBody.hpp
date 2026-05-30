@@ -75,7 +75,6 @@ private:
   glm::quat initialRotation;
 
   vec3 velocity{};
-  vec3 lastVelocity{};
   vec3 localVelocity{};
   vec3 localAngularVelocity{};
   vec3 localGForce{1.f};
@@ -118,6 +117,8 @@ private:
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
 
+  float lastG = 0.f;
+
 private:
   static float getLiftCoeff(float angleRad);
   static float getLiftCoeffYaw(float angleRad);
@@ -126,7 +127,7 @@ private:
   void calcAngleOfAttack();
   vec3 calcGForceLimit(vec3 controlInput) const;
   vec3 calcGForce(vec3 angularVelocity, vec3 velocity) const;
-  float calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity) const;
+  float calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity);
   vec3 calcLift(vec3 right, float liftPower, float liftCoeff) const;
   float calcSteering(float dt, float angularVelocity, float targetVelocity, float acc) const;
 

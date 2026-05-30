@@ -36,6 +36,7 @@ void GLAPIENTRY MessageCallback(
   switch (source) {
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
       return; // Handled by the Shader class itself
+    // (FIXME: Its not only the SIMD32 error, need to fix this next time other error appears
     case GL_DEBUG_SOURCE_API:
       clrpFinal = clrpWarning; // "SIMD32 shader inefficient", skipping since occurs only on my laptop
   }
