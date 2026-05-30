@@ -51,7 +51,7 @@ void FighterJet::onMouseScroll(dvec2 offset) {
 }
 
 void FighterJet::roll(float dir) {
-  body.controlInput.z += dir * 0.2f;
+  body.controlInput.z += dir * global::dt * 10.f;
 }
 
 bool FighterJet::isActive() const {

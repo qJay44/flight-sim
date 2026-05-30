@@ -17,11 +17,11 @@ HUD::HUD(Font* font, Shader* shaderText) : shaderText(shaderText) {
 
   speedText.setFont(font);
   speedText.setColor({0.f, 1.f, 0.f});
+  speedText.setOutlineThreshold(0.45f);
 
   altitudeText.setFont(font);
   altitudeText.setColor({0.f, 1.f, 0.f});
-  altitudeText.setPos(winCenter);
-  altitudeText.setPos(imgOffsetFromCenter);
+  altitudeText.setOutlineThreshold(0.45f);
 
   speedImg.translate(winCenter);
   speedImg.translate(-imgOffsetFromCenter);

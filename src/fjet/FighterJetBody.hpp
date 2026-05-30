@@ -102,6 +102,8 @@ private:
     float inducedDrag = 10.f;
     float liftPower = 1.f;
     float rudderPower = 1.f;
+    float gLimit = 8.f;
+    float gLimitPitch = -4.f;
     vec3 turnSpeed{};
     vec3 turnAcceleration{};
   } cfg;
@@ -122,7 +124,9 @@ private:
 
   void calcState(float dt);
   void calcAngleOfAttack();
-  void calcGForce(float dt);
+  vec3 calcGForceLimit(vec3 controlInput) const;
+  vec3 calcGForce(vec3 angularVelocity, vec3 velocity) const;
+  float calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity) const;
   vec3 calcLift(vec3 right, float liftPower, float liftCoeff) const;
   float calcSteering(float dt, float angularVelocity, float targetVelocity, float acc) const;
 

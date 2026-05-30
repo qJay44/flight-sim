@@ -24,6 +24,8 @@ public:
   void setOriginCenter();
   void setPos(vec2 pos);
   void setColor(vec3 color);
+  void setColorOutline(vec3 color);
+  void setOutlineThreshold(float t);
 
   void draw(const Camera* camera, Shader& shader) const;
 
@@ -35,6 +37,7 @@ private:
   vec2 rectSize{};
   vec3 color{1.f};
   vec3 colorOutline{0.f};
+  float outlineThreshold = 0.35f; // basically a threshold where outline starts, decrease to make thicker
 
   MeshArrays mesh;
 

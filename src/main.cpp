@@ -127,10 +127,10 @@ int main() {
   f15Config.maxThrust = 6e5f;
   f15Config.flapsLiftPower = 2.f;
   f15Config.flapsAOABias = 10.f;
-  f15Config.liftPower = 20.f;
+  f15Config.liftPower = 75.f;
   f15Config.rudderPower = 50.f;
   f15Config.meshScale = 0.01f;
-  f15Config.inducedDrag = 10.5f;
+  f15Config.inducedDrag = 35.5f;
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
 

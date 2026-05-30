@@ -6,6 +6,7 @@
 #include "PointMass.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/quaternion_trigonometric.hpp"
+#include "glm/geometric.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/trigonometric.hpp"
 #include "utils/types.hpp"
@@ -76,7 +77,6 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
   rigidbody.position.y = 10.f;
-  rigidbody.position.x = 3e5f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // TODO: Calculate at runtime (compile time?) based on mass
   rigidbody.drag = 0.02f;
   rigidbody.angularDrag = 0.5f;
@@ -121,7 +121,6 @@ const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orien
 void FighterJetBody::update(float dt) {
   calcState(dt);
   calcAngleOfAttack();
-  calcGForce(dt);
 
   updateThrust();
   updateDrag();
@@ -143,7 +142,7 @@ void FighterJetBody::draw(DrawMesh type, const Camera* camera, Shader& shader) c
   if (isActive)
     localView = camera->getLocalView(camera->getPositionRelative());
   else
-    localView = camera->getLocalView(rigidbody.position);
+    localView = camera->getLocalView(camera->getPosition() - rigidbody.position);
 
   for (const AircraftPart* part : parts)
     part->draw(type, worldTranslation, localView, camera, shader);
@@ -167,11 +166,30 @@ void FighterJetBody::calcAngleOfAttack() {
   angleOfAttackYaw = atan2(localVelocity.x, localVelocity.z);
 }
 
-void FighterJetBody::calcGForce(float dt) {
-  auto invRotation = glm::conjugate(rigidbody.orientation);
-  vec3 acc = (velocity - lastVelocity) / dt;
-  localGForce = invRotation * acc;
-  lastVelocity = velocity;
+vec3 FighterJetBody::calcGForceLimit(vec3 controlInput) const {
+  vec3 input = controlInput * cfg.gLimit;
+
+  if (input.x < 0.f)
+    input.x = controlInput.x * cfg.gLimitPitch;
+
+  return input * 9.81f;
+}
+
+vec3 FighterJetBody::calcGForce(vec3 angularVelocity, vec3 velocity) const {
+  return glm::cross(angularVelocity, velocity);
+}
+
+float FighterJetBody::calcGLimitter(vec3 controlInput, vec3 maxAngularVelocity) const {
+  vec3 maxInput = normalizeSafe(controlInput);
+  vec3 limit = calcGForceLimit(maxInput);
+  vec3 maxGForce = calcGForce(maxInput * maxAngularVelocity, localVelocity);
+
+  float maxGForceLen = glm::length(maxGForce);
+  float limitLen = glm::length(limit);
+  if (maxGForceLen > limitLen)
+    return limitLen / maxGForceLen;
+
+  return 1.f;
 }
 
 vec3 FighterJetBody::calcLift(vec3 right, float liftPower, float liftCoeff) const {
@@ -240,8 +258,9 @@ void FighterJetBody::updateLift() {
 void FighterJetBody::updateSteering(float dt) {
   float speed = glm::max(0.f, localVelocity.z);
   float steeringPower = glm::clamp(glm::log(speed), 0.1f, 1.f);
+  float gForceScaleing = calcGLimitter(controlInput, glm::radians(cfg.turnSpeed) * steeringPower);
 
-  vec3 targetAV = controlInput * cfg.turnSpeed * steeringPower;
+  vec3 targetAV = controlInput * cfg.turnSpeed * steeringPower * gForceScaleing;
   vec3 av = glm::degrees(localAngularVelocity);
 
   vec3 correction {
@@ -284,7 +303,7 @@ void FighterJetBody::updateForceFromParts(float dt) {
 
     if (lowestY < cfg.groundHeight) {
       float depth = cfg.groundHeight - lowestY;
-      rigidbody.position.y += depth;
+      // rigidbody.position.y += depth;
 
       vec3 r = contactCorner - rigidbody.position;
       vec3 force{};

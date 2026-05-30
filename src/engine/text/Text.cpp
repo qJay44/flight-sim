@@ -44,6 +44,10 @@ void Text::setColor(vec3 color) {
   this->color = color;
 }
 
+void Text::setColorOutline(vec3 color) {
+  this->colorOutline = color;
+}
+
 void Text::setPos(vec2 pos) {
   mesh.setMatTranslation(pos - origin);
 }
@@ -56,10 +60,15 @@ void Text::setOriginCenter() {
   origin = rectSize * 0.25f; // idk
 }
 
+void Text::setOutlineThreshold(float t) {
+  outlineThreshold = t;
+}
+
 void Text::draw(const Camera* camera, Shader& shader) const {
   shader.setUniformMatrix4f("u_proj", global::getScreenProjection());
   shader.setUniform3f("u_color", color);
   shader.setUniform3f("u_colorOutline", colorOutline);
+  shader.setUniform1f("u_outlineThreshold", outlineThreshold);
 
   glDepthMask(GL_FALSE);
   glEnable(GL_BLEND);
