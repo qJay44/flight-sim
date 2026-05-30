@@ -14,20 +14,23 @@ public:
 
   static void setNextActiveCam();
 
-  const float& getNearPlane()   const;
-  const float& getFarPlane()    const;
-  const float& getFov()         const;
-  const float& getAspectRatio() const;
-  const mat4&  getProj()        const;
-  const mat4&  getView()        const;
-  const mat4&  getProjView()    const;
+  const float& getNearPlane()        const;
+  const float& getFarPlane()         const;
+  const float& getFov()              const;
+  const float& getAspectRatio()      const;
+  const mat4&  getProj()             const;
+  const mat4&  getView()             const;
+  const mat4&  getProjView()         const;
+  const vec3&  getPositionRelative() const;
 
   mat4 getProjViewInv() const;
+  mat4 getLocalView(vec3 pos) const;
 
   void setNearPlane(float p);
   void setFarPlane(float p);
   void setFlags(u32 f);
   void setUniforms(Shader& shader) const;
+  void setPositionRelative(vec3 p);
 
   void update();
 
@@ -45,6 +48,8 @@ protected:
   mat4 proj = mat4(1.f);
   mat4 view = mat4(1.f);
   mat4 pv   = mat4(1.f);
+
+  vec3 relativePos{};
 
 private:
   static std::vector<Camera*> cameraPool;

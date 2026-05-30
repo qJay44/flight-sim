@@ -22,7 +22,7 @@ public:
   void drawDebugBoundaries(const Camera* camera, Shader& shader) const;
 
 private:
-  friend struct FighterJet;
+  friend class FighterJet;
   friend struct gui;
 
   AircraftPart fuselage      {"Fuselage"     , MassConfig::fuselage     };
@@ -109,6 +109,7 @@ private:
   Animation animRoll;
   Animation animYaw;
 
+  bool isActive = false;
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
 

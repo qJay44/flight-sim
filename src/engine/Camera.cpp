@@ -24,16 +24,21 @@ void Camera::setNextActiveCam() {
   activeCam = cameraPool[activeCamIdx];
 }
 
-const float& Camera::getNearPlane()   const { return nearPlane;   }
-const float& Camera::getFarPlane()    const { return farPlane;    }
-const float& Camera::getFov()         const { return fov;         }
-const float& Camera::getAspectRatio() const { return aspectRatio; }
-const mat4&  Camera::getProj()        const { return proj;        }
-const mat4&  Camera::getView()        const { return view;        }
-const mat4&  Camera::getProjView()    const { return pv;          }
+const float& Camera::getNearPlane()        const { return nearPlane;   }
+const float& Camera::getFarPlane()         const { return farPlane;    }
+const float& Camera::getFov()              const { return fov;         }
+const float& Camera::getAspectRatio()      const { return aspectRatio; }
+const mat4&  Camera::getProj()             const { return proj;        }
+const mat4&  Camera::getView()             const { return view;        }
+const mat4&  Camera::getProjView()         const { return pv;          }
+const vec3&  Camera::getPositionRelative() const { return relativePos; }
 
 mat4 Camera::getProjViewInv() const {
   return glm::inverse(pv);
+}
+
+mat4 Camera::getLocalView(vec3 pos) const {
+  return glm::lookAt(pos, pos + orientation, up);
 }
 
 void Camera::setNearPlane(float p) { nearPlane = p; }
@@ -53,6 +58,10 @@ void Camera::setUniforms(Shader& shader) const {
   shader.setUniformMatrix4f("u_camInvPV"  , getProjViewInv());
 }
 
+void Camera::setPositionRelative(vec3 p) {
+  relativePos = p;
+}
+
 void Camera::update() {
   vec2 winSize = global::getWinSize();
 
@@ -60,9 +69,5 @@ void Camera::update() {
   proj = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
   view = glm::lookAt(position, position + orientation, up);
   pv = proj * view;
-
-  dvec2 winCenter = global::getWinCenter();
-  if (!global::guiFocused)
-    glfwSetCursorPos(global::window, winCenter.x, winCenter.y);
 }
 

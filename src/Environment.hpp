@@ -20,7 +20,7 @@ struct Environment {
   }
 
   void draw(const Camera* cam, Shader& shader) const {
-    mat4 viewRot = mat4(mat3(cam->getView())); // No translation part;
+    mat4 viewRot = cam->getLocalView(vec3(0.f));
 
     shader.setUniformMatrix4f("u_proj", cam->getProj());
     shader.setUniformMatrix4f("u_viewRot", viewRot);

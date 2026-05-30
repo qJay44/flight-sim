@@ -76,6 +76,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
   rigidbody.position.y = 10.f;
+  rigidbody.position.x = 3e5f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // TODO: Calculate at runtime (compile time?) based on mass
   rigidbody.drag = 0.02f;
   rigidbody.angularDrag = 0.5f;
@@ -137,20 +138,43 @@ void FighterJetBody::update(float dt) {
 }
 
 void FighterJetBody::draw(const Camera* camera, Shader& shader) const {
-  for (AircraftPart* part : parts) {
-    shader.setUniformMatrix3f("u_localRotation", glm::mat3_cast(part->localRotation));
-    part->draw(camera, shader);
+  mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
+  mat4 localView;
+  if (isActive)
+    localView = camera->getLocalView(camera->getPositionRelative());
+  else
+    localView = camera->getLocalView(rigidbody.position);
+
+  for (const AircraftPart* part : parts) {
+    mat4 model = worldTranslation * part->modelRelative;
+    mat4 modelView = localView * part->modelRelative;
+
+    shader.setUniformMatrix4f("u_modelView", modelView);
+    part->draw(camera, shader, model);
   }
 }
 
+//FIXME: need to check this
 void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader) const {
-  for (AircraftPart* part : parts)
+  for (const AircraftPart* part : parts)
     part->drawDebugMass(camera, shader);
 }
 
 void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader) const {
-  for (AircraftPart* part : parts)
-    part->drawDebugBoundaries(camera, shader);
+  mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
+  mat4 localView;
+  if (isActive)
+    localView = camera->getLocalView(camera->getPositionRelative());
+  else
+    localView = camera->getLocalView(rigidbody.position);
+
+  for (const AircraftPart* part : parts) {
+    mat4 model = worldTranslation * part->boxModelRelative;
+    mat4 modelView = localView * part->boxModelRelative;
+
+    shader.setUniformMatrix4f("u_modelView", modelView);
+    part->drawDebugBoundaries(camera, shader, model);
+  }
 }
 
 void FighterJetBody::calcState(float dt) {
@@ -320,22 +344,21 @@ void FighterJetBody::updateMesh(float dt) {
   animRoll.rotateBack(controlInput.z, 0.1f);
   animYaw.rotateBack(controlInput.y, 0.1f);
 
-  mat4 bodyTransform = glm::translate(mat4(1.f), rigidbody.position);
-  bodyTransform *= glm::mat4_cast(rigidbody.orientation * initialRotation);
+  mat4 bodyTransform = glm::mat4_cast(rigidbody.orientation * initialRotation);
   bodyTransform *= glm::scale(mat4(1.f), vec3(cfg.meshScale));
 
   for (AircraftPart* part : parts) {
     mat4 partTranslation = glm::translate(mat4(1.f), part->offset);
     mat4 partRotation = glm::mat4_cast(part->localRotation);
 
-    part->model = bodyTransform * partTranslation * partRotation;
+    part->modelRelative = bodyTransform * partTranslation * partRotation;
 
     vec3 size = part->getLocalBoxSize();
     vec3 center = part->getLocalBoxCenter();
     mat4 partBoxTranslation = glm::translate(mat4(1.f), center);
     mat4 partBoxScale = glm::scale(mat4(1.f), size * 0.5f);
 
-    part->boxModel = bodyTransform * partBoxTranslation * partRotation * partBoxScale;
+    part->boxModelRelative = bodyTransform * partBoxTranslation * partRotation * partBoxScale;
   }
 }
 

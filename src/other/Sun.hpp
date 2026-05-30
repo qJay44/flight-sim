@@ -5,7 +5,7 @@
 struct Sun {
   float focus = 800.f;
   float intensity = 2.f;
-  float yaw = PI_2;
+  float yaw = 0.f;
   float pitch = 0.f;
   vec3 color{1.f};
   vec3 skyHorizonColor = vec3(1.f);

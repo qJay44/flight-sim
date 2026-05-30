@@ -3,7 +3,6 @@
 #include "FighterJetBody.hpp"
 
 #include "glm/ext/matrix_transform.hpp"
-#include "glm/gtc/quaternion.hpp"
 #include "HUD.hpp"
 
 class FighterJet : public Moveable {

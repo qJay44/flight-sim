@@ -91,13 +91,14 @@ int main() {
 
   Shader environmentShader("environment.vert", "environment.frag");
   Shader colorShader("color.vert", "color.frag");
-  Shader airplaneShader("f15.vert", "f15.frag");
-  Shader billboardColorShader("billboardColor.vert", "billboardColor.frag");
   Shader hudShader("hud.vert", "hud.frag");
   Shader gridShader("grid.vert", "grid.frag");
-  Shader edgesShader("edges.vert", "edges.frag", "edges.geom");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
+
+  Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
+  Shader massShader("f15/mass.vert", "f15/mass.frag");
+  Shader hitboxShader("f15/hitbox.vert", "f15/hitbox.frag", "f15/hitbox.geom");
 
   // ===== Cameras ============================================== //
 
@@ -136,7 +137,6 @@ int main() {
   // ============================================================ //
 
   Grid grid{};
-  grid.scale(1e4f);
 
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
 
@@ -174,6 +174,10 @@ int main() {
     } else
       glfwSetCursorPos(window, winCenter.x, winCenter.y);
 
+    dvec2 winCenter = global::getWinCenter();
+    if (!global::guiFocused)
+      glfwSetCursorPos(global::window, winCenter.x, winCenter.y);
+
     // Update window title every 0.3 seconds
     if (currTime - titleTimer >= 0.3) {
       gui::fps = static_cast<u16>(1.f / global::dt);
@@ -200,8 +204,8 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     f15.draw(activeCam, airplaneShader);
-    f15.drawDebugMass(activeCam, billboardColorShader);
-    f15.drawDebugBoundaries(activeCam, edgesShader);
+    f15.drawDebugMass(activeCam, massShader);
+    f15.drawDebugBoundaries(activeCam, hitboxShader);
 
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);

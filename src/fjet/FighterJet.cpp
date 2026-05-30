@@ -78,6 +78,7 @@ void FighterJet::toggleFlaps() {
 
 void FighterJet::update() {
   body.update(global::dt);
+  body.isActive = isActive();
   updateHUD();
   updateCamera();
 }
@@ -111,22 +112,27 @@ void FighterJet::updateCamera() {
   float lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
 
   vec3 jetForward = body.rigidbody.orientation * body.localOrientation;
+  vec3 jetUp = body.rigidbody.orientation * vec3(0.f, 1.f, 0.f);
   jetForward = glm::normalize(jetForward);
-
-  vec3 camRight = glm::normalize(glm::cross(jetForward, global::up));
-  vec3 camUp = glm::cross(camRight, jetForward);
+  jetUp = glm::normalize(jetUp);
 
   // Look slightly above
-  vec3 camOffsetDir = camUp * 0.34202f + jetForward * -0.93969f;
+  vec3 camOffsetDir = jetUp * 0.34202f + jetForward * -0.93969f;
   camOffsetDir = glm::normalize(camOffsetDir);
 
+  vec3 relativePos = camOffsetDir * camDistance;
   vec3 currPos = camera.getPosition();
-  vec3 targetPos = body.getPosition() + camOffsetDir * camDistance;
+  vec3 targetPos = body.getPosition() + relativePos;
   vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
-  vec3 lookAtCenter = body.getPosition() - nextPos;
+
+  // Keep camera look ahead when jet rolls (the jet is visually offsetted from the screen center)
+  float lookAheadDist = 50.f;
+  vec3 lookAtEye = body.getPosition() + jetForward * lookAheadDist;
+  vec3 lookAtCenter = lookAtEye - nextPos;
 
   camera.setOrientation(glm::normalize(lookAtCenter));
   camera.setPosition(nextPos);
+  camera.setPositionRelative(relativePos);
   camera.update();
 }
 
