@@ -20,6 +20,10 @@ extern bool drawWireframe;
 extern bool drawNormals;
 extern bool drawGlobalAxis;
 
+extern bool jetDrawHUD;
+extern bool jetDrawDebugMass;
+extern bool jetDrawDebugHitboxes;
+
 static inline ivec2 getWinSize() {
   ivec2 res;
   glfwGetWindowSize(global::window, &res.x, &res.y);

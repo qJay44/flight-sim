@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../engine/mesh/meshes.hpp"
-#include "glm/gtc/quaternion.hpp"
 
 struct AircraftPart {
   std::string name;
@@ -13,16 +12,22 @@ struct AircraftPart {
   vec3 color{0.24377f, 0.355047f, 0.6226415f};
   glm::quat localRotation{1.f, 0.f, 0.f, 0.f};
   mat4 modelRelative;
+  const mat4 dummyMat0{1.f};
 
   vec3 localBoxMin;
   vec3 localBoxMax;
-  vec3 boxColor{0.f, 1.f, 0.f};
   mat4 boxModelRelative;
 
   MeshArrays debugMeshMass = meshes::circle();
+  MeshElements debugMeshHitbox = MeshElements::loadFromOBJ("res/obj/Cube.obj");
 
-  MeshElements debugMeshBB = MeshElements::loadFromOBJ("res/obj/Cube.obj");
-  mat4 rectScale{1.f};
+  const Mesh* meshes[3] {
+    &mesh, &debugMeshMass, &debugMeshHitbox
+  };
+
+  const mat4* meshesLocalModels[3] {
+    &modelRelative, &modelRelative, &boxModelRelative
+  };
 
   vec3 getLocalBoxSize() const {
     return localBoxMax - localBoxMin;
@@ -32,19 +37,14 @@ struct AircraftPart {
     return (localBoxMax + localBoxMin) * 0.5f;
   }
 
-  void draw(const Camera* camera, Shader& shader, const mat4& model) const {
+  void draw(u8 meshIdx, const mat4& worldTrans, const mat4& view, const Camera* cam, Shader& shader) const {
+    const mat4& localModel = *meshesLocalModels[meshIdx];
+    mat4 model = worldTrans * localModel;
+    mat4 modelView = view * localModel;
+
+    shader.setUniformMatrix4f("u_modelView", modelView);
     shader.setUniform3f("u_color", color);
-    mesh.draw(camera, shader, model);
-  }
-
-  void drawDebugMass(const Camera* camera, Shader& shader) const {
-    shader.setUniform3f("u_color", 1.f - color);
-    debugMeshMass.draw(camera, shader, modelRelative);
-  }
-
-  void drawDebugBoundaries(const Camera* camera, Shader& shader, const mat4& model) const {
-    shader.setUniform3f("u_color", boxColor);
-    debugMeshBB.draw(camera, shader, model);
+    meshes[meshIdx]->draw(cam, shader, model);
   }
 };
 

@@ -72,9 +72,9 @@ void gui::draw() {
 
   assert(fjetPtr);
   if (ImGui::CollapsingHeader("F15 General")) {
-    ImGui::Checkbox("Show HUD", &fjetPtr->bDrawHUD);
-    ImGui::Checkbox("Show parts masses", &fjetPtr->bDrawDebugMass);
-    ImGui::Checkbox("Show BB", &fjetPtr->bDrawDebugBoundaries);
+    ImGui::Checkbox("Show HUD", &global::jetDrawHUD);
+    ImGui::Checkbox("Show parts masses", &global::jetDrawDebugMass);
+    ImGui::Checkbox("Show Hitboxes", &global::jetDrawDebugHitboxes);
   }
 
   // ===== F15 Body ====================================================================================== //

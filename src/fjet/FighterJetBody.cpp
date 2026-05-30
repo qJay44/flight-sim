@@ -137,7 +137,7 @@ void FighterJetBody::update(float dt) {
   controlInput *= 0.9f;
 }
 
-void FighterJetBody::draw(const Camera* camera, Shader& shader) const {
+void FighterJetBody::draw(DrawMesh type, const Camera* camera, Shader& shader) const {
   mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
   mat4 localView;
   if (isActive)
@@ -145,36 +145,8 @@ void FighterJetBody::draw(const Camera* camera, Shader& shader) const {
   else
     localView = camera->getLocalView(rigidbody.position);
 
-  for (const AircraftPart* part : parts) {
-    mat4 model = worldTranslation * part->modelRelative;
-    mat4 modelView = localView * part->modelRelative;
-
-    shader.setUniformMatrix4f("u_modelView", modelView);
-    part->draw(camera, shader, model);
-  }
-}
-
-//FIXME: need to check this
-void FighterJetBody::drawDebugMass(const Camera* camera, Shader& shader) const {
   for (const AircraftPart* part : parts)
-    part->drawDebugMass(camera, shader);
-}
-
-void FighterJetBody::drawDebugBoundaries(const Camera* camera, Shader& shader) const {
-  mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
-  mat4 localView;
-  if (isActive)
-    localView = camera->getLocalView(camera->getPositionRelative());
-  else
-    localView = camera->getLocalView(rigidbody.position);
-
-  for (const AircraftPart* part : parts) {
-    mat4 model = worldTranslation * part->boxModelRelative;
-    mat4 modelView = localView * part->boxModelRelative;
-
-    shader.setUniformMatrix4f("u_modelView", modelView);
-    part->drawDebugBoundaries(camera, shader, model);
-  }
+    part->draw(type, worldTranslation, localView, camera, shader);
 }
 
 void FighterJetBody::calcState(float dt) {

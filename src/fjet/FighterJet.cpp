@@ -84,22 +84,19 @@ void FighterJet::update() {
 }
 
 void FighterJet::draw(const Camera* camera, Shader& shader) const {
-  body.draw(camera, shader);
+  body.draw(FighterJetBody::DRAW_MESH_DEFAULT, camera, shader);
 }
 
 void FighterJet::drawHUD(const Camera* camera, Shader& shader) const {
-  if (bDrawHUD)
-    hud.draw(camera, shader);
+  hud.draw(camera, shader);
 }
 
 void FighterJet::drawDebugMass(const Camera* camera, Shader& shader) const {
-  if (bDrawDebugMass)
-    body.drawDebugMass(camera, shader);
+  body.draw(FighterJetBody::DRAW_MESH_MASSES, camera, shader);
 }
 
-void FighterJet::drawDebugBoundaries(const Camera* camera, Shader& shader) const {
-  if (bDrawDebugBoundaries)
-    body.drawDebugBoundaries(camera, shader);
+void FighterJet::drawDebugHitboxes(const Camera* camera, Shader& shader) const {
+  body.draw(FighterJetBody::DRAW_MESH_HITBOXES, camera, shader);
 }
 
 void FighterJet::updateHUD() {

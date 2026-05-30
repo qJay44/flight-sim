@@ -127,7 +127,7 @@ int main() {
   f15Config.maxThrust = 6e5f;
   f15Config.flapsLiftPower = 2.f;
   f15Config.flapsAOABias = 10.f;
-  f15Config.liftPower = 50.f;
+  f15Config.liftPower = 20.f;
   f15Config.rudderPower = 50.f;
   f15Config.meshScale = 0.01f;
   f15Config.inducedDrag = 10.5f;
@@ -204,13 +204,18 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     f15.draw(activeCam, airplaneShader);
-    f15.drawDebugMass(activeCam, massShader);
-    f15.drawDebugBoundaries(activeCam, hitboxShader);
+
+    if (global::jetDrawDebugMass)
+      f15.drawDebugMass(activeCam, massShader);
+
+    if (global::jetDrawDebugHitboxes)
+      f15.drawDebugHitboxes(activeCam, hitboxShader);
 
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    f15.drawHUD(activeCam, hudShader);
+    if (global::jetDrawHUD)
+      f15.drawHUD(activeCam, hudShader);
 
     // markup::drawCross(activeCam, markupShader);
 

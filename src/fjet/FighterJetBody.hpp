@@ -8,6 +8,12 @@
 
 class FighterJetBody {
 public:
+  enum DrawMesh : u8 {
+    DRAW_MESH_DEFAULT  = 0,
+    DRAW_MESH_MASSES   = 1,
+    DRAW_MESH_HITBOXES = 2,
+  };
+
   FighterJetBody(const fspath& fbxFilepath, vec3 orientation, float totalMass);
 
   const vec3& getPosition() const;
@@ -16,10 +22,7 @@ public:
   const float& getMaxThrust() const;
 
   void update(float dt);
-
-  void draw(const Camera* camera, Shader& shader) const;
-  void drawDebugMass(const Camera* camera, Shader& shader) const;
-  void drawDebugBoundaries(const Camera* camera, Shader& shader) const;
+  void draw(DrawMesh type, const Camera* camera, Shader& shader) const;
 
 private:
   friend class FighterJet;

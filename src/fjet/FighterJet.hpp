@@ -33,7 +33,7 @@ public:
   void draw(const Camera* camera, Shader& shader) const;
   void drawHUD(const Camera* camera, Shader& shader) const;
   void drawDebugMass(const Camera* camera, Shader& shader) const;
-  void drawDebugBoundaries(const Camera* camera, Shader& shader) const;
+  void drawDebugHitboxes(const Camera* camera, Shader& shader) const;
 
 private:
   friend struct gui;
@@ -45,11 +45,6 @@ private:
   float camDistance = 10.f;
   float camDistanceMax = 20.f;
   glm::quat camQuat = glm::identity<glm::quat>();
-
-  // Better to move to main.cpp
-  bool bDrawHUD = true;
-  bool bDrawDebugMass = false;
-  bool bDrawDebugBoundaries = false;
 
 private:
   void updateHUD();

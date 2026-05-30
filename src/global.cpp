@@ -15,5 +15,9 @@ bool drawWireframe  = false;
 bool drawNormals    = false;
 bool drawGlobalAxis = false;
 
+bool jetDrawHUD = true;
+bool jetDrawDebugMass = false;
+bool jetDrawDebugHitboxes = false;
+
 }// global
 
