@@ -1,5 +1,3 @@
-#include "engine/Shader.hpp"
-
 #include "global.hpp"
 
 namespace global {
@@ -11,9 +9,7 @@ float dt = 0.f;
 float time = 0.f;
 
 bool guiFocused     = false;
-bool drawWireframe  = false;
-bool drawNormals    = false;
-bool drawGlobalAxis = false;
+bool drawGrid = false;
 
 bool jetDrawHUD = true;
 bool jetDrawDebugMass = false;

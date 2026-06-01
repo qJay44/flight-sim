@@ -15,6 +15,7 @@ static bool infoCollapsed = true;
 Camera* gui::camPtr = nullptr;
 Sun* gui::sunPtr = nullptr;
 FighterJet* gui::fjetPtr = nullptr;
+Terrain* gui::terrainPtr = nullptr;
 
 u16 gui::fps = 1;
 
@@ -143,10 +144,23 @@ void gui::draw() {
     ImGui::ColorEdit3("Color", glm::value_ptr(sunPtr->color));
   };
 
+  // ===== Terrain ======================================================================================= //
+
+  assert(terrainPtr);
+  if (ImGui::CollapsingHeader("Terrain")) {
+    if (ImGui::TreeNode("Buffer A")) {
+      ImGui::Image(terrainPtr->bufferA.getId(), vec2(256));
+      ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Buffer B")) {
+      ImGui::Image(terrainPtr->bufferB.getId(), vec2(256));
+      ImGui::TreePop();
+    }
+  }
+
   // ===== Other ========================================================================================= //
 
   if (ImGui::CollapsingHeader("Other")) {
-    ImGui::Checkbox("Show global axis", &global::drawGlobalAxis);
   }
 
   ImGui::End();

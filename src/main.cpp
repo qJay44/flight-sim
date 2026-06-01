@@ -1,3 +1,4 @@
+#include "terrain/Terrain.hpp"
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -96,6 +97,7 @@ int main() {
   Shader gridShader("grid.vert", "grid.frag");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
+  Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
   Shader massShader("f15/mass.vert", "f15/mass.frag");
@@ -141,12 +143,14 @@ int main() {
 
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
 
+  Terrain terrain(ivec2(1024));
+  terrain.update();
+
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &env.sun;
   gui::fjetPtr = &f15;
+  gui::terrainPtr = &terrain;
   InputsHandler::controlledPlane = &f15;
-
-  global::drawGlobalAxis = true;
 
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
@@ -198,8 +202,10 @@ int main() {
     glDisable(GL_DEPTH_TEST);
 
     env.draw(activeCam, environmentShader);
+    terrain.draw(env, activeCam, terrainShader);
 
-    grid.draw(activeCam, gridShader);
+    if (global::drawGrid)
+      grid.draw(activeCam, gridShader);
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);

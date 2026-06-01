@@ -16,9 +16,7 @@ extern float dt;
 extern float time;
 
 extern bool guiFocused;
-extern bool drawWireframe;
-extern bool drawNormals;
-extern bool drawGlobalAxis;
+extern bool drawGrid;
 
 extern bool jetDrawHUD;
 extern bool jetDrawDebugMass;

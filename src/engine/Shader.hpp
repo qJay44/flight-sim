@@ -4,6 +4,14 @@ class Shader {
 public:
   Shader() = default;
 
+  Shader(const Shader&) = delete;
+  Shader(Shader&&) = default;
+
+  Shader& operator=(const Shader&) = delete;
+  Shader& operator=(Shader&&) = default;
+
+  ~Shader() = default;
+
   [[nodiscard]] Shader(
     const fspath& vsPath,
     const fspath& fsPath,
@@ -27,6 +35,7 @@ public:
   // NOTE: Call this before any GPU run (glDispatchCompute, glDrawElements, etc.)
   void use() const;
   void printUniforms() const;
+  bool initialized() const;
 
   void setUniform1f (GLint loc, const GLfloat& n);
   void setUniform2f (GLint loc, const vec2& v);
@@ -58,8 +67,8 @@ private:
   std::unordered_map<std::string, GLint> locs;
 
 private:
-  static GLuint load(fspath path, int type);
-  static GLuint compile(const fspath& path, int type);
+  static std::string load(std::unordered_set<std::string>& includedShaders, fspath path);
+  static GLuint compile(fspath path, GLenum type);
   static void link(GLuint program);
 };
 

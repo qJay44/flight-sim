@@ -33,5 +33,6 @@ void Mesh::updateBufferVBO(const MeshData& data) {
 
 void Mesh::setGlobalUniforms(Shader& s) {
   s.setUniform1f("u_time", global::time);
+  s.setUniform2f("u_resolution", global::getWinSize());
 }
 

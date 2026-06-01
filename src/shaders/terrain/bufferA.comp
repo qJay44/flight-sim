@@ -1,0 +1,101 @@
+#version 460 core
+
+#include "common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) writeonly uniform image2D imageWrite;
+
+vec3 getRidges(vec2 p, vec2 slope) {
+  vec2 sideDir = slope.yx * vec2(-1.f, 1.f);
+  vec2 ip = floor(p);
+  vec2 fp = fract(p);
+  float revolution = 2.f * PI;
+  vec3 va = vec3(0.f);
+  float weightSum = 0.f;
+
+  for (int i = -2; i < 2; i++) {
+    for (int j = -2; j < 2; j++) {
+      vec2 gridOffset = vec2(i, j);
+      vec2 gridPoint = ip - gridOffset;
+      vec2 randomOffset = hash(gridPoint) * 0.5f;
+      vec2 vectorToCellPoint = randomOffset - gridOffset - fp;
+
+      float distSq = dot(vectorToCellPoint, vectorToCellPoint);
+      float weight = exp(-distSq * 2.f);
+      weightSum += weight;
+
+      float waveInput = dot(vectorToCellPoint, sideDir) * revolution;
+
+      va += vec3(cos(waveInput), sin(waveInput) * sideDir) * weight;
+    }
+  }
+
+  return va / weightSum;
+}
+
+vec3 getErosion(vec2 p, vec3 heightAndSlope, float a, int octaves) {
+  float slopeMag = length(heightAndSlope.yz);
+  heightAndSlope.yz /= mix(slopeMag, 1.f / EROSION_SLOPE_STRENGTH, EROSION_SLOPE_SENSITIVITY);
+
+  float f = 1.f;
+  for (int i = 0; i < octaves; i++) {
+    heightAndSlope += getRidges(
+      p * EROSION_TILES * f,
+      heightAndSlope.yz
+    ) * a * vec3(1.f, f * EROSION_BRANCH_STRENGTH, f * EROSION_BRANCH_STRENGTH);
+    a *= EROSION_GAIN;
+    f *= EROSION_LACUNARITY;
+  }
+
+  return heightAndSlope;
+}
+
+vec2 getHeightmap(vec2 uv) {
+  vec2 p = uv * HEIGHT_TILES;
+
+  vec3 n = vec3(0.f);    // Noise
+  float nf = 1.f;        // Frequency
+  float na = HEIGHT_AMP; // Amplitude
+  for (int i = 0; i < HEIGHT_OCTAVES; i++) {
+    n += noised(p * nf) * na  * vec3(1.f, nf, nf);
+    na *= HEIGHT_GAIN;
+    nf *= HEIGHT_LACUNARITY;
+  }
+
+  n.x = n.x * 0.5f + 0.5f;
+  vec3 h = n;
+  float a = 0.5f;
+
+  // a *= smoothstep(0.f, 1.f, n.x);
+  a *= smoothstep(WATER_HEIGHT - 0.07f, WATER_HEIGHT + 0.2f, n.x);
+
+  int octaves = EROSION_OCTAVES;
+  h = getErosion(p, h, a, EROSION_OCTAVES);
+
+  return vec2(n.x + (h.x - n.x - 0.5f) * EROSION_STRENGTH, h.x - n.x);
+}
+
+void main() {
+  const ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 imgSize = imageSize(imageWrite);
+
+  if (texCoord.x >= imgSize.x || texCoord.y >= imgSize.y)
+    return;
+
+  vec2 uv = vec2(texCoord) / imgSize;
+  // add offset here
+
+  vec2 h = getHeightmap(uv);
+
+  vec2 uv1 = uv + vec2(1.f, 0.f) / 512.f;
+  vec2 uv2 = uv + vec2(0.f, 1.f) / 512.f;
+  vec2 h1 = getHeightmap(uv1);
+  vec2 h2 = getHeightmap(uv2);
+  vec3 v1 = vec3(uv1 - uv, (h1.x - h.x));
+  vec3 v2 = vec3(uv2 - uv, (h2.x - h.x));
+  vec3 normal = normalize(cross(v1, v2)).xzy;
+
+  imageStore(imageWrite, texCoord, vec4(h.x, normal.xz, h.y));
+}
+

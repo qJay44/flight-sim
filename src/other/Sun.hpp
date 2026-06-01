@@ -22,7 +22,7 @@ struct Sun {
     });
   }
 
-  void setUniforms(Shader& shader) {
+  void setUniforms(Shader& shader) const {
     shader.setUniform1f("u_sunFocus", focus);
     shader.setUniform1f("u_sunIntensity", intensity);
     shader.setUniform3f("u_sunDir", dir);

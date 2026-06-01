@@ -3,6 +3,10 @@
 #include "utils/clrp.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "utils/utils.hpp"
+#include <cstdio>
+#include <fstream>
+#include <string>
+#include <unordered_set>
 
 fspath Shader::directory = "";
 
@@ -68,6 +72,10 @@ void Shader::printUniforms() const {
   puts("");
 }
 
+bool Shader::initialized() const {
+  return program;
+}
+
 void Shader::setUniform1f (GLint loc, const GLfloat& n) { glProgramUniform1f (program, loc, n); }
 void Shader::setUniform2f (GLint loc, const vec2& v)    { glProgramUniform2f (program, loc, v.x, v.y); }
 void Shader::setUniform3f (GLint loc, const vec3& v)    { glProgramUniform3f (program, loc, v.x, v.y, v.z); }
@@ -92,27 +100,68 @@ void Shader::setUniform3fv(const std::string& name, GLsizei count, const GLfloat
 void Shader::setUniformMatrix3f(const std::string& name, const mat3& m) { setUniformMatrix3f(getUniformLoc(name), m); }
 void Shader::setUniformMatrix4f(const std::string& name, const mat4& m) { setUniformMatrix4f(getUniformLoc(name), m); }
 
-GLuint Shader::load(fspath path, int type) {
+std::string Shader::load(std::unordered_set<std::string>& includedShaders, fspath path) {
+  constexpr std::string_view includePrefix = "#include";
+
+  std::string finalStr{};
+  std::ifstream file(path);
+
+  if (!file.is_open())
+    error("[Shader::load] Can't open file [{}]", path.string());
+
+  std::string line;
+  int lineOffset = 1;
+  while (std::getline(file, line)) {
+    auto includeStart = line.find(includePrefix);
+    if (includeStart != line.npos) {
+      // Get include path
+      line = line.substr(line.find_first_of("\"") + 1);
+      line.pop_back();
+
+      fspath includePath = path.parent_path() / line;
+
+      if (includedShaders.contains(includePath))
+        continue;
+
+      #ifndef NDEBUG
+        std::printf("Including [%s] -> [%s]\n", includePath.c_str(), path.string().c_str());
+      #endif
+
+      finalStr += load(includedShaders, includePath);
+      finalStr += std::format("#line {}\n", lineOffset);
+      includedShaders.insert(includePath);
+
+      continue;
+    }
+
+    finalStr += line + '\n';
+    lineOffset++;
+  }
+
+  file.close();
+
+  return finalStr;
+}
+
+GLuint Shader::compile(fspath path, GLenum type) {
   path = directory.empty() ? path : directory / path;
-  std::string shaderStr = readFile(path);
-  const char* shaderStrPtr = shaderStr.c_str();
+
+  std::unordered_set<std::string> includedShaders;
+  std::string shaderStr = load(includedShaders, path);
+  const GLchar* shaderStrPtr = shaderStr.c_str();
+
   GLuint shaderId = glCreateShader(type);
   glShaderSource(shaderId, 1, &shaderStrPtr, NULL);
 
-  return shaderId;
-}
-
-GLuint Shader::compile(const fspath& path, int type) {
-  GLuint shaderId = load(path, type);
   GLint hasCompiled;
-  char infoLog[1'024];
+  char infoLog[1024];
 
   glCompileShader(shaderId);
   glGetShaderiv(shaderId, GL_COMPILE_STATUS, &hasCompiled);
 
   // if GL_FALSE
   if (!hasCompiled) {
-    glGetShaderInfoLog(shaderId, 1'024, NULL, infoLog);
+    glGetShaderInfoLog(shaderId, 1024, NULL, infoLog);
     std::string fmt = clrp::prepare(clrp::ATTRIBUTE::BOLD, clrp::FG::RED);
     std::string head = std::format("\n===== Shader compilation error ({}) =====\n\n", path.string().c_str());
     printf(fmt.c_str(), head.c_str());
