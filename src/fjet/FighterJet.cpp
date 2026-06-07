@@ -14,7 +14,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont,
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
   camera.setOrientation(vec3(-0.577f));
   camera.setUp(vec3(0.f, 1.f, 0.f));
-  camera.setFarPlane(1000.f);
+  camera.setFarPlane(4000.f);
   camera.update();
 }
 

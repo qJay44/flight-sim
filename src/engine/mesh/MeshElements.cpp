@@ -125,16 +125,9 @@ MeshElements MeshElements::loadFromOBJ(const fspath& file, bool printInfo)  {
 
   // ==================================== //
 
-  MeshData meshData{};
-  meshData.vertices = (float*)vertices.data();
-  meshData.verticesSize = vertices.size() * sizeof(vertices[0]);
-  meshData.indices = indices.data();
-  meshData.indicesSize = indices.size() * sizeof(indices[0]);
-  meshData.layout = vertex::PCTN_LAYOUT;
-
   status::end(true);
 
-  return MeshElements(meshData);
+  return MeshElements(MeshData(vertices, indices));
 }
 
 MeshElements::MeshElements(const MeshData& data)  {
@@ -152,7 +145,7 @@ MeshElements::MeshElements(const MeshData& data)  {
   vbo.bind();
   ebo.bind();
 
-  linkAttributes(data);
+  linkAttributes(data.layout);
 
   vao.unbind();
   vbo.unbind();

@@ -43,18 +43,24 @@ public:
     glGenBuffers(size, &id);
   }
 
+  void bind() const {
+    glBindBuffer(target, id);
+  }
+
+  void bindBase(GLuint index) const {
+    glBindBufferBase(target, index, id);
+  }
+
   void allocate(const void* data, GLsizeiptr dataSize, GLenum usage) const {
     bind();
     glBufferData(target, dataSize, data, usage);
     unbind();
   }
 
-  void bind() const {
-    glBindBuffer(target, id);
-  }
-
-  void base(GLuint index) const {
-    glBindBufferBase(target, index, id);
+  void storage(const void* data, GLsizeiptr dataSize, GLbitfield flags) const {
+    bind();
+    glBufferStorage(target, dataSize, data, flags);
+    unbind();
   }
 
   void updateRange(const void* data, GLsizeiptr dataSize, GLbitfield access) const {

@@ -8,7 +8,7 @@ ProfilerManager* profiler = nullptr;
 float dt = 0.f;
 float time = 0.f;
 
-bool guiFocused     = false;
+bool guiFocused = false;
 bool drawGrid = false;
 
 bool jetDrawHUD = true;

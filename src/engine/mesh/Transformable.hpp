@@ -15,12 +15,12 @@ public:
   void rotate(const glm::quat& q);
 
   void scale(const vec3& s);
-  void scale(const vec2& s);
   void scale(float s);
+  void scaleXY(const vec2& s);
 
   void setMatTranslation(const mat4& m);
   void setMatTranslation(const vec3& pos);
-  void setMatTranslation(const vec2& pos);
+  void setMatTranslationXY(const vec2& pos);
   void setMatTranslation(float pos);
 
   void setMatRotation(const mat4& m);
@@ -29,6 +29,7 @@ public:
   void setMatScale(const mat4& m);
   void setMatScale(float s);
   void setMatScale(vec3 s);
+  void setMatScaleXZ(float s);
 
 protected:
   mat4 matTranslation = mat4(1.f);

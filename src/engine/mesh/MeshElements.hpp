@@ -4,7 +4,7 @@
 #include "Mesh.hpp"
 #include "MeshData.hpp"
 
-class MeshElements final : public Mesh {
+class MeshElements : public Mesh {
 public:
   using Mesh::Mesh;
 
@@ -12,8 +12,8 @@ public:
 
   MeshElements(const MeshData& data);
 
-  void draw(const Camera* camera, Shader& shader) const override final;
-  void draw(const Camera* camera, Shader& shader, const mat4& model) const override final;
+  void draw(const Camera* camera, Shader& shader) const override;
+  void draw(const Camera* camera, Shader& shader, const mat4& model) const override;
 
   BufferObject ebo{GL_ELEMENT_ARRAY_BUFFER};
 private:

@@ -25,11 +25,11 @@ HUD::HUD(Font* font, Shader* shaderText) : shaderText(shaderText) {
 
   speedImg.translate(winCenter);
   speedImg.translate(-imgOffsetFromCenter);
-  speedImg.scale(imgScale);
+  speedImg.scaleXY(imgScale);
 
   altitudeImg.translate(winCenter);
   altitudeImg.translate(imgOffsetFromCenter);
-  altitudeImg.scale(imgScale);
+  altitudeImg.scaleXY(imgScale);
   altitudeImg.rotate(glm::angleAxis(PI, vec3{0.f, 0.f, -1.f}));
 }
 

@@ -8,7 +8,7 @@
 Text::Text() {
   MeshData data{};
   data.verticesSize = sizeof(vertex::PT) * TEXT_MAX_LEN * 6;
-  data.layout = vertex::PT_LAYOUT;
+  data.layout = vertex::PT::getLayout();
   data.usage = GL_DYNAMIC_DRAW;
 
   mesh = MeshArrays(data);
@@ -49,7 +49,7 @@ void Text::setColorOutline(vec3 color) {
 }
 
 void Text::setPos(vec2 pos) {
-  mesh.setMatTranslation(pos - origin);
+  mesh.setMatTranslationXY(pos - origin);
 }
 
 void Text::setOrigin(vec2 o) {
@@ -122,7 +122,7 @@ void Text::generate(std::string_view text) {
 
   meshData.vertices = (float*)vertices;
   meshData.verticesSize = sizeof(vertices[0]) * verticesCount;
-  meshData.layout = vertex::PT_LAYOUT;
+  meshData.layout = vertices[0].getLayout();
 
   rectSize.x = cursorX;
   mesh.updateBufferVBO(meshData);

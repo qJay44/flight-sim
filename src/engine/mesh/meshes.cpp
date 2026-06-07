@@ -7,12 +7,12 @@
 namespace meshes {
 
 MeshArrays line(vec3 p1, vec3 p2) {
-  vec3 vertices[] = {p1, p2};
+  vertex::P vertices[] = {{p1}, {p2}};
 
   MeshData data;
   data.vertices = (float*)vertices;
   data.verticesSize = sizeof(vertices);
-  data.layout = vertex::P_LAYOUT;
+  data.layout = vertices[0].getLayout();
   data.mode = GL_LINES;
 
   return MeshArrays(data);
@@ -36,7 +36,7 @@ MeshElements rectangle() {
   data.verticesSize = sizeof(vertices);
   data.indices = indices;
   data.indicesSize = sizeof(indices);
-  data.layout = vertex::PT_LAYOUT;
+  data.layout = vertices[0].getLayout();
 
   return MeshElements(data);
 }
@@ -114,7 +114,7 @@ MeshElements plane(size_t resolution, GLenum mode, vec3 up) {
   data.verticesSize = vertices.size() * sizeof(vertices[0]);
   data.indices = indices.data();
   data.indicesSize = indices.size() * sizeof(indices[0]);
-  data.layout = vertex::PT_LAYOUT;
+  data.layout = vertices[0].getLayout();
   data.mode = mode;
 
   return MeshElements(data);
@@ -133,7 +133,7 @@ MeshArrays circle(int resolution) {
   MeshData data;
   data.vertices = (float*)vertices.data();
   data.verticesSize = vertices.size() * sizeof(vertices[0]);
-  data.layout = vertex::P_LAYOUT;
+  data.layout = vertices[0].getLayout();
   data.mode = GL_TRIANGLE_FAN;
 
   return MeshArrays(data);

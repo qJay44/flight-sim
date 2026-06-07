@@ -21,18 +21,18 @@ namespace markup {
     vec2 winSize = global::getWinSize();
     vec2 winCenter = winSize * 0.5f;
 
-    vec3 vertices[] = {{0.f, winCenter.y, 0.f}, {winSize.x, winCenter.y, 0.f}};
+    vertex::P vertices[] = {{{0.f, winCenter.y, 0.f}}, {{winSize.x, winCenter.y, 0.f}}};
 
     MeshData data;
     data.vertices = (float*)vertices;
     data.verticesSize = sizeof(vertices);
-    data.layout = vertex::P_LAYOUT;
+    data.layout = vertices[0].getLayout();
     data.mode = GL_LINES;
 
     lineH->updateBufferVBO(data);
 
-    vertices[0] = {winCenter.x, 0.f, 0.f};
-    vertices[1] = {winCenter.x, winSize.y, 0.f};
+    vertices[0] = {{winCenter.x, 0.f, 0.f}};
+    vertices[1] = {{winCenter.x, winSize.y, 0.f}};
 
     lineV->updateBufferVBO(data);
   }

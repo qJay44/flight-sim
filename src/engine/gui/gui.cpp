@@ -15,7 +15,7 @@ static bool infoCollapsed = true;
 Camera* gui::camPtr = nullptr;
 Sun* gui::sunPtr = nullptr;
 FighterJet* gui::fjetPtr = nullptr;
-Terrain* gui::terrainPtr = nullptr;
+terrain::Terrain* gui::terrainPtr = nullptr;
 
 u16 gui::fps = 1;
 
@@ -120,6 +120,24 @@ void gui::draw() {
     }
   }
 
+  // ===== Terrain ======================================================================================= //
+
+  assert(terrainPtr);
+  if (ImGui::CollapsingHeader("Terrain")) {
+    ImGui::Text("Coord: [%d, %d]", terrainPtr->lastCoord.x, terrainPtr->lastCoord.y);
+    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 20.f);
+    ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
+
+    // if (ImGui::TreeNode("Buffer A")) {
+    //   ImGui::Image(terrainPtr->bufferA.getId(), vec2(256));
+    //   ImGui::TreePop();
+    // }
+    // if (ImGui::TreeNode("Buffer B")) {
+    //   ImGui::Image(terrainPtr->bufferB.getId(), vec2(256));
+    //   ImGui::TreePop();
+    // }
+  }
+
   // ===== Spectate camera =============================================================================== //
 
   assert(camPtr);
@@ -137,26 +155,17 @@ void gui::draw() {
 
   assert(sunPtr);
   if (ImGui::CollapsingHeader("Light")) {
+    bool updDir = false;
+
     ImGui::DragFloat("Focus", &sunPtr->focus, 1.f);
     ImGui::DragFloat("Intensity", &sunPtr->intensity, 1.f);
-    ImGui::SliderAngle("Yaw", &sunPtr->yaw, -180.f, 180.f);
-    ImGui::SliderAngle("Pitch", &sunPtr->pitch, -90.f, 90.f);
+    updDir |= ImGui::SliderAngle("Yaw", &sunPtr->yaw, -180.f, 180.f);
+    updDir |= ImGui::SliderAngle("Pitch", &sunPtr->pitch, -90.f, 90.f);
     ImGui::ColorEdit3("Color", glm::value_ptr(sunPtr->color));
+
+    if (updDir)
+      sunPtr->updateDir();
   };
-
-  // ===== Terrain ======================================================================================= //
-
-  assert(terrainPtr);
-  if (ImGui::CollapsingHeader("Terrain")) {
-    if (ImGui::TreeNode("Buffer A")) {
-      ImGui::Image(terrainPtr->bufferA.getId(), vec2(256));
-      ImGui::TreePop();
-    }
-    if (ImGui::TreeNode("Buffer B")) {
-      ImGui::Image(terrainPtr->bufferB.getId(), vec2(256));
-      ImGui::TreePop();
-    }
-  }
 
   // ===== Other ========================================================================================= //
 

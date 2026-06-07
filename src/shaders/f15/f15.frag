@@ -11,12 +11,12 @@ layout(binding = 0) uniform sampler2D u_debug0Tex;
 
 uniform vec3 u_camPos;
 uniform vec3 u_color;
-uniform vec3 u_sunDir;
-uniform vec3 u_sunColor;
+uniform vec3 u_lightDir;
+uniform vec3 u_lightColor;
 uniform float u_time;
 
 vec3 directionalLight(vec3 normal) {
-  vec3 lightDir = u_sunDir;
+  vec3 lightDir = u_lightDir;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
   vec3 reflectDir = reflect(-lightDir, normal);
 
@@ -28,7 +28,7 @@ vec3 directionalLight(vec3 normal) {
 
   float lightAmount = (diffuse + specular) + ambient;
 
-  return u_sunColor * lightAmount;
+  return u_lightColor * lightAmount;
 }
 
 void main() {

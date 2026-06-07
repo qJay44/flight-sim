@@ -2,6 +2,7 @@
 
 #include "gui/gui.hpp"
 #include "global.hpp"
+#include "imgui.h"
 #include <cassert>
 
 using global::window;
@@ -11,40 +12,54 @@ Moveable* InputsHandler::activeEntity = nullptr;
 FighterJet* InputsHandler::controlledPlane = nullptr;
 
 void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  switch (key) {
-    case GLFW_KEY_R:
-      if (action == GLFW_PRESS) {
-        global::guiFocused = !global::guiFocused;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL + 2 * !global::guiFocused);
+  if (!ImGui::GetIO().WantTextInput) {
+    switch (key) {
+      case GLFW_KEY_R:
+        if (action == GLFW_PRESS) {
+          global::guiFocused = !global::guiFocused;
+          glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL + 2 * !global::guiFocused);
 
-        // Prevent moving camera towards cursor after disabling it
-        dvec2 winCenter = global::getWinCenter();
-        if (!global::guiFocused)
-          glfwSetCursorPos(window, winCenter.x, winCenter.y);
-      }
-      break;
-    case GLFW_KEY_C:
-      if (action == GLFW_PRESS) gui::toggleConfig();
-      break;
-    case GLFW_KEY_V:
-      if (action == GLFW_PRESS) gui::toggleInfo();
-      break;
-    case GLFW_KEY_B:
-      if (action == GLFW_PRESS) {
-        assert(controlledPlane);
-        controlledPlane->toggleAirbrake();
-      }
-      break;
-    case GLFW_KEY_F:
-      if (action == GLFW_PRESS) {
-        assert(controlledPlane);
-        controlledPlane->toggleFlaps();
-      }
-      break;
-    case GLFW_KEY_N:
-      if (action == GLFW_PRESS)
-        Camera::setNextActiveCam();
-      break;
+          // Prevent moving camera towards cursor after disabling it
+          dvec2 winCenter = global::getWinCenter();
+          if (!global::guiFocused)
+            glfwSetCursorPos(window, winCenter.x, winCenter.y);
+        }
+        break;
+      case GLFW_KEY_C:
+        if (action == GLFW_PRESS) gui::toggleConfig();
+        break;
+      case GLFW_KEY_V:
+        if (action == GLFW_PRESS) gui::toggleInfo();
+        break;
+      case GLFW_KEY_B:
+        if (action == GLFW_PRESS) {
+          assert(controlledPlane);
+          controlledPlane->toggleAirbrake();
+        }
+        break;
+      case GLFW_KEY_F:
+        if (action == GLFW_PRESS) {
+          assert(controlledPlane);
+          controlledPlane->toggleFlaps();
+        }
+        break;
+      case GLFW_KEY_N:
+        if (action == GLFW_PRESS)
+          Camera::setNextActiveCam();
+        break;
+      case GLFW_KEY_1:
+        if (action == GLFW_PRESS) {
+          static bool lines = false;
+          lines = !lines;
+          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + lines);
+        }
+        break;
+      case GLFW_KEY_2:
+        if (action == GLFW_PRESS) {
+          global::drawGrid = !global::drawGrid;
+        }
+        break;
+    }
   }
 
   if (global::guiFocused)

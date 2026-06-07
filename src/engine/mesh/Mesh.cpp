@@ -1,16 +1,31 @@
 #include "Mesh.hpp"
 
+#include "utils/utils.hpp"
 #include "vertex.hpp"
 #include "global.hpp"
 #include "VAO.hpp"
 
-void Mesh::linkAttributes(const MeshData& data) {
+void Mesh::linkAttributes(const vertex::Layout& layout) {
   size_t offset = 0;
-  for (size_t i = 0; i < data.layout.count; i++) {
-    const auto& attr = data.layout.attribs[i];
-    glEnableVertexAttribArray(i);
-    glVertexAttribPointer(i, attr.size, attr.type, GL_FALSE, data.layout.stride, (void*)offset);
-    offset += attr.size * sizeof(data.vertices[0]);
+
+  for (size_t i = 0; i < layout.count; i++) {
+    const auto& attr = layout.attribs[i];
+    glEnableVertexAttribArray(attr.index);
+    glVertexAttribPointer(attr.index, attr.size, attr.type, GL_FALSE, layout.stride, (void*)offset);
+
+    size_t elementSize = 0;
+    switch (attr.type) {
+      case GL_FLOAT:
+        elementSize = sizeof(float);
+        break;
+      case GL_INT:
+        elementSize = sizeof(int);
+        break;
+      default:
+        error("[Mesh::linkAttributes] Unexpected attribute type [{:#x}]", attr.type);
+    }
+
+    offset += attr.size * elementSize;
   }
 }
 

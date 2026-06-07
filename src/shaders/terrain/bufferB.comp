@@ -4,17 +4,19 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(rgba32f, binding = 0) writeonly uniform image2D imageWrite;
+layout(rgba32f, binding = 0) writeonly uniform image2DArray imageWrite;
+
+uniform vec2 u_offset;
+uniform int u_slot;
 
 void main() {
   const ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
-  const ivec2 imgSize = imageSize(imageWrite);
+  const ivec2 imgSize = imageSize(imageWrite).xy;
 
   if (texCoord.x >= imgSize.x || texCoord.y >= imgSize.y)
     return;
 
-  vec2 uv = vec2(texCoord) / imgSize;
-  // add offset here
+  vec2 uv = vec2(texCoord + u_offset) / imgSize;
 
   vec3 color = vec3(0.f);
 
@@ -26,6 +28,6 @@ void main() {
     f *= 2.f;
   }
 
-  imageStore(imageWrite, texCoord, vec4(color, 1.f));
+  imageStore(imageWrite, ivec3(texCoord, u_slot), vec4(color, 1.f));
 }
 

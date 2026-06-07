@@ -1,4 +1,5 @@
 #include "terrain/Terrain.hpp"
+#include <cstdlib>
 #ifdef _WIN32
   #include <direct.h>
   #define CHDIR(p) _chdir(p);
@@ -30,22 +31,21 @@ void GLAPIENTRY MessageCallback(
   const void* userParam
 ) {
   static const clrp::clrp_t clrpError{clrp::ATTRIBUTE::BOLD, clrp::FG::RED};
-  static const clrp::clrp_t clrpWarning{clrp::ATTRIBUTE::BOLD, clrp::FG::YELLOW};
+  // static const clrp::clrp_t clrpWarning{clrp::ATTRIBUTE::BOLD, clrp::FG::YELLOW};
 
   clrp::clrp_t clrpFinal = clrpError;
 
   switch (source) {
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
       return; // Handled by the Shader class itself
-    // (FIXME: Its not only the SIMD32 error, need to fix this next time other error appears
-    case GL_DEBUG_SOURCE_API:
-      clrpFinal = clrpWarning; // "SIMD32 shader inefficient", skipping since occurs only on my laptop
   }
 
   fprintf(
     stderr, "GL CALLBACK: %s source = 0x%x, id = 0x%x type = 0x%x, severity = 0x%x, message = %s\n",
     (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), source, id, type, severity, clrp::format(message, clrpFinal).c_str()
   );
+
+  exit(EXIT_FAILURE);
 }
 
 int main() {
@@ -83,6 +83,7 @@ int main() {
   glViewport(0, 0, winSize.x, winSize.y);
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
+  glPatchParameteri(GL_PATCH_VERTICES, 4);
 
   gui::init();
   markup::init();
@@ -106,7 +107,7 @@ int main() {
   // ===== Cameras ============================================== //
 
   Camera cameraSpectate({85.f, 77.f, 76.f}, -2.385f, -0.582f);
-  cameraSpectate.setFarPlane(1000.f);
+  cameraSpectate.setFarPlane(9000.f);
   cameraSpectate.setSpeedDefault(50.f);
 
   // ===== Inputs Handler ======================================= //
@@ -143,8 +144,7 @@ int main() {
 
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
 
-  Terrain terrain(ivec2(1024));
-  terrain.update();
+  terrain::Terrain terrain(1024, 4);
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &env.sun;
@@ -192,9 +192,11 @@ int main() {
     global::profiler->clearTasks();
 
     f15.update();
+    terrain.update(activeCam);
 
     env.sun.setUniforms(airplaneShader);
     env.sun.setUniforms(environmentShader);
+    env.sun.setUniforms(terrainShader);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -202,7 +204,6 @@ int main() {
     glDisable(GL_DEPTH_TEST);
 
     env.draw(activeCam, environmentShader);
-    terrain.draw(env, activeCam, terrainShader);
 
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
@@ -210,6 +211,7 @@ int main() {
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
+    terrain.draw(activeCam, terrainShader);
     f15.draw(activeCam, airplaneShader);
 
     if (global::jetDrawDebugMass)

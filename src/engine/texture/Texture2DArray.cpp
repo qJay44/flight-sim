@@ -2,7 +2,7 @@
 
 #include "utils/utils.hpp"
 
-Texture2DArray::Texture2DArray(GLint slots, ivec2 size, const TextureDescriptor& desc)
+Texture2DArray::Texture2DArray(GLsizei slots, ivec2 size, const TextureDescriptor& desc)
   : slots(slots),
     size(size)
 {

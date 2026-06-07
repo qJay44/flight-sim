@@ -119,7 +119,7 @@ Model load(const fspath& file, bool printInfo) {
       MeshData data;
       data.vertices = (float*)vertices.data();
       data.verticesSize = vertices.size() * sizeof(vertices[0]);
-      data.layout = vertex::PCTN_LAYOUT;
+      data.layout = vertices[0].getLayout();
 
       model.meshes.push_back({
         node->name.data,

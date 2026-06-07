@@ -3,6 +3,7 @@
 namespace vertex {
 
 struct Attribute {
+  GLuint index;
   GLuint size;
   GLenum type;
 };
@@ -17,29 +18,35 @@ struct Layout {
 
 struct P {
   vec3 position;
-};
 
-static constexpr Attribute P_ATTRIBS[] = {
-  {3, GL_FLOAT}
-};
+  static const Layout& getLayout() {
+    static constexpr Attribute attribs[] = {
+      {0, 3, GL_FLOAT}
+    };
 
-static constexpr Layout P_LAYOUT = {P_ATTRIBS, 1, sizeof(P)};
+    static constexpr Layout layout = {attribs, 1, sizeof(P)};
+
+    return layout;
+  }
+};
 
 // ----- PT -------------------------------------------------------------------------------- //
 
-#pragma pack(push, 1)
 struct PT {
   vec3 position;
   vec2 texture;
-};
-#pragma pack(pop)
 
-static constexpr Attribute PT_ATTRIBS[] = {
-  {3, GL_FLOAT},
-  {2, GL_FLOAT}
-};
+  static const Layout& getLayout() {
+    static constexpr Attribute attribs[] = {
+      {0, 3, GL_FLOAT},
+      {1, 2, GL_FLOAT}
+    };
 
-static constexpr Layout PT_LAYOUT = {PT_ATTRIBS, 2, sizeof(PT)};
+    static constexpr Layout layout = {attribs, 2, sizeof(PT)};
+
+    return layout;
+  }
+};
 
 // ----- PCTN ------------------------------------------------------------------------------ //
 
@@ -48,18 +55,28 @@ struct PCTN {
   vec3 color;
   vec2 texture;
   vec3 normal;
-};
 
-static constexpr Attribute PCTN_ATTRIBS[] = {
-  {3, GL_FLOAT},
-  {3, GL_FLOAT},
-  {2, GL_FLOAT},
-  {3, GL_FLOAT}
-};
+  static const Layout& getLayout() {
+    static constexpr Attribute attribs[] = {
+      {0, 3, GL_FLOAT},
+      {1, 3, GL_FLOAT},
+      {2, 2, GL_FLOAT},
+      {3, 3, GL_FLOAT}
+    };
 
-static constexpr Layout PCTN_LAYOUT = {PCTN_ATTRIBS, 4, sizeof(PCTN)};
+    static constexpr Layout layout = {attribs, 4, sizeof(PCTN)};
+
+    return layout;
+  }
+};
 
 // ----------------------------------------------------------------------------------------- //
+
+template<typename T>
+concept IsVertexType =
+  std::is_same_v<T, P>    ||
+  std::is_same_v<T, PT>   ||
+  std::is_same_v<T, PCTN>;
 
 } // vertex
 

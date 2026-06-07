@@ -6,6 +6,7 @@
 #include "BufferObject.hpp"
 #include "../Camera.hpp"
 #include "../Shader.hpp"
+#include "vertex.hpp"
 
 class Mesh : public Transformable {
 public:
@@ -16,7 +17,8 @@ public:
   Mesh& operator=(Mesh&&) = default;
   ~Mesh() = default;
 
-  static void linkAttributes(const MeshData& data);
+  // NOTE: Only for attributes having all same primitve (e.g. all float (no float, float, int))
+  static void linkAttributes(const vertex::Layout& layout);
   static void drawScreen(const Camera* camera, Shader& shader);
 
   void updateBufferVBO(const MeshData& data);

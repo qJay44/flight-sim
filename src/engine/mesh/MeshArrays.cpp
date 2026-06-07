@@ -10,7 +10,7 @@ MeshArrays::MeshArrays(const MeshData& data)  {
   vbo.allocate(data.vertices, data.verticesSize, data.usage);
 
   vbo.bind();
-  linkAttributes(data);
+  linkAttributes(data.layout);
 
   vao.unbind();
   vbo.unbind();

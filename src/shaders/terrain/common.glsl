@@ -1,12 +1,12 @@
 #define PI 3.14159265358979
 
-#define HEIGHT_TILES      3.0
+#define HEIGHT_TILES      2.0
 #define HEIGHT_OCTAVES    3
 #define HEIGHT_AMP        0.25
 #define HEIGHT_GAIN       0.1
 #define HEIGHT_LACUNARITY 2.0
 
-#define EROSION_TILES 4.0
+#define EROSION_TILES 2.0
 #define EROSION_OCTAVES 5
 #define EROSION_GAIN 0.5
 #define EROSION_LACUNARITY 2.0
