@@ -211,7 +211,7 @@ int main() {
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    terrain.draw(activeCam, terrainShader);
+    terrain.draw(activeCam, terrainShader, env);
     f15.draw(activeCam, airplaneShader);
 
     if (global::jetDrawDebugMass)

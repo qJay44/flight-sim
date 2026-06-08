@@ -129,7 +129,7 @@ std::string Shader::load(std::unordered_set<std::string>& includedShaders, fspat
 
       finalStr += load(includedShaders, includePath);
       finalStr += std::format("#line {}\n", lineOffset);
-      includedShaders.insert(includePath);
+      includedShaders.insert(includePath.filename());
 
       continue;
     }

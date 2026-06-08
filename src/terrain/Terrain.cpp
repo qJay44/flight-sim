@@ -60,14 +60,15 @@ void Terrain::update(const Camera* cam) {
   lastCoord = cameraCoord;
 }
 
-void Terrain::draw(const Camera* cam, Shader& shader) const {
+void Terrain::draw(const Camera* cam, Shader& shader, const Environment& env) const {
   shader.setUniform1f("u_heightScale", heightScale);
   shader.setUniform1f("u_chunkSize", chunkSize);
   shader.setUniform1f("u_showChunkGroups", showChunkGroups);
   shader.setUniform1i("u_bufferSize", bufferSize);
 
   texManager.bind();
-  ssbo.chunks.bindBase(2);
+  env.skybox.bind(2);
+  ssbo.chunks.bindBase(0);
 
   std::vector<Chunk> c0;
   std::vector<Chunk> c1;

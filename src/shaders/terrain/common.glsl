@@ -1,63 +1,28 @@
-#define PI 3.14159265358979
-
-#define HEIGHT_TILES      2.0
-#define HEIGHT_OCTAVES    3
-#define HEIGHT_AMP        0.25
-#define HEIGHT_GAIN       0.1
-#define HEIGHT_LACUNARITY 2.0
-
-#define EROSION_TILES 2.0
-#define EROSION_OCTAVES 5
-#define EROSION_GAIN 0.5
-#define EROSION_LACUNARITY 2.0
-
-// Scale the input slope, leading to more erosion.
-// (No effect if EROSION_SLOPE_SENSITIVITY is zero.)
-#define EROSION_SLOPE_STRENGTH 3.0
-
-// Set below 1.0 to make the amount of erosion less dependent on the slope.
-// This can be used to produce a more consistent and predictable look across
-// mountains of different steepness.
-// Set to 1.0 for behavior consistent with https://www.shadertoy.com/view/7ljcRW
-#define EROSION_SLOPE_SENSITIVITY 0.3
-
-// Continuously modify the noise direction based on the previous fractal sample.
-// This is what gives the slopes an interesting "branching" structure.
-// A higher value will give you more branches.
-#define EROSION_BRANCH_STRENGTH 3.0
-
-// Maximum amount the erosion will modify the base height map
-#define EROSION_STRENGTH 0.04
-
-#define MATERIAL_GROUND 0
-#define MATERIAL_WATER  1
-
-#define CLIFF_COLOR  vec3(0.22, 0.2, 0.2)
-#define DIRT_COLOR   vec3(0.6, 0.5, 0.4)
-#define GRASS_COLOR1 vec3(0.15, 0.3, 0.1)
-#define GRASS_COLOR2 vec3(0.4, 0.5, 0.2)
-#define SAND_COLOR   vec3(0.8, 0.7, 0.6)
+#define PI 3.14159265358979f
+#define TAU (2.f * PI)
 
 #define WATER_HEIGHT 0.45
-#define WATER_COLOR vec3(0.0, 0.05, 0.1)
-#define WATER_SHORE_COLOR vec3(0.0, 0.25, 0.25)
+#define FOG_HEIGHT 0.465
+#define GRASS_HEIGHT 0.465
 
 #define sq(x) (x*x)
 #define saturate(x) clamp(x, 0.f, 1.f)
+#define smoothstep_inv(e0, e1, x) (1.f - smoothstep(e1, e0, x))
 
 struct Ray {
   vec3 origin;
   vec3 dir;
 };
 
-vec2 hash(vec2 x) {
+vec2 hash(in vec2 x) {
   const vec2 k = vec2(0.3183099, 0.3678794);
   x = x * k + k.yx;
   return -1.0 + 2.0 * fract(16.0 * k * fract(x.x * x.y * (x.x + x.y)));
 }
 
-// from https://www.shadertoy.com/view/XdXBRH
-vec3 noised(vec2 p) {
+// Returns gradient noise (in x) and its derivatives (in yz).
+// From https://www.shadertoy.com/view/XdXBRH
+vec3 noised(in vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
 
@@ -130,9 +95,9 @@ float V_SmithGGXCorrelated(float linearRoughness, float NoV, float NoL) {
   // Heitz 2014, "Understanding the Masking-Shadowing Function in
   // Microfacet-Based BRDFs"
   float a2 = linearRoughness * linearRoughness;
-  float GGXV = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
-  float GGXL = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
-  return 0.5 / (GGXV + GGXL);
+  float ggxv = NoL * sqrt((NoV - a2 * NoV) * NoV + a2);
+  float ggxl = NoV * sqrt((NoL - a2 * NoL) * NoL + a2);
+  return 0.5 / (ggxv + ggxl);
 }
 
 vec3 F_Schlick(const vec3 f0, float VoH) {

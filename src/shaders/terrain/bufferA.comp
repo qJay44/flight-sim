@@ -9,74 +9,255 @@ layout(rgba16f, binding = 0) writeonly uniform image2DArray imageWrite;
 uniform vec2 u_offset;
 uniform int u_slot;
 
-vec3 getRidges(vec2 p, vec2 slope) {
-  vec2 sideDir = slope.yx * vec2(-1.f, 1.f);
-  vec2 ip = floor(p);
-  vec2 fp = fract(p);
-  float revolution = 2.f * PI;
-  vec3 va = vec3(0.f);
+// ----- Pacell Noise Function ---------------------------------------------------------------------------------- //
+
+vec4 PhacelleNoise(vec2 p, vec2 normDir, float freq, float offset, float normalization)  {
+  vec2  sideDir = normDir.yx * vec2(-1.f, 1.f) * freq * TAU;
+  offset *= TAU;
+
+  // Iterate over 4x4 cells, calculating a stripe pattern for each and blending between them.
+  // pInt is the integer part of the current coordinate p, pFrac is the remainder.
+  //
+  // o   o   o   o
+  //
+  // o   o   o   o
+  //       p
+  // o   i   o   o
+  //
+  // o   o   o   o
+  //
+  // p: current coordinate    i: integer part of p    o: grid points for 4x4 cells
+  //
+
+  vec2 pInt = floor(p);
+  vec2 pFrac = fract(p);
+  vec2 phaseDir = vec2(0.f);
   float weightSum = 0.f;
 
-  for (int i = -2; i < 2; i++) {
-    for (int j = -2; j < 2; j++) {
+  for(int i = -1; i <= 2; i++) {
+    for(int j = -1; j <= 2; j++) {
       vec2 gridOffset = vec2(i, j);
-      vec2 gridPoint = ip - gridOffset;
+      vec2 gridPoint = pInt + gridOffset;
       vec2 randomOffset = hash(gridPoint) * 0.5f;
-      vec2 vectorToCellPoint = randomOffset - gridOffset - fp;
+      vec2 vectorFromCellPoint = pFrac - gridOffset - randomOffset;
+      float sqrDist = dot(vectorFromCellPoint, vectorFromCellPoint);
+      float weight = exp(-sqrDist * 2.f);
 
-      float distSq = dot(vectorToCellPoint, vectorToCellPoint);
-      float weight = exp(-distSq * 2.f);
+      weight = max(0.f, weight - 0.01111f);
       weightSum += weight;
 
-      float waveInput = dot(vectorToCellPoint, sideDir) * revolution;
-
-      va += vec3(cos(waveInput), sin(waveInput) * sideDir) * weight;
+      float waveInput = dot(vectorFromCellPoint, sideDir) + offset;
+      phaseDir += vec2(cos(waveInput), sin(waveInput)) * weight;
     }
   }
 
-  return va / weightSum;
+  vec2 interpolated = phaseDir / weightSum;
+  float magnitude = sqrt(dot(interpolated, interpolated));
+  magnitude = max(1.f - normalization, magnitude);
+
+  return vec4(interpolated / magnitude, sideDir);
 }
 
-vec3 getErosion(vec2 p, vec3 heightAndSlope, float a, int octaves) {
-  float slopeMag = length(heightAndSlope.yz);
-  heightAndSlope.yz /= mix(slopeMag, 1.f / EROSION_SLOPE_STRENGTH, EROSION_SLOPE_SENSITIVITY);
+// ----- Erosion ------------------------------------------------------------------------------------------------ //
 
-  float f = 1.f;
+float pow_inv(float t, float power) {
+  // Flip, raise to the specified power, and flip back.
+  return 1.0 - pow(1.0 - saturate(t), power);
+}
+
+float ease_out(float t) {
+  // Flip by subtracting from one.
+  float v = 1.0 - saturate(t);
+  // Raise to a power of two and flip back.
+  return 1.0 - v * v;
+}
+
+float smooth_start(float t, float smoothing) {
+  if (t >= smoothing)
+    return t - 0.5 * smoothing;
+  return 0.5 * t * t / smoothing;
+}
+
+vec2 safe_normalize(vec2 n) {
+  // A div-by-zero-safe replacement for normalize.
+  float l = length(n);
+  return (abs(l) > 1e-10) ? (n / l) : n;
+}
+
+vec4 ErosionFilter(
+  // Input parameters that vary per pixel.
+  vec2 p, vec3 heightAndSlope, float fadeTarget,
+  // Stylistic parameters that may vary per pixel.
+  float strength, float gullyWeight, float detail, vec4 rounding, vec4 onset,
+  vec2 assumedSlope,
+  // Scale related parameters that do not support variation per pixel.
+  float scale, int octaves, float lacunarity,
+  // Other parameters.
+  float gain, float cellScale, float normalization,
+  // Output parameters.
+  out float ridgeMap, out float debug)
+{
+  strength *= scale;
+  fadeTarget = clamp(fadeTarget, -1.0, 1.0);
+
+  vec3 inputHeightAndSlope = heightAndSlope;
+  float freq = 1.0 / (scale * cellScale);
+  float slopeLength = max(length(heightAndSlope.yz), 1e-10);
+  float magnitude = 0.0;
+  float roundingMult = 1.0;
+
+  float roundingForInput = mix(rounding.y, rounding.x, saturate(fadeTarget + 0.5)) * rounding.z;
+  float combiMask = ease_out(smooth_start(slopeLength * onset.x, roundingForInput * onset.x));
+
+  float ridgeMapCombiMask = ease_out(slopeLength * onset.z);
+  float ridgeMapFadeTarget = fadeTarget;
+
+  vec2 gullySlope = mix(heightAndSlope.yz, heightAndSlope.yz / slopeLength * assumedSlope.x, assumedSlope.y);
+
   for (int i = 0; i < octaves; i++) {
-    heightAndSlope += getRidges(
-      p * EROSION_TILES * f,
-      heightAndSlope.yz
-    ) * a * vec3(1.f, f * EROSION_BRANCH_STRENGTH, f * EROSION_BRANCH_STRENGTH);
-    a *= EROSION_GAIN;
-    f *= EROSION_LACUNARITY;
+    vec4 phacelle = PhacelleNoise(p * freq, safe_normalize(gullySlope), cellScale, 0.25, normalization);
+    phacelle.zw *= -freq;
+
+    float sloping = abs(phacelle.y);
+
+    gullySlope += sign(phacelle.y) * phacelle.zw * strength * gullyWeight;
+
+    vec3 gullies = vec3(phacelle.x, phacelle.y * phacelle.zw);
+    vec3 fadedGullies = mix(vec3(fadeTarget, 0.0, 0.0), gullies * gullyWeight, combiMask);
+
+    heightAndSlope += fadedGullies * strength;
+    magnitude += strength;
+
+    fadeTarget = fadedGullies.x;
+
+    float roundingForOctave = mix(rounding.y, rounding.x, saturate(phacelle.x + 0.5)) * roundingMult;
+    float newMask = ease_out(smooth_start(sloping * onset.y, roundingForOctave * onset.y));
+    combiMask = pow_inv(combiMask, detail) * newMask;
+
+    ridgeMapFadeTarget = mix(ridgeMapFadeTarget, gullies.x, ridgeMapCombiMask);
+    float newRidgeMapMask = ease_out(sloping * onset.w);
+    ridgeMapCombiMask = ridgeMapCombiMask * newRidgeMapMask;
+
+    strength *= gain;
+    freq *= lacunarity;
+    roundingMult *= rounding.w;
   }
 
-  return heightAndSlope;
+  ridgeMap = ridgeMapFadeTarget * (1.0 - ridgeMapCombiMask);
+  debug = fadeTarget;
+
+  vec3 heightAndSlopeDelta = heightAndSlope - inputHeightAndSlope;
+
+  return vec4(heightAndSlopeDelta, magnitude);
 }
 
-vec2 getHeightmap(vec2 uv) {
-  vec2 p = uv * HEIGHT_TILES;
+// ----- Demonstration ------------------------------------------------------------------------------------------ //
 
-  vec3 n = vec3(0.f);    // Noise
-  float nf = 1.f;        // Frequency
-  float na = HEIGHT_AMP; // Amplitude
-  for (int i = 0; i < HEIGHT_OCTAVES; i++) {
-    n += noised(p * nf) * na  * vec3(1.f, nf, nf);
-    na *= HEIGHT_GAIN;
-    nf *= HEIGHT_LACUNARITY;
+// Used for the height map.
+vec3 FractalNoise(vec2 p, float freq, int octaves, float lacunarity, float gain) {
+  vec3 n = vec3(0.0);
+  float nf = freq;
+  float na = 1.0;
+  for (int i = 0; i < octaves; i++) {
+    n += noised(p * nf) * na * vec3(1.0, nf, nf);
+    na *= gain;
+    nf *= lacunarity;
   }
+  return n;
+}
 
-  n.x = n.x * 0.5f + 0.5f;
-  vec3 h = n;
-  float a = 0.5f;
+// Used for tree coverage on the height map.
+float GetTreesAmount(float height, float normalY, float occlusion, float ridgeMap) {
+  return ((
+    smoothstep(
+      GRASS_HEIGHT + 0.05,
+      GRASS_HEIGHT + 0.01,
+      height + 0.01 + (occlusion - 0.8) * 0.05
+    )
+    * smoothstep(
+      0.0,
+      0.4,
+      occlusion
+    )
+    * smoothstep(0.95, 1.0, normalY)
+    * smoothstep(-1.4, 0.0, ridgeMap)
+      * smoothstep(
+        WATER_HEIGHT + 0.000,
+        WATER_HEIGHT + 0.007,
+        height
+      )
+  ) - 0.5) / 0.6;
+}
 
-  // a *= smoothstep(0.f, 1.f, n.x);
-  a *= smoothstep(WATER_HEIGHT - 0.07f, WATER_HEIGHT + 0.2f, n.x);
+vec4 Heightmap(vec2 p) {
+  // TODO: create uniforms?
+  float erosion_scale = 0.15;
+  float erosion_strength = 0.22;
+  float erosion_gully_weight = 0.5;
+  float erosion_detail = 1.5;
 
-  int octaves = EROSION_OCTAVES;
-  h = getErosion(p, h, a, EROSION_OCTAVES);
+  float ridgeRounding = 0.1;
+  float creaseRounding = 0.0;
 
-  return vec2(n.x + (h.x - n.x - 0.5f) * EROSION_STRENGTH, h.x - n.x);
+  vec4 erosion_rounding = vec4(ridgeRounding, creaseRounding, 0.1, 2.0);
+  vec4 erosion_onset = vec4(1.25, 1.25, 2.8, 1.5);
+  vec2 erosion_assumed_slope = vec2(0.7, 1.0);
+
+  float erosion_cell_scale = 0.7;
+  float erosion_normalization = 0.5;
+  int erosion_octaves = 5;
+  float erosion_lacunarity = 2.0;
+  float erosion_gain = 0.5;
+
+  vec2 terrain_height_offset = vec2(-0.65, 0.0);
+
+  float height_frequency = 3.0;
+  float height_amp = 0.125;
+  int height_octaves = 3;
+  float height_lacunarity = 2.0;
+  float height_gain = 0.1;
+
+  float heightFunctionScale = 1.0;
+  vec2 pHeight = p / heightFunctionScale;
+
+  vec3 n = FractalNoise(pHeight, height_frequency, height_octaves, height_lacunarity, height_gain) *
+    height_amp * vec3(heightFunctionScale, 1.0, 1.0);
+
+  float fadeTarget = clamp(n.x / (height_amp * 0.6), -1.0, 1.0);
+
+  n = n * 0.5 + vec3(0.5, 0, 0);
+
+  // Store erosion in h (x : height delta, yz : slope delta, w : magnitude).
+  // The output ridge map is -1 on creases and 1 on ridges.
+  // The output debug value can be set to various values inside the erosion
+  // TODO: delete debug variable?
+  float ridgeMap, debug;
+  vec4 h = ErosionFilter(
+      p, n, fadeTarget, erosion_strength, erosion_gully_weight, erosion_detail,
+      erosion_rounding, erosion_onset, erosion_assumed_slope, erosion_scale,
+      erosion_octaves, erosion_lacunarity, erosion_gain, erosion_cell_scale,
+      erosion_normalization, ridgeMap, debug);
+
+  float offset = mix(terrain_height_offset.x, -fadeTarget, terrain_height_offset.y) * h.w;
+  float eroded = n.x + h.x + offset;
+
+  float trees = -1.0;
+  vec2 deriv = n.yz + h.yz;
+  float normalY = 1.0 / sqrt(1.0 + dot(deriv, deriv));
+  float treesAmount = GetTreesAmount(eroded, normalY, h.x / h.w + 0.5, ridgeMap);
+
+  trees = (1.0 - pow(noised((p + 0.5) * 200.0).x * 0.5 + 0.5, 2.0) - 1.0 +
+           1.0 * treesAmount) * 1.5;
+
+  if (trees > 0.0)
+    eroded += trees / 300.0;
+
+  return vec4(
+    h.x / h.w * 0.5f + 0.5f,
+    ridgeMap  * 0.5f + 0.5f,
+    trees     * 0.5f + 0.5f,
+    eroded
+  );
 }
 
 void main() {
@@ -90,15 +271,8 @@ void main() {
   vec2 localUV = texCoord * texelSize;
   vec2 uv = localUV - u_offset;
 
-  vec2 h = getHeightmap(uv);
-  vec2 h1 = getHeightmap(uv + vec2(texelSize.x, 0.f));
-  vec2 h2 = getHeightmap(uv + vec2(0.f, texelSize.y));
+  vec4 hm = Heightmap(uv);
 
-  vec3 v1 = vec3(texelSize.x, 0.f, (h1.x - h.x));
-  vec3 v2 = vec3(0.f, texelSize.y, (h2.x - h.x));
-
-  vec3 normal = normalize(cross(v1, v2)).xzy;
-
-  imageStore(imageWrite, ivec3(texCoord, u_slot), vec4(h.x, normal.xz, h.y));
+  imageStore(imageWrite, ivec3(texCoord, u_slot), hm);
 }
 

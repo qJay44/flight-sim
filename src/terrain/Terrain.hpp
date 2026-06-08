@@ -6,6 +6,7 @@
 #include "../engine/Camera.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
 #include "TextureManager.hpp"
+#include "../Environment.hpp"
 
 struct gui;
 
@@ -16,7 +17,7 @@ public:
   Terrain(int bufferSize, int resolution);
 
   void update(const Camera* cam);
-  void draw(const Camera* cam, Shader& shader) const;
+  void draw(const Camera* cam, Shader& shader, const Environment& env) const;
 
 private:
   friend struct ::gui;
@@ -57,7 +58,7 @@ private:
   std::unordered_map<ivec2, Chunk, ChunkHash> chunksCache;
   std::vector<Chunk*> visibleChunks;
 
-  float heightScale = 0.f;
+  float heightScale = 30.f;
 
   bool showChunkGroups = false;
 
