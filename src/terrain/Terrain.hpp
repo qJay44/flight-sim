@@ -16,6 +16,8 @@ class Terrain {
 public:
   Terrain(int bufferSize, int resolution);
 
+  const float& getHeightScale() const;
+
   void update(const Camera* cam);
   void draw(const Camera* cam, Shader& shader, const Environment& env) const;
 

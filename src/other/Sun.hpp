@@ -7,10 +7,7 @@ struct Sun {
   float intensity = 2.f;
   float yaw = 0.f;   // Radians
   float pitch = 0.f; // Radians
-  vec3 color{1.f};
-  vec3 skyHorizonColor = vec3(1.f);
-  vec3 skyZenithColor{0.289f, 0.565f, 1.f};
-  vec3 groundColor = vec3(0.637f);
+  vec3 color{1.f, 0.9f, 0.7f};
 
   vec3 dir{-1.f, 0.f, 0.f}; // To sun
 

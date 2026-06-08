@@ -14,10 +14,6 @@
 #define DEBRIS_COLOR vec3(1.f)
 #define AMBIENT_COLOR vec3(0.3, 0.5, 0.7)
 
-#define WATER_COLOR vec3(0.0, 0.05, 0.1)
-#define WATER_SHORE_COLOR vec3(0.0, 0.25, 0.25)
-#define WATER_FOAM_COLOR vec3(1.f)
-
 out vec4 FragColor;
 
 in vec3 v_worldPos;
@@ -57,7 +53,10 @@ vec3 getNormal(vec2 texelSize, int texSlot, float heightCenter) {
   vec3 vr = vec3(texelSize.x, 0.f, hr - heightCenter);
   vec3 vu = vec3(0.f, texelSize.x, hu - heightCenter);
 
-  return normalize(cross(vr, vu));
+  vec3 n = normalize(cross(vr, vu));
+  n.x = -n.x;
+
+  return n;
 }
 
 vec3 getSkyColor(vec3 normal) {
@@ -120,13 +119,6 @@ void main() {
   color += diffuseColor * u_lightColor
     * (dot(normal, u_lightDir * vec3(1.f, -1.f, 1.f)) * 0.5f + 0.5f)
     * Fd_Lambert() / PI;
-
-  // Fog
-  float fogFactor = 1.f - exp(-worldPosDist * 0.001f);
-  color = mix(color, AMBIENT_COLOR, fogFactor);
-
-  color = Tonemap_ACES(color);
-  color = pow(color, vec3(1.f / 2.2f));
 
   applyMask(color, u_debugChunkGroupColor, u_showChunkGroups);
 

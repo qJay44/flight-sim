@@ -1,3 +1,6 @@
+#include "engine/FBO.hpp"
+#include "engine/texture/TextureDescriptor.hpp"
+#include "pch.hpp"
 #include "terrain/Terrain.hpp"
 #include <cstdlib>
 #ifdef _WIN32
@@ -31,13 +34,20 @@ void GLAPIENTRY MessageCallback(
   const void* userParam
 ) {
   static const clrp::clrp_t clrpError{clrp::ATTRIBUTE::BOLD, clrp::FG::RED};
-  // static const clrp::clrp_t clrpWarning{clrp::ATTRIBUTE::BOLD, clrp::FG::YELLOW};
+  static const clrp::clrp_t clrpWarning{clrp::ATTRIBUTE::BOLD, clrp::FG::YELLOW};
 
   clrp::clrp_t clrpFinal = clrpError;
+  bool stop = true;
 
   switch (source) {
     case GL_DEBUG_SOURCE_SHADER_COMPILER:
       return; // Handled by the Shader class itself
+  }
+
+  // Suppress annoyoing SIMD32 callback
+  if (type == GL_DEBUG_TYPE_PERFORMANCE) {
+    clrpFinal = clrpWarning;
+    stop = false;
   }
 
   fprintf(
@@ -45,7 +55,8 @@ void GLAPIENTRY MessageCallback(
     (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), source, id, type, severity, clrp::format(message, clrpFinal).c_str()
   );
 
-  exit(EXIT_FAILURE);
+  if (stop)
+    exit(EXIT_FAILURE);
 }
 
 int main() {
@@ -99,6 +110,7 @@ int main() {
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
   Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
+  Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
   Shader massShader("f15/mass.vert", "f15/mass.frag");
@@ -137,6 +149,24 @@ int main() {
   f15Config.inducedDrag = 35.5f;
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
+
+  // ===== Framebuffers ========================================= //
+
+  TextureDescriptor fboTexDesc{};
+  fboTexDesc.internalFormat = GL_RGB16;
+  fboTexDesc.minFilter = GL_NEAREST;
+  fboTexDesc.magFilter = GL_NEAREST;
+
+  Texture2D texTerrainColor(winSize, fboTexDesc);
+
+  fboTexDesc.internalFormat = GL_DEPTH_COMPONENT24;
+  fboTexDesc.format = GL_DEPTH_COMPONENT;
+
+  Texture2D texTerrainDepth(winSize, fboTexDesc);
+
+  FBO fboTerrain{};
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texTerrainColor);
+  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texTerrainDepth);
 
   // ============================================================ //
 
@@ -197,19 +227,18 @@ int main() {
     env.sun.setUniforms(airplaneShader);
     env.sun.setUniforms(environmentShader);
     env.sun.setUniforms(terrainShader);
+    env.sun.setUniforms(postprocessShader);
 
+    // ===== Terrain buffer ======================================= //
+
+    fboTerrain.bind();
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_DEPTH_TEST);
-
-    env.draw(activeCam, environmentShader);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
-
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
 
     terrain.draw(activeCam, terrainShader, env);
     f15.draw(activeCam, airplaneShader);
@@ -220,17 +249,27 @@ int main() {
     if (global::jetDrawDebugHitboxes)
       f15.drawDebugHitboxes(activeCam, hitboxShader);
 
+    // ===== Main buffer ========================================== //
+
+    FBO::unbind();
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
-    if (global::jetDrawHUD)
+    texTerrainColor.bind(0);
+    texTerrainDepth.bind(1);
+    postprocessShader.setUniform1f("u_heightScale", terrain.getHeightScale());
+    Mesh::drawScreen(activeCam, postprocessShader);
+
+    if (global::jetDrawHUD && activeCam != &cameraSpectate)
       f15.drawHUD(activeCam, hudShader);
 
     // markup::drawCross(activeCam, markupShader);
 
-    // ============================================================ //
-
     gui::draw();
+
+    // ============================================================ //
 
     glfwSwapBuffers(window);
     glfwPollEvents();

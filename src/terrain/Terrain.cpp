@@ -29,6 +29,8 @@ Terrain::Terrain(int bufferSize, int radius)
   mesh2.setMatScaleXZ(chunkSize * 0.5f);
 }
 
+const float& Terrain::getHeightScale() const { return heightScale; }
+
 void Terrain::update(const Camera* cam) {
   const vec3& camPos = cam->getPosition();
   vec2 pos = vec2{camPos.x, camPos.z};
@@ -92,17 +94,17 @@ void Terrain::draw(const Camera* cam, Shader& shader, const Environment& env) co
     mesh0.draw(cam, shader, c0.size());
   }
 
-//   if (!c1.empty()) {
-//     shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[6]);
-//     ssbo.chunks.allocate(c1.data(), c1.size() * sizeof(Chunk), GL_DYNAMIC_DRAW);
-//     mesh1.draw(cam, shader, c1.size());
-//   }
+  if (!c1.empty()) {
+    shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[6]);
+    ssbo.chunks.allocate(c1.data(), c1.size() * sizeof(Chunk), GL_DYNAMIC_DRAW);
+    mesh1.draw(cam, shader, c1.size());
+  }
 
-//   if (!c2.empty()) {
-//     shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[9]);
-//     ssbo.chunks.allocate(c2.data(), c2.size() * sizeof(Chunk), GL_DYNAMIC_DRAW);
-//     mesh2.draw(cam, shader, c2.size());
-//   }
+  if (!c2.empty()) {
+    shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[9]);
+    ssbo.chunks.allocate(c2.data(), c2.size() * sizeof(Chunk), GL_DYNAMIC_DRAW);
+    mesh2.draw(cam, shader, c2.size());
+  }
 }
 
 int Terrain::getTotalChunksFromRadius(int radius) {

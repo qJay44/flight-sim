@@ -146,7 +146,7 @@ vec3 Shade(vec3 diffuse, vec3 f0, float smoothness, vec3 n, vec3 v, vec3 l, vec3
 //------------------------------------------------------------------------------
 
 #define C_RAYLEIGH (vec3(5.802, 13.558, 33.100) * 1e-6)
-#define C_MIE (vec3(3.996, 3.996, 3.996) * 1e-6)
+#define C_MIE (vec3(3.996) * 1e-6)
 
 float PhaseRayleigh(float costh) {
   return 3.0 * (1.0 + costh * costh) / (16.0 * PI);

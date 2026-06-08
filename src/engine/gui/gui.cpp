@@ -158,7 +158,7 @@ void gui::draw() {
     bool updDir = false;
 
     ImGui::DragFloat("Focus", &sunPtr->focus, 1.f);
-    ImGui::DragFloat("Intensity", &sunPtr->intensity, 1.f);
+    ImGui::SliderFloat("Intensity", &sunPtr->intensity, -10.f, 10.f);
     updDir |= ImGui::SliderAngle("Yaw", &sunPtr->yaw, -180.f, 180.f);
     updDir |= ImGui::SliderAngle("Pitch", &sunPtr->pitch, -90.f, 90.f);
     ImGui::ColorEdit3("Color", glm::value_ptr(sunPtr->color));
