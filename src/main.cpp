@@ -1,26 +1,19 @@
-#include "engine/FBO.hpp"
-#include "engine/texture/TextureDescriptor.hpp"
-#include "pch.hpp"
-#include "terrain/Terrain.hpp"
 #include <cstdlib>
-#ifdef _WIN32
-  #include <direct.h>
-  #define CHDIR(p) _chdir(p);
-#else
-  #include <unistd.h>
-  #define CHDIR(p) chdir(p);
-#endif
 
-#include "global.hpp"
-#include "engine/gui/gui.hpp"
-#include "engine/Camera.hpp"
-#include "engine/Shader.hpp"
-#include "engine/InputsHandler.hpp"
 #include "Environment.hpp"
-#include "other/markup.hpp"
-#include "utils/clrp.hpp"
+#include "engine/Camera.hpp"
+#include "engine/FBO.hpp"
+#include "engine/InputsHandler.hpp"
+#include "engine/Shader.hpp"
+#include "engine/gui/gui.hpp"
+#include "engine/texture/TextureDescriptor.hpp"
+#include "global.hpp"
 #include "other/Grid.hpp"
 #include "other/Sun.hpp"
+#include "other/markup.hpp"
+#include "pch.hpp"
+#include "terrain/Terrain.hpp"
+#include "utils/clrp.hpp"
 
 using global::window;
 
@@ -173,6 +166,7 @@ int main() {
   Grid grid{};
 
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
+  env.sun.intensity = 7.f;
 
   terrain::Terrain terrain(1024, 4);
 

@@ -24,7 +24,6 @@ in flat int v_instance;
 struct Chunk {
   vec2 worldPos;
   int textureSlot;
-  int padding;
 };
 
 uniform vec3 u_lightDir;

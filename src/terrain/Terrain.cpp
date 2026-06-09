@@ -27,14 +27,16 @@ Terrain::Terrain(int bufferSize, int radius)
   mesh0.setMatScaleXZ(chunkSize * 0.5f);
   mesh1.setMatScaleXZ(chunkSize * 0.5f);
   mesh2.setMatScaleXZ(chunkSize * 0.5f);
+
+  ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
 }
 
 const float& Terrain::getHeightScale() const { return heightScale; }
 
 void Terrain::update(const Camera* cam) {
   const vec3& camPos = cam->getPosition();
-  vec2 pos = vec2{camPos.x, camPos.z};
-  ivec2 cameraCoord = glm::floor(pos * chunkSizeInv);
+  vec2 posXZ = vec2{camPos.x, camPos.z};
+  ivec2 cameraCoord = glm::floor(posXZ * chunkSizeInv);
 
   if (cameraCoord == lastCoord)
     return;
@@ -42,6 +44,8 @@ void Terrain::update(const Camera* cam) {
   evictDistantChunks(cameraCoord, radius);
 
   visibleChunks.clear();
+  ubo.erosionConfig.updateSubData(&erosionConfig, sizeof(ErosionConfig));
+  ubo.erosionConfig.bindBase(0);
 
   for (int z = -radius; z <= radius; z++) {
     for (int x = -radius; x <= radius; x++) {

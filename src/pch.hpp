@@ -22,9 +22,16 @@ using glm::dvec4;
 using glm::mat3;
 using glm::mat4;
 
+#ifdef _WIN32
+  #include <direct.h>
+  #include "glad/glad.h"
+  #define CHDIR(p) _chdir(p);
+#else
+  #include <unistd.h>
+  #include "glad/gl.h"
+  #define CHDIR(p) chdir(p);
+#endif
 
-// #include "glad/glad.h" // Windows version?
-#include "glad/gl.h"
 #include "GLFW/glfw3.h"
 #include "defines.hpp"
 

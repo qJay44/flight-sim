@@ -11,7 +11,6 @@ out flat int v_instance;
 struct Chunk {
   vec2 worldPos;
   int textureSlot;
-  int padding;
 };
 
 uniform mat4 u_model;

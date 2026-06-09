@@ -109,7 +109,7 @@ void main() {
 
     float density = 0.5f;
     float murk = 1.f - exp(-waterDepth * density);
-    vec3 refrColor = mix(groundColor, WATER_SHORE_COLOR, exp(-waterDepth * 0.1f));
+    vec3 refrColor = mix(groundColor, WATER_SHORE_COLOR, exp(-waterDepth * 0.5f));
     vec3 volumeColor = mix(refrColor, WATER_COLOR, murk);
 
     color = volumeColor;
@@ -120,7 +120,7 @@ void main() {
   }
 
   if (depth >= 0.9999f) {
-    float atmosphereHeight = 18000.f;
+    float atmosphereHeight = 8000.f;
     float zenithAngle = max(0.03f, ray.dir.y);
 
     color = vec3(0.f);
