@@ -28,7 +28,7 @@ public:
 
 protected:
   GLenum mode;
-  GLsizei count;
+  GLsizei elementCount;
   VAO vao;
   BufferObject vbo{GL_ARRAY_BUFFER};
 

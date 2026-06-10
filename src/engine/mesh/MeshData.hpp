@@ -3,7 +3,7 @@
 #include "vertex.hpp"
 
 struct MeshData {
-  float* vertices       = nullptr;
+  void* vertices        = nullptr;
   size_t verticesSize   = 0;
   GLuint* indices       = nullptr;
   size_t indicesSize    = 0;

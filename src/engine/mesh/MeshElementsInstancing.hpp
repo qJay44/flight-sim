@@ -11,7 +11,7 @@ public:
 
   MeshElementsInstancing(const MeshData& data);
 
-  void add(const MeshData& data);
+  void setInstanceVBO(const MeshData& data);
   void setInstanceCount(GLsizei c);
 
   void draw(const Camera* camera, Shader& shader) const override;

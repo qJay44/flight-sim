@@ -19,11 +19,13 @@ out vec4 FragColor;
 in vec3 v_worldPos;
 in vec3 v_viewDir;
 in vec2 v_uv;
-in flat int v_instance;
+in flat int v_chunkIdx;
 
 struct Chunk {
   vec2 worldPos;
-  int textureSlot;
+  int index;
+  int state;
+  vec2 _pad;
 };
 
 uniform vec3 u_lightDir;
@@ -63,21 +65,21 @@ vec3 getSkyColor(vec3 normal) {
 }
 
 void main() {
-  Chunk chunk = chunks[v_instance];
+  Chunk chunk = chunks[v_chunkIdx];
   vec2 texelSize = 1.f / textureSize(u_bufferA, 0).xy;
   float worldPosDist = length(v_viewDir);
   vec3 viewDir = v_viewDir / worldPosDist;
 
-  vec4 bufA = texture(u_bufferA, vec3(v_uv, chunk.textureSlot));
+  vec4 bufA = texture(u_bufferA, vec3(v_uv, chunk.index));
   float height  = bufA.r;
   float ridge   = bufA.g;
   float trees   = bufA.g;
   float erosion = bufA.a * 2.f - 1.f;
   float drainage = saturate((1.f - saturate(ridge / DRAINAGE_WIDTH)) * 1.5f);
   float diff = u_camPos.y - height;
-  vec3 normal = getNormal(texelSize, chunk.textureSlot, height);
+  vec3 normal = getNormal(texelSize, chunk.index, height);
 
-  vec4 breakupTex = texture(u_bufferB, vec3(v_uv, chunk.textureSlot));
+  vec4 breakupTex = texture(u_bufferB, vec3(v_uv, chunk.index));
   float breakup = breakupTex.x;
 
   float occlusion = saturate(erosion + 0.5f);

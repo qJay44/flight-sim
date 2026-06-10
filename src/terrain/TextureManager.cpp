@@ -1,5 +1,4 @@
 #include "TextureManager.hpp"
-#include "utils/utils.hpp"
 
 namespace terrain {
 
@@ -26,32 +25,11 @@ TextureManager::TextureManager(GLsizei slots, ivec2 size) {
 
   constexpr uvec3 localSize{16, 16, 1};
   numWorkGroups = (uvec3(size, 1u) + localSize - 1u) / localSize;
-
-  maxSlots = slots;
-  for (int i = 0; i < maxSlots; i++)
-    freeSlots.push(i);
 }
 
-int TextureManager::acquireSlot(vec2 offset) {
-  if (freeSlots.empty())
-    error("[TextureManager::acquireSlot] Out of free slots [{}]", maxSlots);
-
-  int slot = freeSlots.front();
-  freeSlots.pop();
-
+void TextureManager::generate(vec2 offset, int slot) {
   updateBufferA(offset, slot);
   updateBufferB(offset, slot);
-
-  return slot;
-}
-
-void TextureManager::releaseSlot(int slot) {
-  if (slot >= 0 && slot < maxSlots)
-    freeSlots.push(slot);
-}
-
-int TextureManager::getAvailableCount() const {
-  return freeSlots.size();
 }
 
 void TextureManager::bind() const {
@@ -65,7 +43,6 @@ void TextureManager::updateBufferA(vec2 offset, int slot) {
   shaderBufferA.setUniform1i("u_slot", slot);
   glBindImageTexture(0, bufferA.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
   glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 void TextureManager::updateBufferB(vec2 offset, int slot) {
@@ -74,7 +51,6 @@ void TextureManager::updateBufferB(vec2 offset, int slot) {
   shaderBufferB.setUniform1i("u_slot", slot);
   glBindImageTexture(0, bufferB.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
   glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 } // terrain

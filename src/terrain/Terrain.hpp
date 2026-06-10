@@ -1,12 +1,12 @@
 #pragma once
 
 #include <functional>
+#include <stack>
 #include <unordered_map>
 
 #include "../engine/Camera.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
 #include "TextureManager.hpp"
-#include "../Environment.hpp"
 
 struct gui;
 
@@ -19,15 +19,25 @@ public:
   const float& getHeightScale() const;
 
   void update(const Camera* cam);
-  void draw(const Camera* cam, Shader& shader, const Environment& env) const;
+  void regenerateAllChunks();
+  void changeScale(float s);
+  void draw(const Camera* cam, Shader& shader) const;
 
 private:
   friend struct ::gui;
 
   // alignans(8) becuase the largest element in std430 is a vec2 (8 bytes)
   struct alignas(8) Chunk {
+    enum State {
+      PENDING    = 0,
+      GENERATING = 1,
+      ACTIVE     = 2,
+    };
     vec2 worldPos;
-    int textureSlot;
+    int index;
+    int state = PENDING;
+
+    GLsync syncFence = nullptr;
   };
 
   struct ChunkHash {
@@ -35,6 +45,20 @@ private:
       size_t h1 = std::hash<int>{}(v.x);
       size_t h2 = std::hash<int>{}(v.y);
       return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    }
+  };
+
+  struct ChunkIndexInstance {
+    int index;
+
+    static const vertex::Layout& getLayout() {
+      static constexpr vertex::Attribute attribs[] = {
+        {2, 1, GL_INT}
+      };
+
+      static constexpr vertex::Layout layout = {attribs, 1, sizeof(ChunkIndexInstance)};
+
+      return layout;
     }
   };
 
@@ -94,17 +118,27 @@ private:
   float chunkSize{1.f};
   float chunkSizeInv{1.f};
   ivec2 lastCoord{9999};
-  std::unordered_map<ivec2, Chunk, ChunkHash> chunksCache;
+  std::unordered_map<ivec2, int, ChunkHash> chunksCache;
   std::vector<Chunk*> visibleChunks;
+
+  Chunk* mappedChunks = nullptr;
+  std::stack<int> freeChunks;
+
+  std::vector<GLuint> c0;
+  std::vector<GLuint> c1;
+  std::vector<GLuint> c2;
 
   float heightScale = 30.f;
 
   bool showChunkGroups = false;
+  bool forceUpate = false;
 
 private:
   static int getTotalChunksFromRadius(int radius);
 
+  void invalidateChunk(int idx);
   void evictDistantChunks(ivec2 currChunk, int maxRadius);
+  void pushToDraw(const Chunk& chunk, vec2 camPos, float camFar);
 };
 
 } // terrain

@@ -134,7 +134,7 @@ MeshElements::MeshElements(const MeshData& data)  {
   assert(data.vertices && data.indices);
 
   mode = data.mode;
-  count = data.indicesSize / sizeof(data.indices[0]);
+  elementCount = data.indicesSize / sizeof(data.indices[0]);
 
   vao.gen();
 
@@ -157,7 +157,7 @@ void MeshElements::draw(const Camera* camera, Shader& shader) const {
 }
 
 void MeshElements::draw(const Camera* camera, Shader& shader, const mat4& model) const {
-  assert(mode && count);
+  assert(mode && elementCount);
   vao.bind();
 
   camera->setUniforms(shader);
@@ -165,7 +165,7 @@ void MeshElements::draw(const Camera* camera, Shader& shader, const mat4& model)
   shader.setUniformMatrix4f("u_model", model);
 
   shader.use();
-  glDrawElements(mode, count, GL_UNSIGNED_INT, 0);
+  glDrawElements(mode, elementCount, GL_UNSIGNED_INT, 0);
 
   vao.unbind();
 }

@@ -4,4 +4,4 @@
 * https://www.shadertoy.com/view/wXcfWn
 
 ## TODO
-- [ ] Chunk async load
+- [x] Chunk async load

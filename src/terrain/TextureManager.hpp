@@ -2,7 +2,6 @@
 
 #include "../engine/texture/Texture2DArray.hpp"
 #include "../engine/Shader.hpp"
-#include <queue>
 
 namespace terrain {
 
@@ -11,10 +10,7 @@ public:
   TextureManager() = default;
   TextureManager(GLsizei slots, ivec2 size);
 
-  [[nodiscard]] int acquireSlot(vec2 offset);
-  void releaseSlot(int slot);
-  int getAvailableCount() const;
-
+  void generate(vec2 offset, int slot);
   void bind() const;
 
 private:
@@ -24,9 +20,6 @@ private:
   Texture2DArray bufferA; // heightmap (X), normals (YZ) and erosion mask (W)
   Texture2DArray bufferB; // Noise to add diffuse/normal detail
   uvec3 numWorkGroups;
-
-  std::queue<int> freeSlots;
-  int maxSlots = 0;
 
 private:
   void updateBufferA(vec2 offset, int slot);

@@ -2,7 +2,7 @@
 
 MeshArrays::MeshArrays(const MeshData& data)  {
   mode = data.mode;
-  count = data.verticesSize / data.layout.stride;
+  elementCount = data.verticesSize / data.layout.stride;
 
   vao.gen();
 
@@ -28,7 +28,7 @@ void MeshArrays::draw(const Camera* camera, Shader& shader, const mat4& model) c
   shader.setUniformMatrix4f("u_model", model);
 
   shader.use();
-  glDrawArrays(mode, 0, count);
+  glDrawArrays(mode, 0, elementCount);
 
   vao.unbind();
 }

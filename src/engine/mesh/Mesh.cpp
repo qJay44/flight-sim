@@ -11,14 +11,15 @@ void Mesh::linkAttributes(const vertex::Layout& layout) {
   for (size_t i = 0; i < layout.count; i++) {
     const auto& attr = layout.attribs[i];
     glEnableVertexAttribArray(attr.index);
-    glVertexAttribPointer(attr.index, attr.size, attr.type, GL_FALSE, layout.stride, (void*)offset);
 
     size_t elementSize = 0;
     switch (attr.type) {
       case GL_FLOAT:
+        glVertexAttribPointer(attr.index, attr.size, attr.type, GL_FALSE, layout.stride, (void*)offset);
         elementSize = sizeof(float);
         break;
       case GL_INT:
+        glVertexAttribIPointer(attr.index, attr.size, attr.type, layout.stride, (void*)offset);
         elementSize = sizeof(int);
         break;
       default:
@@ -43,7 +44,7 @@ void Mesh::drawScreen(const Camera* camera, Shader& shader) {
 
 void Mesh::updateBufferVBO(const MeshData& data) {
   vbo.updateSubData(data.vertices, data.verticesSize);
-  count = data.verticesSize / data.layout.stride;
+  elementCount = data.verticesSize / data.layout.stride;
 }
 
 void Mesh::setGlobalUniforms(Shader& s) {

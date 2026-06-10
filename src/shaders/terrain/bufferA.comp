@@ -2,6 +2,16 @@
 
 #include "common.glsl"
 
+#define PENDING    0
+#define GENERATING 1
+#define ACTIVE     2
+
+struct Chunk {
+  vec2 worldPos;
+  int textureSlot;
+  int state;
+};
+
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(rgba16f, binding = 0) writeonly uniform image2DArray imageWrite;

@@ -168,7 +168,7 @@ int main() {
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
   env.sun.intensity = 7.f;
 
-  terrain::Terrain terrain(1024, 4);
+  terrain::Terrain terrain(512, 4);
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &env.sun;
@@ -234,7 +234,7 @@ int main() {
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
 
-    terrain.draw(activeCam, terrainShader, env);
+    terrain.draw(activeCam, terrainShader);
     f15.draw(activeCam, airplaneShader);
 
     if (global::jetDrawDebugMass)

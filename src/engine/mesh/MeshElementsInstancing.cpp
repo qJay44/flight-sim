@@ -11,7 +11,7 @@ MeshElementsInstancing& MeshElementsInstancing::operator=(MeshElements&& other) 
   return *this;
 }
 
-void MeshElementsInstancing::add(const MeshData& data) {
+void MeshElementsInstancing::setInstanceVBO(const MeshData& data) {
   vao.bind();
   vboInstance.allocate(data.vertices, data.verticesSize, data.usage);
 
@@ -31,11 +31,11 @@ void MeshElementsInstancing::setInstanceCount(GLsizei c) {
 }
 
 void MeshElementsInstancing::draw(const Camera* camera, Shader& shader) const {
-  draw(camera, shader, getModel());
+  this->draw(camera, shader, getModel());
 }
 
 void MeshElementsInstancing::draw(const Camera* camera, Shader& shader, GLsizei instanceCount) const {
-  assert(mode && count && instanceCount);
+  assert(mode && elementCount && instanceCount);
   vao.bind();
 
   camera->setUniforms(shader);
@@ -44,13 +44,13 @@ void MeshElementsInstancing::draw(const Camera* camera, Shader& shader, GLsizei 
   shader.setUniform1i("u_instanceCount", instanceCount);
 
   shader.use();
-  glDrawElementsInstanced(mode, count, GL_UNSIGNED_INT, 0, instanceCount);
+  glDrawElementsInstanced(mode, elementCount, GL_UNSIGNED_INT, 0, instanceCount);
 
   vao.unbind();
 }
 
 void MeshElementsInstancing::draw(const Camera* camera, Shader& shader, const mat4& model) const {
-  assert(mode && count && instanceCount);
+  assert(mode && elementCount && instanceCount);
   vao.bind();
 
   camera->setUniforms(shader);
@@ -59,7 +59,7 @@ void MeshElementsInstancing::draw(const Camera* camera, Shader& shader, const ma
   shader.setUniform1i("u_instanceCount", instanceCount);
 
   shader.use();
-  glDrawElementsInstanced(mode, count, GL_UNSIGNED_INT, 0, instanceCount);
+  glDrawElementsInstanced(mode, elementCount, GL_UNSIGNED_INT, 0, instanceCount);
 
   vao.unbind();
 }

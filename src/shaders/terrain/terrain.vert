@@ -2,15 +2,18 @@
 
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_uv;
+layout(location = 2) in int a_chunkIdx;
 
 out vec3 v_viewDir;
 out vec3 v_worldPos;
 out vec2 v_uv;
-out flat int v_instance;
+out flat int v_chunkIdx;
 
 struct Chunk {
   vec2 worldPos;
-  int textureSlot;
+  int index;
+  int state;
+  vec2 _pad;
 };
 
 uniform mat4 u_model;
@@ -27,9 +30,9 @@ layout(std430, binding = 0) readonly buffer ChunkBuffer {
 };
 
 void main() {
-  Chunk chunk = chunks[gl_InstanceID];
+  Chunk chunk = chunks[a_chunkIdx];
   vec4 worldPos = u_model * vec4(a_pos, 1.f);
-  float h = texture(u_bufferA, vec3(a_uv, chunk.textureSlot)).r;
+  float h = texture(u_bufferA, vec3(a_uv, chunk.index)).r;
 
   worldPos.xz += chunk.worldPos;
   worldPos.y = h * u_heightScale;
@@ -37,7 +40,7 @@ void main() {
   v_viewDir = u_camPos - worldPos.xyz;
   v_worldPos = worldPos.xyz;
   v_uv = a_uv;
-  v_instance = gl_InstanceID;
+  v_chunkIdx = a_chunkIdx;
 
 	gl_Position = u_camPV * worldPos;
 }

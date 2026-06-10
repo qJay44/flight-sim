@@ -146,23 +146,28 @@ void gui::draw() {
 
   assert(terrainPtr);
   if (ImGui::CollapsingHeader("Terrain")) {
+
     ImGui::Text("Coord: [%d, %d]", terrainPtr->lastCoord.x, terrainPtr->lastCoord.y);
-    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 20.f);
+    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 100.f);
+    if (ImGui::SliderFloat("Chunk scle", &terrainPtr->chunkSize, 0.f, 1000.f))
+      terrainPtr->changeScale(terrainPtr->chunkSize);
+
     ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
 
     ImGui::SeparatorText("Erosion config");
     auto& cfg = terrainPtr->erosionConfig;
+    bool u = false;
 
-    ImGui::SliderFloat("Scale", &cfg.erosion_scale, 0.08f, 0.25f);
+    u |= ImGui::SliderFloat("Scale", &cfg.erosion_scale, 0.08f, 0.25f);
     CreateMyTooltip("The scale of the erosion effect, affecting it both horizontally and vertically");
 
-    ImGui::SliderFloat("Strength", &cfg.erosion_strength, 0.01f, 0.10f);
+    u |= ImGui::SliderFloat("Strength", &cfg.erosion_strength, 0.01f, 0.10f);
     CreateMyTooltip(
       "The strength of the erosion effect, affecting the magnitude of "
       "all octaves, and indirectly affecting the directions of the gullies as a result"
     );
 
-    ImGui::SliderFloat("Gully weight", &cfg.erosion_gully_weight, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Gully weight", &cfg.erosion_gully_weight, 0.f, 1.f);
     CreateMyTooltip(
       "The magnitude of the gullies as a weight value from 0 to 1. "
       "A value of 0 can sharpen peaks and valleys but feature virtually no gullies. "
@@ -172,30 +177,30 @@ void gui::draw() {
       "magnitudes largely untouched."
     );
 
-    ImGui::SliderFloat("Detail", &cfg.erosion_detail, 0.7f, 3.f);
+    u |= ImGui::SliderFloat("Detail", &cfg.erosion_detail, 0.7f, 3.f);
     CreateMyTooltip(
       "The overall detail of the erosion. Lower values restrict the effect of higher "
       "frequency gullies to steeper slopes."
     );
 
-    ImGui::SliderFloat("Ridge rounding", &cfg.ridgeRounding, 0.1f, 1.f);
-    ImGui::SliderFloat("Crease rounding", &cfg.creaseRounding, 0.0f, 1.f);
+    u |= ImGui::SliderFloat("Ridge rounding", &cfg.ridgeRounding, 0.1f, 1.f);
+    u |= ImGui::SliderFloat("Crease rounding", &cfg.creaseRounding, 0.0f, 1.f);
 
-    ImGui::SliderFloat("Rounding multiplier 1", &cfg.erosion_rounding.z, 0.f, 5.f);
+    u |= ImGui::SliderFloat("Rounding multiplier 1", &cfg.erosion_rounding.z, 0.f, 5.f);
     CreateMyTooltip(
       "Multiplier applied to the initial height function. "
       "E.g. if the height function has noise of 5 times lower frequency "
       "than the largest gullies, a value of 0.2 can compensate for that."
     );
 
-    ImGui::SliderFloat("Rounding multiplier 2", &cfg.erosion_rounding.w, 0.f, 5.f);
+    u |= ImGui::SliderFloat("Rounding multiplier 2", &cfg.erosion_rounding.w, 0.f, 5.f);
     CreateMyTooltip(
       "Multiplier applied to each subsequent gully octave after the first. "
       "Setting it to the same value as the erosion lacunarity will produce "
       "consistent rounding of all octaves."
     );
 
-    ImGui::SliderFloat4("Onset", glm::value_ptr(cfg.erosion_onset), 0.f, 5.f);
+    u |= ImGui::SliderFloat4("Onset", glm::value_ptr(cfg.erosion_onset), 0.f, 5.f);
     CreateMyTooltip(
       "Control over how far away from ridges/creases the erosion takes effect. "
       "x: Onset used on the initial height function. "
@@ -204,7 +209,7 @@ void gui::draw() {
       "w: RidgeMap-specific onset used on each gully octave."
     );
 
-    ImGui::SliderFloat2("Assumed slope", glm::value_ptr(cfg.erosion_assumed_slope), 0.f, 1.f);
+    u |= ImGui::SliderFloat2("Assumed slope", glm::value_ptr(cfg.erosion_assumed_slope), 0.f, 1.f);
     CreateMyTooltip(
       "Control over the assumed slope of the initial height function. "
       "In practise, assuming a slope can work better than using the input slope, "
@@ -213,7 +218,7 @@ void gui::draw() {
       " y: The amount (from 0 to 1) to override the actual slope."
     );
 
-    ImGui::SliderFloat("Cell scale", &cfg.erosion_cell_scale, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Cell scale", &cfg.erosion_cell_scale, 0.f, 1.f);
     CreateMyTooltip(
       "Gullies are based on stripes within Voronoi-like cells in the Phacelle noise "
       "function. The cell scale parameter controls the sizes of the cells relative "
@@ -226,7 +231,7 @@ void gui::draw() {
       "modulation by other functions."
     );
 
-    ImGui::SliderFloat("Normalization", &cfg.erosion_normalization, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Normalization", &cfg.erosion_normalization, 0.f, 1.f);
     CreateMyTooltip(
       "The degree of normalization applied in the Phacelle noise, between 0 and 1. "
       "The erosion filter depends on a certain consistency in magnitude of the "
@@ -234,19 +239,19 @@ void gui::draw() {
       "and creases meet up at a point, which produces unnatural looking results."
     );
 
-    ImGui::SliderInt("Octaves", &cfg.erosion_octaves, 0, 20);
+    u |= ImGui::SliderInt("Octaves", &cfg.erosion_octaves, 0, 20);
     CreateMyTooltip(
       "Control over the erosion octaves, with each successive octave layering "
       "smaller gullies onto the terrain."
     );
 
-    ImGui::SliderFloat("Lacunarity", &cfg.erosion_lacunarity, 0.f, 10.f);
+    u |= ImGui::SliderFloat("Lacunarity", &cfg.erosion_lacunarity, 0.f, 10.f);
     CreateMyTooltip(
       "The lacunarity controls the frequency (the inverse "
       "horizontal scale) of each octave relative to the last."
     );
 
-    ImGui::SliderFloat("Gain", &cfg.erosion_gain, 0.f, 5.f);
+    u |= ImGui::SliderFloat("Gain", &cfg.erosion_gain, 0.f, 5.f);
     CreateMyTooltip(
       "The gain controls the magnitude (the vertical "
       "scale) of each octave relative to the last."
@@ -254,7 +259,7 @@ void gui::draw() {
 
     ImGui::SeparatorText("Terrain parameters not used in the erosion function itself.");
 
-    ImGui::SliderFloat2("Terrain height offset", glm::value_ptr(cfg.terrain_height_offset), -1.f, 1.f);
+    u |= ImGui::SliderFloat2("Terrain height offset", glm::value_ptr(cfg.terrain_height_offset), -1.f, 1.f);
     CreateMyTooltip(
       "Control over whether the erosion effect raises or lowers the terrain. "
       " x: An offset value between -1 and 1, where a value of -1 only lowers, while "
@@ -269,31 +274,34 @@ void gui::draw() {
       "    and maxima of the terrain."
     );
 
-    ImGui::SliderFloat("Height frequency", &cfg.height_frequency, 0.f, 10.f);
+    u |= ImGui::SliderFloat("Height frequency", &cfg.height_frequency, 0.f, 10.f);
     CreateMyTooltip("The inverse horizontal scale of the terrain noise function.");
 
-    ImGui::SliderFloat("Height amplitude", &cfg.height_amp, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Height amplitude", &cfg.height_amp, 0.f, 1.f);
     CreateMyTooltip("The vertical scale (amplitude) of the terrain noise function.");
 
-    ImGui::SliderInt("Height octaves", &cfg.height_octaves, 0, 10);
+    u |= ImGui::SliderInt("Height octaves", &cfg.height_octaves, 0, 10);
     CreateMyTooltip(
       "Control over the noise function octaves, with each successive "
       "octave layering smaller bumps onto the terrain."
     );
 
-    ImGui::SliderFloat("Height lacunarity", &cfg.height_lacunarity, 0.f, 10.f);
+    u |= ImGui::SliderFloat("Height lacunarity", &cfg.height_lacunarity, 0.f, 10.f);
     CreateMyTooltip(
       "The lacunarity controls the frequency (the inverse "
       "horizontal scale) of each octave relative to the last."
     );
 
-    ImGui::SliderFloat("Height gain", &cfg.height_gain, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Height gain", &cfg.height_gain, 0.f, 1.f);
     CreateMyTooltip(
       "The gain controls the magnitude (the vertical scale) "
       "of each octave relative to the last."
     );
 
-    ImGui::SliderFloat("Height function scale", &cfg.heightFunctionScale, 0.f, 1.f);
+    u |= ImGui::SliderFloat("Height function scale", &cfg.heightFunctionScale, 0.f, 1.f);
+
+    if (u)
+      terrainPtr->regenerateAllChunks();
   }
 
   // ===== Spectate camera =============================================================================== //

@@ -63,14 +63,11 @@ public:
     unbind();
   }
 
-  void updateRange(const void* data, GLsizeiptr dataSize, GLbitfield access) const {
+  void* mapRange(GLsizeiptr dataSize, GLbitfield access, GLintptr offset = 0) const {
     bind();
+    void* ptr = glMapBufferRange(target, offset, dataSize, access);
 
-    void* ptr = glMapBufferRange(target, 0, dataSize, access);
-    memcpy(ptr, data, dataSize);
-
-    glUnmapBuffer(target);
-    unbind();
+    return ptr;
   }
 
   void updateSubData(const void* data, GLsizeiptr dataSize, GLintptr offset = 0) const {
