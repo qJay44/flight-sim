@@ -2,12 +2,10 @@
 
 #include "../engine/mesh/meshes.hpp"
 #include "Terrain.hpp"
-#include "TextureManager.hpp"
-#include "colormaps/jet.hpp"
 #include "glm/common.hpp"
 #include "glm/geometric.hpp"
+#include "global.hpp"
 #include "utils/utils.hpp"
-#include <utility>
 
 #define CHUNKS_PER_FRAME 1
 
@@ -19,7 +17,9 @@ Terrain::Terrain(int bufferSize, int radius)
     bufferSizeInv(1.f / vec2(bufferSize))
 {
   int totalChunks = getTotalChunksFromRadius(radius);
-  texManager = TextureManager(totalChunks, ivec2(bufferSize));
+  texManager = GenerationManager(totalChunks, ivec2(bufferSize));
+  texManager.setHeightmapScale(0.1f);
+  heightScale = 5.f;
 
   mesh0 = meshes::plane(128);
   mesh1 = meshes::plane(64);
@@ -40,7 +40,7 @@ Terrain::Terrain(int bufferSize, int radius)
 
   ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
 
-  changeScale(128.f);
+  changeScale(1.f);
 }
 
 const float& Terrain::getHeightScale() const { return heightScale; }
@@ -84,6 +84,7 @@ void Terrain::update(const Camera* cam) {
     }
 
     lastCoord = cameraCoord;
+
   }
 
   const float& camFar = cam->getFarPlane();
@@ -132,6 +133,8 @@ void Terrain::update(const Camera* cam) {
   sharedInstanceData.vertices = c2.data();
   sharedInstanceData.verticesSize = c2.size() * sizeof(ChunkIndexInstance);
   mesh2.setInstanceVBO(sharedInstanceData);
+
+  appearance = glm::min(appearance + 1.5f * global::dt, 1.f);
 }
 
 void Terrain::regenerateAllChunks() {
@@ -150,6 +153,7 @@ void Terrain::regenerateAllChunks() {
   ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
 
   forceUpate = true;
+  appearance = 0.f;
 }
 
 void Terrain::changeScale(float s) {
@@ -165,25 +169,34 @@ void Terrain::changeScale(float s) {
 
 void Terrain::draw(const Camera* cam, Shader& shader) const {
   shader.setUniform1f("u_heightScale", heightScale);
+  shader.setUniform1f("u_heightmapScale", texManager.getHeightmapScale());
   shader.setUniform1f("u_chunkSize", chunkSize);
   shader.setUniform1f("u_showChunkGroups", showChunkGroups);
+  shader.setUniform1f("u_appearance", appearance);
   shader.setUniform1i("u_bufferSize", bufferSize);
+  shader.setUniform2f("u_cliffEdges", cliffEdges);
+  shader.setUniform2f("u_dirtEdges", dirtEdges);
+  shader.setUniform2f("u_snowEdges", snowEdges);
+  shader.setUniform2f("u_sandEdges", sandEdges);
+  shader.setUniform2f("u_grass0Edges", grass0Edges);
+  shader.setUniform2f("u_grass1Edges", grass1Edges);
+  shader.setUniform2f("u_grass2Edges", grass2Edges);
 
-  texManager.bind();
+  texManager.bindTextures();
   ssbo.chunks.bindBase(0);
 
   if (!c0.empty()) {
-    shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[0]);
+    shader.setUniform3f("u_debugChunkGroupColor", vec3(1.f, 0.1f, 0.1f));
     mesh0.draw(cam, shader);
   }
 
   if (!c1.empty()) {
-    shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[6]);
+    shader.setUniform3f("u_debugChunkGroupColor", vec3(0.1f, 1.f, 0.1f));
     mesh1.draw(cam, shader);
   }
 
   if (!c2.empty()) {
-    shader.setUniform3f("u_debugChunkGroupColor", colormaps::jet[9]);
+    shader.setUniform3f("u_debugChunkGroupColor", vec3(0.1f, 0.1f, 1.f));
     mesh2.draw(cam, shader);
   }
 }

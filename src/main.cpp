@@ -111,9 +111,9 @@ int main() {
 
   // ===== Cameras ============================================== //
 
-  Camera cameraSpectate({85.f, 77.f, 76.f}, -2.385f, -0.582f);
-  cameraSpectate.setFarPlane(9000.f);
-  cameraSpectate.setSpeedDefault(50.f);
+  Camera cameraSpectate({0.f, 1.f, 0.f}, -2.385f, -0.582f);
+  cameraSpectate.setFarPlane(100.f);
+  cameraSpectate.setSpeedDefault(1.f);
 
   // ===== Inputs Handler ======================================= //
 
@@ -127,7 +127,7 @@ int main() {
   Font textFont("res/fonts/FiraCodeNerdFontMono-Bold.ttf", 20);
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f, &textFont, &textShader);
-  f15.setCamDistance(30.f);
+  f15.setCamDistance(10.f);
   f15.setCamSensitivity(1.f);
 
   auto& f15Config = f15.getBodyConfig();
@@ -138,7 +138,7 @@ int main() {
   f15Config.flapsAOABias = 10.f;
   f15Config.liftPower = 75.f;
   f15Config.rudderPower = 50.f;
-  f15Config.meshScale = 0.01f;
+  f15Config.meshScale = 0.001f;
   f15Config.inducedDrag = 35.5f;
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
@@ -146,7 +146,7 @@ int main() {
   // ===== Framebuffers ========================================= //
 
   TextureDescriptor fboTexDesc{};
-  fboTexDesc.internalFormat = GL_RGB16;
+  fboTexDesc.internalFormat = GL_SRGB8;
   fboTexDesc.minFilter = GL_NEAREST;
   fboTexDesc.magFilter = GL_NEAREST;
 
@@ -168,7 +168,7 @@ int main() {
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
   env.sun.intensity = 7.f;
 
-  terrain::Terrain terrain(512, 4);
+  terrain::Terrain terrain(512, 10);
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &env.sun;
@@ -230,6 +230,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_FRAMEBUFFER_SRGB);
 
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
@@ -251,9 +252,15 @@ int main() {
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
 
+    const mat4& camProj = activeCam->getProj();
+    const mat4& localView = activeCam->getLocalView(vec3(0.f));
+
     texTerrainColor.bind(0);
     texTerrainDepth.bind(1);
+
     postprocessShader.setUniform1f("u_heightScale", terrain.getHeightScale());
+    postprocessShader.setUniformMatrix4f("u_invPV", glm::inverse(camProj * localView));
+
     Mesh::drawScreen(activeCam, postprocessShader);
 
     if (global::jetDrawHUD && activeCam != &cameraSpectate)
@@ -261,6 +268,7 @@ int main() {
 
     // markup::drawCross(activeCam, markupShader);
 
+    glDisable(GL_FRAMEBUFFER_SRGB);
     gui::draw();
 
     // ============================================================ //

@@ -47,6 +47,7 @@ layout(std140, binding = 0) uniform ConfigBlock {
 } cfg;
 
 uniform vec2 u_offset;
+uniform float u_heightmapScale;
 uniform int u_slot;
 
 // ----- Pacell Noise Function ---------------------------------------------------------------------------------- //
@@ -282,7 +283,7 @@ void main() {
   vec2 localUV = texCoord * texelSize;
   vec2 uv = localUV - u_offset;
 
-  vec4 hm = Heightmap(uv);
+  vec4 hm = Heightmap(uv * u_heightmapScale);
 
   imageStore(imageWrite, ivec3(texCoord, u_slot), hm);
 }

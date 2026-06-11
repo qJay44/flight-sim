@@ -43,7 +43,7 @@ struct AircraftPart {
     mat4 modelView = view * localModel;
 
     shader.setUniformMatrix4f("u_modelView", modelView);
-    shader.setUniform3f("u_color", color);
+    shader.setUniform3f("u_color", glm::pow(color, vec3(2.2f)));
     meshes[meshIdx]->draw(cam, shader, model);
   }
 };

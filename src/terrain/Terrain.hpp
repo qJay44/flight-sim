@@ -6,7 +6,7 @@
 
 #include "../engine/Camera.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
-#include "TextureManager.hpp"
+#include "GenerationManager.hpp"
 
 struct gui;
 
@@ -108,7 +108,7 @@ private:
   int radius;
 
   vec2 bufferSizeInv;
-  TextureManager texManager;
+  GenerationManager texManager;
   ErosionConfig erosionConfig{};
 
   MeshElementsInstancing mesh0; // 3x3
@@ -128,7 +128,15 @@ private:
   std::vector<GLuint> c1;
   std::vector<GLuint> c2;
 
-  float heightScale = 30.f;
+  float heightScale = 0.5f;
+  float appearance = 0.f;
+  vec2 cliffEdges  {0.40f , 0.52f};
+  vec2 dirtEdges   {0.60f , 0.00f}; // inversed
+  vec2 snowEdges   {0.53f , 0.60f};
+  vec2 sandEdges   {0.005f, 0.00f}; // inversed, WATER_HEIGHT offset
+  vec2 grass0Edges {0.40f , 0.60f};
+  vec2 grass1Edges {0.05f , 0.02f}; // inversed, GRASS_HEIGHT offset
+  vec2 grass2Edges {0.80f , 0.10f};
 
   bool showChunkGroups = false;
   bool forceUpate = false;

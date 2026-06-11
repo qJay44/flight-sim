@@ -146,17 +146,29 @@ void gui::draw() {
 
   assert(terrainPtr);
   if (ImGui::CollapsingHeader("Terrain")) {
+    bool u = false;
 
     ImGui::Text("Coord: [%d, %d]", terrainPtr->lastCoord.x, terrainPtr->lastCoord.y);
-    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 100.f);
-    if (ImGui::SliderFloat("Chunk scle", &terrainPtr->chunkSize, 0.f, 1000.f))
+
+    u |= ImGui::SliderFloat("Heightmap scale", &terrainPtr->texManager.heightmapScale, 0.01f, 1.f);
+
+    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 50.f);
+
+    if (ImGui::SliderFloat("Chunk scle", &terrainPtr->chunkSize, 0.f, 10.f))
       terrainPtr->changeScale(terrainPtr->chunkSize);
+
+    ImGui::SliderFloat2("Cliff edges",                                 glm::value_ptr(terrainPtr->cliffEdges),  0.f, 1.f);
+    ImGui::SliderFloat2("Dirt edges (inversed)",                       glm::value_ptr(terrainPtr->dirtEdges),   0.f, 1.f);
+    ImGui::SliderFloat2("Snow edges",                                  glm::value_ptr(terrainPtr->snowEdges),   0.f, 1.f);
+    ImGui::SliderFloat2("Sand edges (inversed) water height offset",   glm::value_ptr(terrainPtr->sandEdges),   0.f, 1.f);
+    ImGui::SliderFloat2("Grass0 edges",                                glm::value_ptr(terrainPtr->grass0Edges), 0.f, 1.f);
+    ImGui::SliderFloat2("Grass1 edges (inversed) grass height offset", glm::value_ptr(terrainPtr->grass1Edges), 0.f, 1.f);
+    ImGui::SliderFloat2("Grass2 edges",                                glm::value_ptr(terrainPtr->grass2Edges), 0.f, 1.f);
 
     ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
 
     ImGui::SeparatorText("Erosion config");
     auto& cfg = terrainPtr->erosionConfig;
-    bool u = false;
 
     u |= ImGui::SliderFloat("Scale", &cfg.erosion_scale, 0.08f, 0.25f);
     CreateMyTooltip("The scale of the erosion effect, affecting it both horizontally and vertically");

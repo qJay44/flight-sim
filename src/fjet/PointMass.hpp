@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/ext/scalar_common.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtx/norm.hpp"
 #include "glm/gtx/matrix_operation.hpp"
