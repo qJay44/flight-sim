@@ -51,6 +51,7 @@ void Terrain::update(const Camera* cam) {
   ivec2 cameraCoord = glm::floor(posXZ * chunkSizeInv);
 
   if (cameraCoord != lastCoord || forceUpate) {
+    global::profiler->startScopedTask("NewCoordChunks");
     forceUpate = false;
 
     evictDistantChunks(cameraCoord, radius);
@@ -84,7 +85,6 @@ void Terrain::update(const Camera* cam) {
     }
 
     lastCoord = cameraCoord;
-
   }
 
   const float& camFar = cam->getFarPlane();
@@ -93,6 +93,7 @@ void Terrain::update(const Camera* cam) {
   c1.clear();
   c2.clear();
 
+  global::profiler->startScopedTask("ChunksPush");
   for (auto const& [coord, index] : chunksCache) {
     Chunk& chunk = mappedChunks[index];
 
@@ -161,8 +162,8 @@ void Terrain::changeScale(float s) {
   chunkSizeInv = 1.f / chunkSize;
 
   mesh0.setMatScaleXZ(chunkSize * 0.5f);
-  mesh1.setMatScaleXZ(chunkSize * 0.5f);
-  mesh2.setMatScaleXZ(chunkSize * 0.5f);
+  mesh1.setMatScaleXZ(chunkSize * 1.5f);
+  mesh2.setMatScaleXZ(chunkSize * 2.5f);
 
   regenerateAllChunks();
 }

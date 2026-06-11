@@ -86,10 +86,7 @@ void main() {
   if (t_water > 0.f && t_water < t_terrain) {
     vec3 waterPos = ray.origin + t_water * ray.dir;
     vec3 normal = getWaterNormal(waterPos, u_time);
-
     float waterDepth = t_terrain - t_water;
-    float foamNoise = noised(waterPos.xz + u_time * 0.25f).x;
-    float foamMask = smoothstep(0.95f, 2.f, 1.f - waterDepth + foamNoise);
 
     vec3 sunRefl = reflect(u_lightDir, normal);
     float sunSpec = pow(max(0.f, dot(ray.dir, sunRefl)), 128.f) * u_sunIntensity;
@@ -97,14 +94,16 @@ void main() {
     vec2 distortUV = v_uv + normal.xz * 0.05f * saturate(waterDepth);
     vec3 groundColor = texture(u_texTerrainColor, distortUV).rgb;
 
-    float shore = exp(-waterDepth * u_heightScale);
+    float shore = exp(-waterDepth * u_heightScale * 0.5f);
     float refr = exp(-waterDepth * 3.f);
+    float foamNoise = noised(waterPos.xz - u_time * 0.25f).x * 0.5f;
+    float foam = smoothstep(0.95f, 1.5f, 1.f - waterDepth + foamNoise);
 
     color = mix(WATER_COLOR, WATER_SHORE_COLOR, shore);
     color = mix(color, groundColor, refr);
 
     color += sunSpec * u_lightColor * 0.95f;
-    color = mix(color, WATER_FOAM_COLOR, foamMask);
+    color = mix(color, WATER_FOAM_COLOR, foam);
 
     dist = t_water;
   }
