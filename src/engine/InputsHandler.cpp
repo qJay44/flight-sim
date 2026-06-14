@@ -48,11 +48,8 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
           Camera::setNextActiveCam();
         break;
       case GLFW_KEY_1:
-        if (action == GLFW_PRESS) {
-          static bool lines = false;
-          lines = !lines;
-          glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + lines);
-        }
+        if (action == GLFW_PRESS)
+          global::wireframeMode = !global::wireframeMode;
         break;
       case GLFW_KEY_2:
         if (action == GLFW_PRESS) {

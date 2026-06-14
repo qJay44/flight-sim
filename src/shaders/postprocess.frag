@@ -25,6 +25,17 @@ uniform float u_sunIntensity;
 uniform float u_heightScale;
 uniform float u_heightmapScale;
 uniform float u_appearance;
+uniform float u_waterShoreScale;
+uniform float u_waterRefractionScale;
+uniform float u_waterRefractionDistortScale;
+uniform float u_waterNormalScaleUV;
+uniform float u_waterNoiseScale;
+uniform float u_foamEdge0;
+uniform float u_foamEdge1;
+uniform float u_fogDensity;
+uniform float u_fogDensityFalloff;
+uniform float u_horizonThickness;
+uniform float u_horizonFalloff;
 uniform float u_time;
 
 const vec3 globalUP = vec3(0.f, 1.f, 0.f);
@@ -47,7 +58,7 @@ float getWaterDist(Ray ray) {
 }
 
 vec3 getWaterNormal(vec3 pos, float time) {
-  vec2 uv = pos.xz * u_heightScale;
+  vec2 uv = pos.xz * u_waterNormalScaleUV;
   vec2 totalSlope = vec2(0.f);
 
   float amp = 1.f;
@@ -56,7 +67,7 @@ vec3 getWaterNormal(vec3 pos, float time) {
 
   for (int i = 0; i < 3; i++) {
     vec2 motion = vec2(1.f, 0.5f) * time * speed;
-    vec3 n = noised(uv * freq + motion);
+    vec3 n = noised(uv * freq + motion) * u_waterNoiseScale;
 
     totalSlope -= n.yz * amp;
 
@@ -71,6 +82,20 @@ vec3 getWaterNormal(vec3 pos, float time) {
   }
 
   return normalize(vec3(totalSlope.x, 1.f, totalSlope.y));
+}
+
+float getExponentialDensityIntegral(Ray ray, float rayLength) {
+  float falloff = u_fogDensityFalloff;
+
+  float h0 = ray.origin.y - WATER_HEIGHT;
+  float h1 = (ray.origin.y + ray.dir.y * rayLength) - WATER_HEIGHT;
+
+  // Check if the ray is horizontal to avoid division by zero
+  if (abs(ray.dir.y) < 0.0001f) {
+    return exp(-falloff * h0) * rayLength;
+  }
+
+  return (exp(-falloff * h0) - exp(-falloff * h1)) / (falloff * ray.dir.y);
 }
 
 void main() {
@@ -88,34 +113,39 @@ void main() {
     vec3 normal = getWaterNormal(waterPos, u_time);
 
     float waterDepth = t_terrain - t_water;
-    float foamNoise = noised(waterPos.xz + u_time * 0.25f).x;
-    float foamMask = smoothstep(0.95f, 2.f, 1.f - waterDepth + foamNoise);
 
     vec3 sunRefl = reflect(u_lightDir, normal);
     float sunSpec = pow(max(0.f, dot(ray.dir, sunRefl)), 128.f) * u_sunIntensity;
 
-    vec2 distortUV = v_uv + normal.xz * 0.05f * saturate(waterDepth);
+    vec2 distortUV = v_uv + normal.xz * u_waterRefractionDistortScale * saturate(waterDepth);
     vec3 groundColor = texture(u_texTerrainColor, distortUV).rgb;
 
-    float shore = exp(-waterDepth * u_heightScale);
-    float refr = exp(-waterDepth * 3.f);
+    float shore = exp(-waterDepth * u_waterShoreScale);
+    float refr = exp(-waterDepth * u_waterRefractionScale);
 
     color = mix(WATER_COLOR, WATER_SHORE_COLOR, shore);
     color = mix(color, groundColor, refr);
 
     color += sunSpec * u_lightColor * 0.95f;
-    color = mix(color, WATER_FOAM_COLOR, foamMask);
 
-    dist = t_water;
+    dist = min(t_water, u_camFar);
   }
+
+  float atmosphereHeight = 8000.f;
+  float zenithAngle = max(0.03f, ray.dir.y);
+  float maxAtmoDist = atmosphereHeight / zenithAngle;
 
   if (depth >= 0.9999f) {
-    float atmosphereHeight = 8000.f;
-    float zenithAngle = max(0.03f, ray.dir.y);
-
     color = vec3(0.f);
-    dist = atmosphereHeight / zenithAngle;
+    dist = maxAtmoDist;
+  } else {
+    dist = min(t_terrain, maxAtmoDist);
   }
+
+  float horizonFactor = 1.f - abs(ray.dir.y);
+  float horizonHaze = pow(horizonFactor, u_horizonFalloff) * u_horizonThickness;
+  float opticalDepthScale = getExponentialDensityIntegral(ray, dist);
+  float effectiveDist = opticalDepthScale * (u_fogDensity + horizonHaze);
 
   float sunDot = dot(ray.dir, u_lightDir);
   float rayleighPhase = PhaseRayleigh(sunDot);
@@ -123,7 +153,7 @@ void main() {
 
   vec3 scattering = C_RAYLEIGH * rayleighPhase + C_MIE * miePhase;
   vec3 extinction =  C_RAYLEIGH + C_MIE;
-  vec3 transmittance = exp(-dist * extinction);
+  vec3 transmittance = exp(-effectiveDist * extinction);
   vec3 inScatterFactor = (1.f - transmittance) / extinction;
   vec3 scatteredLight = u_sunIntensity * scattering * inScatterFactor;
 

@@ -111,8 +111,8 @@ int main() {
 
   // ===== Cameras ============================================== //
 
-  Camera cameraSpectate({0.f, 1.f, 0.f}, -2.385f, -0.582f);
-  cameraSpectate.setFarPlane(100.f);
+  Camera cameraSpectate({0.f, 50.f, 0.f}, -2.385f, -0.582f);
+  cameraSpectate.setFarPlane(800.f);
   cameraSpectate.setSpeedDefault(1.f);
 
   // ===== Inputs Handler ======================================= //
@@ -231,6 +231,7 @@ int main() {
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + !global::wireframeMode);
 
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
@@ -251,17 +252,12 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
-
-    const mat4& camProj = activeCam->getProj();
-    const mat4& localView = activeCam->getLocalView(vec3(0.f));
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     texTerrainColor.bind(0);
     texTerrainDepth.bind(1);
 
-    postprocessShader.setUniform1f("u_heightScale", terrain.getHeightScale());
-    postprocessShader.setUniformMatrix4f("u_invPV", glm::inverse(camProj * localView));
-
-    Mesh::drawScreen(activeCam, postprocessShader);
+    terrain.drawPostprocess(activeCam, postprocessShader);
 
     if (global::jetDrawHUD && activeCam != &cameraSpectate)
       f15.drawHUD(activeCam, hudShader);

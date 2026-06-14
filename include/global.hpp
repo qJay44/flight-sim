@@ -15,6 +15,7 @@ extern ProfilerManager* profiler;
 extern float dt;
 extern float time;
 
+extern bool wireframeMode;
 extern bool guiFocused;
 extern bool drawGrid;
 

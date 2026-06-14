@@ -7,8 +7,6 @@
 #include "global.hpp"
 #include "utils/utils.hpp"
 
-#define CHUNKS_PER_FRAME 1
-
 namespace terrain {
 
 Terrain::Terrain(int bufferSize, int radius)
@@ -19,7 +17,7 @@ Terrain::Terrain(int bufferSize, int radius)
   int totalChunks = getTotalChunksFromRadius(radius);
   texManager = GenerationManager(totalChunks, ivec2(bufferSize));
   texManager.setHeightmapScale(0.1f);
-  heightScale = 5.f;
+  heightScale = 64.f;
 
   mesh0 = meshes::plane(128);
   mesh1 = meshes::plane(64);
@@ -40,7 +38,7 @@ Terrain::Terrain(int bufferSize, int radius)
 
   ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
 
-  changeScale(1.f);
+  changeScale(32.f);
 }
 
 const float& Terrain::getHeightScale() const { return heightScale; }
@@ -55,6 +53,7 @@ void Terrain::update(const Camera* cam) {
 
     evictDistantChunks(cameraCoord, radius);
 
+    global::profiler->startScopedTask("ChunksNewCoordPass");
     ssbo.chunks.bindBase(0);
     ubo.erosionConfig.bindBase(0);
 
@@ -86,6 +85,8 @@ void Terrain::update(const Camera* cam) {
     lastCoord = cameraCoord;
 
   }
+
+  global::profiler->startScopedTask("ChunksSelectionPass");
 
   const float& camFar = cam->getFarPlane();
 
@@ -201,6 +202,27 @@ void Terrain::draw(const Camera* cam, Shader& shader) const {
   }
 }
 
+void Terrain::drawPostprocess(const Camera* cam, Shader& shader) const {
+  const mat4& camProj = cam->getProj();
+  const mat4& localView = cam->getLocalView(vec3(0.f));
+
+  shader.setUniform1f("u_heightScale", heightScale);
+  shader.setUniform1f("u_waterShoreScale", waterShoreScale);
+  shader.setUniform1f("u_waterRefractionScale", waterRefractionScale);
+  shader.setUniform1f("u_waterRefractionDistortScale", waterRefractionDistortScale);
+  shader.setUniform1f("u_foamEdge0", foamEdge0);
+  shader.setUniform1f("u_foamEdge1", foamEdge1);
+  shader.setUniform1f("u_waterNormalScaleUV", waterNormalScaleUV);
+  shader.setUniform1f("u_waterNoiseScale", waterNoiseScale);
+  shader.setUniform1f("u_fogDensity", fogDensity);
+  shader.setUniform1f("u_fogDensityFalloff", fogDensityFalloff);
+  shader.setUniform1f("u_horizonThickness", horizonThickness);
+  shader.setUniform1f("u_horizonFalloff", horizonFalloff);
+  shader.setUniformMatrix4f("u_invPV", glm::inverse(camProj * localView));
+
+  Mesh::drawScreen(cam, shader);
+}
+
 int Terrain::getTotalChunksFromRadius(int radius) {
   assert(radius);
 
@@ -246,8 +268,8 @@ void Terrain::evictDistantChunks(ivec2 currChunkCoord, int maxRadius) {
 void Terrain::pushToDraw(const Chunk& chunk, vec2 camPos, float camFar) {
   float dist = glm::distance(camPos, chunk.worldPos);
 
-  if      (dist < camFar * 0.05f) c0.push_back(chunk.index);
-  else if (dist < camFar * 0.1f)  c1.push_back(chunk.index);
+  if      (dist < camFar * 0.2f) c0.push_back(chunk.index);
+  else if (dist < camFar * 0.6f)  c1.push_back(chunk.index);
   else                            c2.push_back(chunk.index);
 }
 

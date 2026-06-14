@@ -316,6 +316,23 @@ void gui::draw() {
       terrainPtr->regenerateAllChunks();
   }
 
+  if (ImGui::CollapsingHeader("Postprocess")) {
+    ImGui::SeparatorText("Water");
+    ImGui::SliderFloat("Shore scale", &terrainPtr->waterShoreScale, 0.f, 2.f);
+    ImGui::SliderFloat("Rerfraction scale", &terrainPtr->waterRefractionScale, 0.f, 2.f);
+    ImGui::SliderFloat("Rerfraction distort scale", &terrainPtr->waterRefractionDistortScale, 0.f, 2.f);
+    ImGui::SliderFloat("Normal UV scale", &terrainPtr->waterNormalScaleUV, 0.f, 20.f);
+    ImGui::SliderFloat("Noise scale", &terrainPtr->waterNoiseScale, 0.f, 20.f);
+    ImGui::SliderFloat("Foam edge0", &terrainPtr->foamEdge0, -10.f, 10.f);
+    ImGui::SliderFloat("Foam edge1", &terrainPtr->foamEdge1, -10.f, 10.f);
+
+    ImGui::SeparatorText("Fog");
+    ImGui::SliderFloat("Density", &terrainPtr->fogDensity, 0.f, 10.f);
+    ImGui::SliderFloat("Density falloff", &terrainPtr->fogDensityFalloff, 0.f, 0.001f);
+    ImGui::SliderFloat("Horizon thickness", &terrainPtr->horizonThickness, 0.f, 80.f);
+    ImGui::SliderFloat("Horizon falloff", &terrainPtr->horizonFalloff, 0.f, 20.f);
+  }
+
   // ===== Spectate camera =============================================================================== //
 
   assert(camPtr);

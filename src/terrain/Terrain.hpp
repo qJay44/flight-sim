@@ -22,6 +22,7 @@ public:
   void regenerateAllChunks();
   void changeScale(float s);
   void draw(const Camera* cam, Shader& shader) const;
+  void drawPostprocess(const Camera* cam, Shader& shader) const;
 
 private:
   friend struct ::gui;
@@ -130,13 +131,25 @@ private:
 
   float heightScale = 0.5f;
   float appearance = 0.f;
+  float waterShoreScale = 0.2f;
+  float waterRefractionScale = 0.25f;
+  float waterRefractionDistortScale = 0.05f;
+  float waterNormalScaleUV = 0.25f;
+  float waterNoiseScale = 0.15f;
+  float foamEdge0 = 2.f;
+  float foamEdge1 = -10.f;
+  float fogDensity = 1.f;
+  float fogDensityFalloff = 2e-4f;
+  float horizonThickness = 50.f;
+  float horizonFalloff = 10.f;
+
   vec2 cliffEdges  {0.40f , 0.52f};
   vec2 dirtEdges   {0.60f , 0.00f}; // inversed
-  vec2 snowEdges   {0.53f , 0.60f};
+  vec2 snowEdges   {0.72f , 0.81f};
   vec2 sandEdges   {0.005f, 0.00f}; // inversed, WATER_HEIGHT offset
-  vec2 grass0Edges {0.40f , 0.60f};
-  vec2 grass1Edges {0.05f , 0.02f}; // inversed, GRASS_HEIGHT offset
-  vec2 grass2Edges {0.80f , 0.10f};
+  vec2 grass0Edges {0.75f , 1.00f};
+  vec2 grass1Edges {0.30f , 0.00f}; // inversed, GRASS_HEIGHT offset
+  vec2 grass2Edges {0.30f , 0.00f};
 
   bool showChunkGroups = false;
   bool forceUpate = false;
