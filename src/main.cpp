@@ -103,6 +103,7 @@ int main() {
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
   Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
+  Shader terrainShadowShader("terrain/shadow.vert", "terrain/shadow.frag");
   Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
@@ -161,6 +162,22 @@ int main() {
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texTerrainColor);
   fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texTerrainDepth);
 
+  ivec2 shadowResolution(512);
+
+  fboTexDesc.minFilter = GL_LINEAR;
+  fboTexDesc.magFilter = GL_LINEAR;
+  Texture2D texTerrainShadow(shadowResolution, fboTexDesc);
+
+  texTerrainShadow.bind();
+  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+  texTerrainShadow.unbind();
+
+  FBO fboTerrainShadow{};
+  fboTerrainShadow.attach2D(GL_DEPTH_ATTACHMENT, texTerrainShadow);
+
   // ============================================================ //
 
   Grid grid{};
@@ -215,27 +232,39 @@ int main() {
 
     global::profiler->clearTasks();
 
+    // env.sun.updateDir();
+    env.sun.updateLightSpace(activeCam, shadowResolution);
     f15.update();
     terrain.update(activeCam);
 
-    env.sun.setUniforms(airplaneShader);
     env.sun.setUniforms(environmentShader);
+    env.sun.setUniforms(airplaneShader);
+    env.sun.setUniforms(terrainShadowShader);
     env.sun.setUniforms(terrainShader);
     env.sun.setUniforms(postprocessShader);
+
+    // ===== Terrain Shadow buffer ================================ //
+
+    fboTerrainShadow.bind();
+    glViewport(0, 0, shadowResolution.x, shadowResolution.y);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    terrain.draw(activeCam, terrainShadowShader);
 
     // ===== Terrain buffer ======================================= //
 
     fboTerrain.bind();
+    glViewport(0, 0, winSize.x, winSize.y);
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + !global::wireframeMode);
 
     if (global::drawGrid)
       grid.draw(activeCam, gridShader);
 
+    texTerrainShadow.bind(2);
     terrain.draw(activeCam, terrainShader);
     f15.draw(activeCam, airplaneShader);
 

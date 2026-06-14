@@ -91,9 +91,8 @@ float getExponentialDensityIntegral(Ray ray, float rayLength) {
   float h1 = (ray.origin.y + ray.dir.y * rayLength) - WATER_HEIGHT;
 
   // Check if the ray is horizontal to avoid division by zero
-  if (abs(ray.dir.y) < 0.0001f) {
+  if (abs(ray.dir.y) < 0.0001f)
     return exp(-falloff * h0) * rayLength;
-  }
 
   return (exp(-falloff * h0) - exp(-falloff * h1)) / (falloff * ray.dir.y);
 }
@@ -111,7 +110,6 @@ void main() {
   if (t_water > 0.f && t_water < t_terrain) {
     vec3 waterPos = ray.origin + t_water * ray.dir;
     vec3 normal = getWaterNormal(waterPos, u_time);
-
     float waterDepth = t_terrain - t_water;
 
     vec3 sunRefl = reflect(u_lightDir, normal);

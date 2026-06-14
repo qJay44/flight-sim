@@ -138,7 +138,7 @@ private:
   float waterNoiseScale = 0.15f;
   float foamEdge0 = 2.f;
   float foamEdge1 = -10.f;
-  float fogDensity = 1.f;
+  float fogDensity = 10.f;
   float fogDensityFalloff = 2e-4f;
   float horizonThickness = 50.f;
   float horizonFalloff = 10.f;

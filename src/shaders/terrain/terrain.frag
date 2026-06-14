@@ -16,6 +16,7 @@
 
 out vec4 FragColor;
 
+in vec4 v_lightSpacePos;
 in vec3 v_worldPos;
 in vec3 v_viewDir;
 in vec2 v_uv;
@@ -47,6 +48,7 @@ uniform float u_sunIntensity;
 
 layout(binding = 0) uniform sampler2DArray u_bufferA;
 layout(binding = 1) uniform sampler2DArray u_bufferB;
+layout(binding = 2) uniform sampler2DShadow u_shadowMap;
 
 layout(std430, binding = 0) readonly buffer ChunkBuffer {
   Chunk chunks[];
@@ -73,6 +75,16 @@ vec3 getSkyColor(vec3 normal) {
   vec3 groundColor = vec3(0.15f, 0.1f, 0.08f); // Muted dirt/rock brown
 
   return mix(groundColor, skyColor, skyHemisphere);
+}
+
+float getShadow(vec3 normal) {
+  vec3 projCoords = v_lightSpacePos.xyz / v_lightSpacePos.w;
+  projCoords = projCoords * 0.5f + 0.5f;
+
+  float bias = max(0.005f * (1.f - dot(normal, u_lightDir)), 0.0005f);
+  projCoords.z -= bias;
+
+  return texture(u_shadowMap, projCoords);
 }
 
 void main() {
@@ -137,7 +149,8 @@ void main() {
 
   vec3 f0 = vec3(0.04f);
   float smoothness = 0.1f;
-  color += Shade(diffuseColor, f0, smoothness, normal, -viewDir, u_lightDir, u_lightColor);
+  float shadow = getShadow(normal);
+  color += Shade(diffuseColor, f0, smoothness, normal, -viewDir, u_lightDir, u_lightColor * shadow);
 
   // Bounce
   color += diffuseColor * u_lightColor

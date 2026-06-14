@@ -16,7 +16,7 @@ Terrain::Terrain(int bufferSize, int radius)
 {
   int totalChunks = getTotalChunksFromRadius(radius);
   texManager = GenerationManager(totalChunks, ivec2(bufferSize));
-  texManager.setHeightmapScale(0.1f);
+  texManager.setHeightmapScale(0.15f);
   heightScale = 64.f;
 
   mesh0 = meshes::plane(128);
@@ -49,6 +49,7 @@ void Terrain::update(const Camera* cam) {
   ivec2 cameraCoord = glm::floor(posXZ * chunkSizeInv);
 
   if (cameraCoord != lastCoord || forceUpate) {
+    global::profiler->startScopedTask("NewCoordChunks");
     forceUpate = false;
 
     evictDistantChunks(cameraCoord, radius);
@@ -83,7 +84,6 @@ void Terrain::update(const Camera* cam) {
     }
 
     lastCoord = cameraCoord;
-
   }
 
   global::profiler->startScopedTask("ChunksSelectionPass");
@@ -94,6 +94,7 @@ void Terrain::update(const Camera* cam) {
   c1.clear();
   c2.clear();
 
+  global::profiler->startScopedTask("ChunksPush");
   for (auto const& [coord, index] : chunksCache) {
     Chunk& chunk = mappedChunks[index];
 
@@ -268,7 +269,7 @@ void Terrain::evictDistantChunks(ivec2 currChunkCoord, int maxRadius) {
 void Terrain::pushToDraw(const Chunk& chunk, vec2 camPos, float camFar) {
   float dist = glm::distance(camPos, chunk.worldPos);
 
-  if      (dist < camFar * 0.2f) c0.push_back(chunk.index);
+  if      (dist < camFar * 0.2f)  c0.push_back(chunk.index);
   else if (dist < camFar * 0.6f)  c1.push_back(chunk.index);
   else                            c2.push_back(chunk.index);
 }
