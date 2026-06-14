@@ -149,6 +149,7 @@ void gui::draw() {
     bool u = false;
 
     ImGui::Text("Coord: [%d, %d]", terrainPtr->lastCoord.x, terrainPtr->lastCoord.y);
+    ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
 
     u |= ImGui::SliderFloat("Heightmap scale", &terrainPtr->texManager.heightmapScale, 0.01f, 1.f);
 
@@ -164,8 +165,6 @@ void gui::draw() {
     ImGui::SliderFloat2("Grass0 edges",                                glm::value_ptr(terrainPtr->grass0Edges), 0.f, 1.f);
     ImGui::SliderFloat2("Grass1 edges (inversed) grass height offset", glm::value_ptr(terrainPtr->grass1Edges), 0.f, 1.f);
     ImGui::SliderFloat2("Grass2 edges",                                glm::value_ptr(terrainPtr->grass2Edges), 0.f, 1.f);
-
-    ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
 
     ImGui::SeparatorText("Erosion config");
     auto& cfg = terrainPtr->erosionConfig;
@@ -357,6 +356,12 @@ void gui::draw() {
     updDir |= ImGui::SliderAngle("Yaw", &sunPtr->yaw, -180.f, 180.f);
     updDir |= ImGui::SliderAngle("Pitch", &sunPtr->pitch, -90.f, 90.f);
     ImGui::ColorEdit3("Color", glm::value_ptr(sunPtr->color));
+
+    ImGui::SeparatorText("Shadow");
+    ImGui::SliderFloat("Size", &sunPtr->shadowSize, 0.f, 1000.f);
+    ImGui::SliderFloat("Distance", &sunPtr->shadowDist, 0.f, 1000.f);
+    ImGui::SliderFloat("Projection near", &sunPtr->shadowProjNear, 0.f, 10.f);
+    ImGui::SliderFloat("Projection far", &sunPtr->shadowProjFar, 0.f, 1000.f);
 
     if (updDir)
       sunPtr->updateDir();

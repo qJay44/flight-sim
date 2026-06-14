@@ -14,7 +14,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont,
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
   camera.setOrientation(vec3(-0.577f));
   camera.setUp(vec3(0.f, 1.f, 0.f));
-  camera.setFarPlane(4000.f);
+  camera.setFarPlane(1000.f);
   camera.update();
 }
 
@@ -47,11 +47,11 @@ void FighterJet::onMouseMove(dvec2 mousePos) {
 
 void FighterJet::onMouseScroll(dvec2 offset) {
   camDistance -= offset.y;
-  camDistance = glm::clamp(camDistance, 1.f, camDistanceMax);
+  camDistance = glm::clamp(camDistance, camDistanceMin, camDistanceMax);
 }
 
 void FighterJet::roll(float dir) {
-  body.controlInput.z += dir * global::dt * 10.f;
+  body.controlInput.z += dir * global::dt * 5.f;
 }
 
 bool FighterJet::isActive() const {
@@ -123,7 +123,7 @@ void FighterJet::updateCamera() {
   vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
 
   // Keep camera look ahead when jet rolls (the jet is visually offsetted from the screen center)
-  float lookAheadDist = 50.f;
+  float lookAheadDist = 2.f;
   vec3 lookAtEye = body.getPosition() + jetForward * lookAheadDist;
   vec3 lookAtCenter = lookAtEye - nextPos;
 

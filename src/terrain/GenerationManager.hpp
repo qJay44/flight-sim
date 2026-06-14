@@ -15,7 +15,8 @@ public:
   const float& getHeightmapScale() const;
 
   void setHeightmapScale(float s);
-  void generate(vec2 offset, int slot);
+
+  [[nodiscard]] GLsync generate(vec2 offset, int slot);
   void bindTextures() const;
 
 private:

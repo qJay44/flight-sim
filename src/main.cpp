@@ -114,7 +114,7 @@ int main() {
 
   Camera cameraSpectate({0.f, 50.f, 0.f}, -2.385f, -0.582f);
   cameraSpectate.setFarPlane(800.f);
-  cameraSpectate.setSpeedDefault(1.f);
+  cameraSpectate.setSpeedDefault(10.f);
 
   // ===== Inputs Handler ======================================= //
 
@@ -128,7 +128,7 @@ int main() {
   Font textFont("res/fonts/FiraCodeNerdFontMono-Bold.ttf", 20);
 
   FighterJet f15("res/fbx/f15.fbx", 13000.f, &textFont, &textShader);
-  f15.setCamDistance(10.f);
+  f15.setCamDistance(0.5f);
   f15.setCamSensitivity(1.f);
 
   auto& f15Config = f15.getBodyConfig();
@@ -139,10 +139,12 @@ int main() {
   f15Config.flapsAOABias = 10.f;
   f15Config.liftPower = 75.f;
   f15Config.rudderPower = 50.f;
-  f15Config.meshScale = 0.001f;
+  f15Config.meshScale = 0.0001f;
   f15Config.inducedDrag = 35.5f;
   f15Config.turnSpeed = vec3(40.f, 20.f, 120.f);
   f15Config.turnAcceleration = vec3(5e5f, 2e5f, 1e6f);
+  f15Config.gLimit = 20.f; // feels too heavy when low
+  f15Config.gLimitPitch = -20.f; // same about this
 
   // ===== Framebuffers ========================================= //
 
@@ -201,7 +203,7 @@ int main() {
     static double titleTimer = glfwGetTime();
     static double prevTime = titleTimer;
     static double currTime = prevTime;
-    const auto& activeCam = Camera::activeCam;
+    static const auto& activeCam = Camera::activeCam;
 
     constexpr double fpsLimit = 1. / 90.;
     currTime = glfwGetTime();

@@ -5,4 +5,4 @@
 
 ## TODO
 - [x] Chunk async load
-- [ ] G force fix
+- [ ] Fix shadows

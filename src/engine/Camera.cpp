@@ -16,7 +16,7 @@ Camera::Camera(vec3 pos, float yaw, float pitch) : Moveable(pos, yaw, pitch) {
   update();
   cameraPool.push_back(this);
   camIdx = cameraPool.size() - 1;
-  activeCam = activeCam ?: this;
+  activeCam = activeCam ? activeCam : this;
 };
 
 void Camera::setNextActiveCam() {

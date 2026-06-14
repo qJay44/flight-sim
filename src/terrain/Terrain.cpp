@@ -6,6 +6,7 @@
 #include "glm/geometric.hpp"
 #include "global.hpp"
 #include "utils/utils.hpp"
+#include <print>
 
 namespace terrain {
 
@@ -23,15 +24,8 @@ Terrain::Terrain(int bufferSize, int radius)
   mesh1 = meshes::plane(64);
   mesh2 = meshes::plane(32);
 
-  GLbitfield flags =
-    GL_MAP_READ_BIT       |
-    GL_MAP_WRITE_BIT      |
-    GL_MAP_PERSISTENT_BIT |
-    GL_MAP_COHERENT_BIT;
-
-  ssbo.chunks.storage(nullptr, totalChunks * sizeof(Chunk), flags);
-
-  mappedChunks = (Chunk*)ssbo.chunks.mapRange(totalChunks * sizeof(Chunk), flags);
+  ssbo.chunks.storage(nullptr, totalChunks * sizeof(Chunk), GL_DYNAMIC_STORAGE_BIT);
+  cpuChunkStates.resize(totalChunks);
 
   for (int i = 0; i < totalChunks; i++)
     freeChunks.push(i);
@@ -39,6 +33,8 @@ Terrain::Terrain(int bufferSize, int radius)
   ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
 
   changeScale(32.f);
+
+  std::println("Total chunks: [{}]", totalChunks);
 }
 
 const float& Terrain::getHeightScale() const { return heightScale; }
@@ -54,7 +50,6 @@ void Terrain::update(const Camera* cam) {
 
     evictDistantChunks(cameraCoord, radius);
 
-    global::profiler->startScopedTask("ChunksNewCoordPass");
     ssbo.chunks.bindBase(0);
     ubo.erosionConfig.bindBase(0);
 
@@ -62,60 +57,79 @@ void Terrain::update(const Camera* cam) {
 
     for (int z = -radius; z <= radius && !skip; z++) {
       for (int x = -radius; x <= radius; x++) {
-        // If moving too fast a lot of chunks may be processed, so skip for now
-        if (freeChunks.empty()) {
-          skip = true;
-          break;
-        }
-
         ivec2 targetCoord{cameraCoord + ivec2(x, z)};
-        auto [it, inserted] = chunksCache.emplace(targetCoord, freeChunks.top());
-        Chunk& chunk = mappedChunks[it->second];
+        auto it = chunksCache.find(targetCoord);
 
-        if (inserted) {
+        if (it == chunksCache.end()) {
+          // If moving too fast a lot of chunks may be processed, so skip for now
+          if (freeChunks.empty()) {
+            skip = true;
+            break;
+          }
+
+          int slot = freeChunks.top();
           freeChunks.pop();
+
+          Chunk chunk{};
           chunk.worldPos = vec2(targetCoord) * chunkSize;
-          chunk.index = it->second;
-          chunk.state = Chunk::GENERATING;
-          texManager.generate(targetCoord, it->second);
-          chunk.syncFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+          chunk.textureSlot = slot;
+
+          ChunkMetadata meta;
+          meta.state = ChunkMetadata::GENERATING;
+          meta.syncFence = texManager.generate(targetCoord, slot);
+
+          cpuChunkStates[slot] = meta;
+          ssbo.chunks.updateSubData(&chunk, sizeof(Chunk), slot * sizeof(Chunk));
+          chunksCache.emplace(targetCoord, slot);
         }
       }
     }
+
+    // Make sure CS is done before next texManager.generate(), this doesn't stall CPU.
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
     lastCoord = cameraCoord;
   }
 
   global::profiler->startScopedTask("ChunksSelectionPass");
 
-  const float& camFar = cam->getFarPlane();
-
   c0.clear();
   c1.clear();
   c2.clear();
 
   global::profiler->startScopedTask("ChunksPush");
-  for (auto const& [coord, index] : chunksCache) {
-    Chunk& chunk = mappedChunks[index];
+  for (auto const& [coord, slot] : chunksCache) {
+    ChunkMetadata& meta = cpuChunkStates[slot];
+    using enum ChunkMetadata::State;
 
-    switch (chunk.state) {
-      case Chunk::PENDING:
+    switch (meta.state) {
+      case PENDING:
         error("[Terrain::update] This should never happen");
         break;
-      case Chunk::GENERATING:
-        if (chunk.syncFence) {
-          GLenum status = glClientWaitSync(chunk.syncFence, 0, 0);
+      case GENERATING:
+        if (meta.syncFence) {
+          GLenum status = glClientWaitSync(meta.syncFence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
 
           if (status == GL_ALREADY_SIGNALED || status == GL_CONDITION_SATISFIED) {
-            glDeleteSync(chunk.syncFence);
-            chunk.syncFence = nullptr;
-            chunk.state = Chunk::ACTIVE;
-            pushToDraw(chunk, posXZ, camFar);
+            if (meta.syncFence)
+              glDeleteSync(meta.syncFence);
+            meta.syncFence = nullptr;
+            meta.state = ACTIVE;
+
+            Chunk chunk{};
+            chunk.worldPos = vec2(coord) * chunkSize;
+            chunk.textureSlot = slot;
+
+            ssbo.chunks.updateSubData(&chunk, sizeof(Chunk), slot * sizeof(Chunk));
+            pushToDraw(chunk, posXZ, cam->getFarPlane());
           }
         }
         break;
-      case Chunk::ACTIVE:
-        pushToDraw(chunk, posXZ, camFar);
+      case ACTIVE:
+        Chunk chunk{};
+        chunk.worldPos = vec2(coord) * chunkSize;
+        chunk.textureSlot = slot;
+        pushToDraw(chunk, posXZ, cam->getFarPlane());
         break;
     }
   }
@@ -238,11 +252,13 @@ int Terrain::getTotalChunksFromRadius(int radius) {
 }
 
 void Terrain::invalidateChunk(int idx) {
-  Chunk& chunk = mappedChunks[idx];
-  chunk.state = Chunk::PENDING;
+  ChunkMetadata& meta = cpuChunkStates[idx];
+  meta.state = ChunkMetadata::PENDING;
 
-  if (chunk.syncFence)
-    glDeleteSync(std::exchange(chunk.syncFence, nullptr));
+  if (meta.syncFence)
+    glDeleteSync(meta.syncFence);
+
+  meta.syncFence = nullptr;
 }
 
 void Terrain::evictDistantChunks(ivec2 currChunkCoord, int maxRadius) {
@@ -269,9 +285,9 @@ void Terrain::evictDistantChunks(ivec2 currChunkCoord, int maxRadius) {
 void Terrain::pushToDraw(const Chunk& chunk, vec2 camPos, float camFar) {
   float dist = glm::distance(camPos, chunk.worldPos);
 
-  if      (dist < camFar * 0.2f)  c0.push_back(chunk.index);
-  else if (dist < camFar * 0.6f)  c1.push_back(chunk.index);
-  else                            c2.push_back(chunk.index);
+  if      (dist < camFar * 0.2f)  c0.push_back(chunk.textureSlot);
+  else if (dist < camFar * 0.6f)  c1.push_back(chunk.textureSlot);
+  else                            c2.push_back(chunk.textureSlot);
 }
 
 } // terrain

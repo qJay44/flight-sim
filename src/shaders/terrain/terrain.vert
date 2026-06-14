@@ -12,9 +12,7 @@ out flat int v_chunkIdx;
 
 struct Chunk {
   vec2 worldPos;
-  int index;
-  int state;
-  vec2 _pad;
+  int textureSlot;
 };
 
 uniform mat4 u_model;
@@ -32,7 +30,7 @@ layout(std430, binding = 0) readonly buffer ChunkBuffer {
 void main() {
   Chunk chunk = chunks[a_chunkIdx];
   vec4 worldPos = u_model * vec4(a_pos, 1.f);
-  float h = texture(u_bufferA, vec3(a_uv, chunk.index)).r;
+  float h = texture(u_bufferA, vec3(a_uv, chunk.textureSlot)).r;
 
   worldPos.xz += chunk.worldPos;
   worldPos.y = h * u_heightScale;

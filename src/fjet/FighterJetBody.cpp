@@ -9,6 +9,7 @@
 #include "glm/geometric.hpp"
 #include "glm/gtc/quaternion.hpp"
 #include "glm/trigonometric.hpp"
+#include "global.hpp"
 #include "utils/types.hpp"
 
 static vec3 projectOnPlane(vec3 vec, vec3 normal) {
@@ -76,8 +77,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
 
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
-  rigidbody.position.x = 20.f;
-  rigidbody.position.y = 10.f;
+  rigidbody.position.y = 100.f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // Calculate at runtime?
   rigidbody.drag = 0.02f;
   rigidbody.angularDrag = 0.5f;
@@ -119,7 +119,11 @@ const vec3& FighterJetBody::getPosition() const { return rigidbody.position; }
 const vec3& FighterJetBody::getVelocity() const { return velocity; }
 const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orientation; }
 
+float FighterJetBody::getSpeed() const { return glm::max(0.f, localVelocity.z); }
+
 void FighterJetBody::update(float dt) {
+  global::profiler->startScopedTask("FighterJetBodyUpdatePass");
+
   calcState(dt);
   calcAngleOfAttack();
 
@@ -130,7 +134,7 @@ void FighterJetBody::update(float dt) {
   updateForceFromParts(dt);
 
   rigidbody.addForce({0.f, -9.81f * rigidbody.mass * 2.f, 0.f});
-  rigidbody.update(dt);
+  rigidbody.update(dt, cfg.meshScale * 100.f); // idk
 
   updateMesh(dt);
 
@@ -259,7 +263,7 @@ void FighterJetBody::updateLift() {
 }
 
 void FighterJetBody::updateSteering(float dt) {
-  float speed = glm::max(0.f, localVelocity.z);
+  float speed = getSpeed();
   float steeringPower = glm::clamp(speed / 20.f, 0.1f, 1.f);
   float gForceScaleing = calcGLimitter(controlInput, glm::radians(cfg.turnSpeed) * steeringPower);
 
@@ -272,7 +276,10 @@ void FighterJetBody::updateSteering(float dt) {
     calcSteering(dt, av.z, targetAV.z, cfg.turnAcceleration.z * steeringPower),
   };
 
+  vec3 aeroAngularDrag = -localAngularVelocity * speed * 0.5f;
+
   rigidbody.addRelativeTorqueInstantly(glm::radians(correction));
+  rigidbody.addTorque(aeroAngularDrag);
 }
 
 void FighterJetBody::updateForceFromParts(float dt) {
@@ -309,11 +316,11 @@ void FighterJetBody::updateForceFromParts(float dt) {
       // rigidbody.position.y += depth;
 
       vec3 r = contactCorner - rigidbody.position;
-      vec3 force{};
-      force.y = depth * cfg.stiffness;
+      vec3 f{};
+      f.y = depth * cfg.stiffness;
 
-      rigidbody.addForce(force);
-      rigidbody.addTorque(cross(r, force));
+      rigidbody.addForce(f);
+      rigidbody.addTorque(cross(r, f));
     }
   }
 }

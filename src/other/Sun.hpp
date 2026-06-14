@@ -9,6 +9,10 @@ struct Sun {
   float intensity = 2.f;
   float yaw = 0.f;   // Radians
   float pitch = 0.f; // Radians
+  float shadowSize = 100.f;
+  float shadowDist = 1000.f;
+  float shadowProjNear = 1.f;
+  float shadowProjFar = 250.f;
   vec3 color{2.f, 1.8f, 1.4f}; // Is it okay?
 
   vec3 dir{-1.f, 0.f, 0.f}; // Towards light source
@@ -23,21 +27,20 @@ struct Sun {
   }
 
   void updateLightSpace(const Camera* cam, ivec2 shadowResolution) {
-    float size = 100.f;
-    vec3 safeUp = glm::abs(dir.y) > 0.99f ? vec3(0.f, 0.f, 1.f) : glm::vec3(0.0, 1.0, 0.0);
+    vec3 safeUp = vec3(0.f, 1.f, 0.f);
 
-    mat4 lightProjection = glm::ortho(-size, size, -size, size, 1.f, 250.f);
-    mat4 lightView = glm::lookAt(dir * 120.f, vec3(0.f), safeUp);
+    mat4 lightProjection = glm::ortho(-shadowSize, shadowSize, -shadowSize, shadowSize, shadowProjNear, shadowProjFar);
+    mat4 lightView = glm::lookAt(dir * shadowDist, vec3(0.f), safeUp);
     mat4 shadowMat = lightProjection * lightView;
 
     vec4 shadowOrigion = shadowMat * vec4(cam->getPosition(), 1.f);
-    float texelsPerUnit = (float)shadowResolution.x / (size * 2.f);
+    float texelsPerUnit = (float)shadowResolution.x / (shadowSize * 2.f);
     shadowOrigion = glm::round(shadowOrigion * texelsPerUnit) / texelsPerUnit;
 
     mat4 invShadowMat = glm::inverse(shadowMat);
     vec4 snappedWorldPos = invShadowMat * shadowOrigion;
 
-    vec3 shadowCamPos = vec3(snappedWorldPos) + dir * 120.f;
+    vec3 shadowCamPos = vec3(snappedWorldPos) + dir * shadowDist;
     lightView = glm::lookAt(shadowCamPos, vec3(snappedWorldPos), safeUp);
 
     lightSpace = lightProjection * lightView;

@@ -35,9 +35,11 @@ void GenerationManager::setHeightmapScale(float s) {
   heightmapScale = s;
 }
 
-void GenerationManager::generate(vec2 offset, int slot) {
+GLsync GenerationManager::generate(vec2 offset, int slot) {
   updateBufferA(offset, slot);
   updateBufferB(offset, slot);
+
+  return glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
 void GenerationManager::bindTextures() const {

@@ -43,6 +43,7 @@ private:
 
   Camera camera;
   float camDistance = 10.f;
+  float camDistanceMin = 0.1f;
   float camDistanceMax = 20.f;
   glm::quat camQuat = glm::identity<glm::quat>();
 

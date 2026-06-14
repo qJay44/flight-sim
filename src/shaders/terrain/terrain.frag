@@ -24,9 +24,7 @@ in flat int v_chunkIdx;
 
 struct Chunk {
   vec2 worldPos;
-  int index;
-  int state;
-  vec2 _pad;
+  int textureSlot;
 };
 
 uniform vec3 u_lightDir;
@@ -106,16 +104,16 @@ void main() {
   float worldPosDist = length(v_viewDir);
   vec3 viewDir = v_viewDir / worldPosDist;
 
-  vec4 bufA = texture(u_bufferA, vec3(v_uv, chunk.index));
+  vec4 bufA = texture(u_bufferA, vec3(v_uv, chunk.textureSlot));
   float height  = bufA.r;
   float ridge   = bufA.g;
   float trees   = bufA.b;
   float erosion = bufA.a * 2.f - 1.f;
   float drainage = saturate((1.f - saturate(ridge / DRAINAGE_WIDTH)) * 1.5f);
   float diff = u_camPos.y - height;
-  vec3 normal = getNormal(texelSize, chunk.index, height);
+  vec3 normal = getNormal(texelSize, chunk.textureSlot, height);
 
-  vec4 breakupTex = texture(u_bufferB, vec3(v_uv, chunk.index));
+  vec4 breakupTex = texture(u_bufferB, vec3(v_uv, chunk.textureSlot));
   float breakup = breakupTex.x;
 
   float occlusion = saturate(erosion + 0.5f);

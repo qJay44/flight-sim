@@ -28,16 +28,19 @@ private:
   friend struct ::gui;
 
   // alignans(8) becuase the largest element in std430 is a vec2 (8 bytes)
-  struct alignas(8) Chunk {
+  struct Chunk {
+    vec2 worldPos;
+    int textureSlot;
+    int _pad;
+  };
+
+  struct ChunkMetadata {
     enum State {
       PENDING    = 0,
       GENERATING = 1,
       ACTIVE     = 2,
     };
-    vec2 worldPos;
-    int index;
-    int state = PENDING;
-
+    State state = PENDING;
     GLsync syncFence = nullptr;
   };
 
@@ -122,8 +125,8 @@ private:
   std::unordered_map<ivec2, int, ChunkHash> chunksCache;
   std::vector<Chunk*> visibleChunks;
 
-  Chunk* mappedChunks = nullptr;
   std::stack<int> freeChunks;
+  std::vector<ChunkMetadata> cpuChunkStates;
 
   std::vector<GLuint> c0;
   std::vector<GLuint> c1;

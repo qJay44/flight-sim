@@ -19,7 +19,7 @@ public:
   const vec3& getPosition() const;
   const vec3& getVelocity() const;
   const glm::quat& getOrientation() const;
-  const float& getMaxThrust() const;
+  float getSpeed() const;
 
   void update(float dt);
   void draw(DrawMesh type, const Camera* camera, Shader& shader) const;

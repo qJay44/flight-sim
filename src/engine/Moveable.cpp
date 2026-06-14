@@ -1,8 +1,13 @@
 #include "Moveable.hpp"
 
-#include "glm/ext/scalar_common.hpp"
 #include "glm/gtx/vector_angle.hpp"
 #include "global.hpp"
+
+namespace {
+  void clampPitchRad(float& p) {
+    p = glm::clamp(p, -PI_2 + 0.1f, PI_2 - 0.1f);
+  }
+}
 
 Moveable::Moveable(vec3 pos, float yaw, float pitch) : position(pos), yaw(yaw), pitch(pitch) {
   calcOrientation();
@@ -31,7 +36,7 @@ void Moveable::setSpeedDefault(float n)      { speedDefault = n;   }
 void Moveable::setSpeedMultiplier(float n)   { speedMul     = n;   }
 void Moveable::setSensitivity(float n)       { sensitivity  = n;   }
 void Moveable::setYaw(float n)               { yaw          = n;   }
-void Moveable::setPitch(float n)             { pitch        = glm::clamp(pitch, -89.f, 89.f); }
+void Moveable::setPitch(float n)             { clampPitchRad(pitch += n); }
 void Moveable::setOrientation(const vec3& o) { orientation  = o;   }
 void Moveable::setPosition(const vec3& pos)  { position     = pos; }
 void Moveable::setUp(const vec3& up)         { this->up     = up;  }
@@ -44,7 +49,7 @@ void Moveable::setView(const Moveable* rhs) {
 }
 
 void Moveable::addYaw(float n)   { yaw   += n; }
-void Moveable::addPitch(float n) { pitch = glm::clamp(pitch + n, -89.f, 89.f); }
+void Moveable::addPitch(float n) { clampPitchRad(pitch += n); }
 
 void Moveable::moveForward() { position +=  orientation * speed * global::dt; }
 void Moveable::moveBack()    { position += -orientation * speed * global::dt; }
@@ -63,7 +68,7 @@ void Moveable::onMouseMove(dvec2 mousePos) {
 
   dvec2 delta = dvec2(sensitivity) * distFromCenter / winCenter;
   yaw += delta.x;
-  pitch = std::clamp(pitch - delta.y, -PI_2 + 0.1, PI_2 - 0.1);
+  clampPitchRad(pitch -= delta.y);
 
   calcOrientation();
 }
