@@ -2,10 +2,10 @@
 
 Texture2D Texture2D::debug0Tex;
 
-const Texture2D& Texture2D::getDebug0Tex() {
+const Texture2D& Texture2D::getDebugTex0() {
   if (debug0Tex.id == 0)
     debug0Tex = Texture2D(
-      {"res/tex/debug/uvChecker.jpg", IMAGE2D_LOAD_STB , true},
+      {"res/tex/debug/uvChecker.jpg", IMAGE2D_LOAD_STB , false},
       {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,
@@ -16,18 +16,23 @@ const Texture2D& Texture2D::getDebug0Tex() {
   return debug0Tex;
 }
 
+Texture2D Texture2D::storage(const ivec2& size, const TextureDescriptor& desc) {
+  Texture2D tex;
+
+  tex.onInit(desc);
+  glTexStorage2D(tex.target, 1, desc.internalFormat, size.x, size.y);
+
+  if (desc.genMipMap)
+    glGenerateMipmap(desc.target);
+
+  tex.unbind();
+
+  return tex;
+}
+
 Texture2D::Texture2D(const image2D& img, const TextureDescriptor& desc) {
-  if (desc.target != GL_TEXTURE_2D)
-    error("[Texture2D::Texture2D] Wrong target ({:#x})", desc.target);
+  onInit(desc);
 
-  target = desc.target;
-
-  glGenTextures(1, &id);
-  bind(0);
-  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
-  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
-  glTexParameteri(target, GL_TEXTURE_WRAP_S, desc.wrapS);
-  glTexParameteri(target, GL_TEXTURE_WRAP_T, desc.wrapT);
   glTexImage2D(target, 0, desc.internalFormat, img.width, img.height, 0, desc.format, desc.type, img.pixels);
 
   if (desc.genMipMap)
@@ -46,5 +51,19 @@ void Texture2D::upload(ivec2 coord, ivec2 size, const void* data, GLenum format,
   bind(0);
   glTexSubImage2D(target, 0, coord.x, coord.y, size.x, size.y, format, type, data);
   unbind();
+}
+
+void Texture2D::onInit(const TextureDescriptor& desc) {
+  target = desc.target;
+
+  if (desc.target != GL_TEXTURE_2D)
+    error("[Texture2D::Texture2D] Wrong target ({:#x})", desc.target);
+
+  glGenTextures(1, &id);
+  bind();
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, desc.minFilter);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, desc.magFilter);
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, desc.wrapS);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, desc.wrapT);
 }
 

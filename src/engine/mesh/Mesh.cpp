@@ -42,6 +42,10 @@ void Mesh::drawScreen(const Camera* camera, Shader& shader) {
   vao.unbind();
 }
 
+GLsizei Mesh::getElementCount() const {
+  return elementCount;
+}
+
 void Mesh::updateBufferVBO(const MeshData& data) {
   vbo.updateSubData(data.vertices, data.verticesSize);
   elementCount = data.verticesSize / data.layout.stride;

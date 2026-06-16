@@ -11,7 +11,8 @@ public:
 
   Texture2D() = default;
 
-  static const Texture2D& getDebug0Tex();
+  static const Texture2D& getDebugTex0();
+  [[nodiscard]] static Texture2D storage(const ivec2& size, const TextureDescriptor& desc);
 
   Texture2D(const image2D& img, const TextureDescriptor& desc);
   Texture2D(const ivec2& size , const TextureDescriptor& desc);
@@ -21,5 +22,7 @@ public:
 
 private:
   static Texture2D debug0Tex;
+
+  void onInit(const TextureDescriptor& desc);
 };
 

@@ -102,8 +102,8 @@ int main() {
   Shader gridShader("grid.vert", "grid.frag");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
-  Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
-  Shader terrainShadowShader("terrain/shadow.vert", "terrain/shadow.frag");
+  Shader terrainCoreShader("terrain/core.vert", "terrain/terrain.frag");
+  Shader terrainRingShader("terrain/ring.vert", "terrain/terrain.frag");
   Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
@@ -112,8 +112,9 @@ int main() {
 
   // ===== Cameras ============================================== //
 
-  Camera cameraSpectate({0.f, 50.f, 0.f}, -2.385f, -0.582f);
-  cameraSpectate.setFarPlane(800.f);
+  Camera cameraSpectate({0.f, 150.f, 0.f}, -2.385f, -0.582f);
+  cameraSpectate.setNearPlane(2.f);
+  cameraSpectate.setFarPlane(10000.f);
   cameraSpectate.setSpeedDefault(10.f);
 
   // ===== Inputs Handler ======================================= //
@@ -187,7 +188,7 @@ int main() {
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
   env.sun.intensity = 7.f;
 
-  terrain::Terrain terrain(512, 10);
+  terrain::Terrain terrain(4096, 10);
 
   gui::camPtr = &cameraSpectate;
   gui::sunPtr = &env.sun;
@@ -241,8 +242,8 @@ int main() {
 
     env.sun.setUniforms(environmentShader);
     env.sun.setUniforms(airplaneShader);
-    env.sun.setUniforms(terrainShadowShader);
-    env.sun.setUniforms(terrainShader);
+    env.sun.setUniforms(terrainCoreShader);
+    env.sun.setUniforms(terrainRingShader);
     env.sun.setUniforms(postprocessShader);
 
     // ===== Terrain Shadow buffer ================================ //
@@ -251,7 +252,8 @@ int main() {
     glViewport(0, 0, shadowResolution.x, shadowResolution.y);
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    terrain.draw(activeCam, terrainShadowShader);
+    terrain.drawCoreShadow(activeCam, terrainCoreShader, env.sun.lightSpace);
+    terrain.drawRingsShadow(activeCam, terrainRingShader, env.sun.lightSpace);
 
     // ===== Terrain buffer ======================================= //
 
@@ -267,7 +269,8 @@ int main() {
       grid.draw(activeCam, gridShader);
 
     texTerrainShadow.bind(2);
-    terrain.draw(activeCam, terrainShader);
+    terrain.drawCore(activeCam, terrainCoreShader);
+    terrain.drawRings(activeCam, terrainRingShader);
     f15.draw(activeCam, airplaneShader);
 
     if (global::jetDrawDebugMass)

@@ -17,20 +17,13 @@
 out vec4 FragColor;
 
 in vec4 v_lightSpacePos;
-in vec3 v_worldPos;
 in vec3 v_viewDir;
 in vec2 v_uv;
-in flat int v_chunkIdx;
-
-struct Chunk {
-  vec2 worldPos;
-  int textureSlot;
-};
+in flat uint v_meshIdx;
 
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
 uniform vec3 u_camPos;
-uniform vec3 u_debugChunkGroupColor;
 uniform vec2 u_cliffEdges;
 uniform vec2 u_dirtEdges;
 uniform vec2 u_snowEdges;
@@ -38,27 +31,30 @@ uniform vec2 u_sandEdges;
 uniform vec2 u_grass0Edges;
 uniform vec2 u_grass1Edges;
 uniform vec2 u_grass2Edges;
-uniform float u_showChunkGroups;
 uniform float u_heightScale;
-uniform float u_appearance;
-uniform float u_sunFocus;
-uniform float u_sunIntensity;
+uniform bool u_debugLOD;
 
-layout(binding = 0) uniform sampler2DArray u_bufferA;
-layout(binding = 1) uniform sampler2DArray u_bufferB;
+layout(binding = 0) uniform sampler2D u_texBufferA;
+layout(binding = 1) uniform sampler2D u_texBufferB;
 layout(binding = 2) uniform sampler2DShadow u_shadowMap;
 
-layout(std430, binding = 0) readonly buffer ChunkBuffer {
-  Chunk chunks[];
-};
+// Plasma gradient: Dark blue -> Purple -> Pink -> Orange -> Yellow
+const vec3 plasma[10] = vec3[](
+  vec3(0.05, 0.02, 0.53), // Deep blue
+  vec3(0.27, 0.01, 0.62), // Purple-blue
+  vec3(0.49, 0.02, 0.67), // Dark violet
+  vec3(0.69, 0.09, 0.65), // Magenta-purple
+  vec3(0.85, 0.21, 0.54), // Hot pink
+  vec3(0.96, 0.38, 0.40), // Coral-pink
+  vec3(0.99, 0.56, 0.27), // Light orange
+  vec3(0.98, 0.75, 0.17), // Yellow-orange
+  vec3(0.95, 0.92, 0.13), // Bright yellow
+  vec3(0.94, 0.98, 0.13)  // Pale yellow
+);
 
-void applyMask(inout vec3 src, vec3 dst, float b) {
-  src = dst * b + src * (1.f - b);
-}
-
-vec3 getNormal(vec2 texelSize, int texSlot, float heightCenter) {
-  float hr = texture(u_bufferA, vec3(v_uv + vec2(texelSize.x, 0.f), texSlot)).r;
-  float hu = texture(u_bufferA, vec3(v_uv + vec2(0.f, texelSize.y), texSlot)).r;
+vec3 getNormal(vec2 texelSize, float heightCenter) {
+  float hr = texture(u_texBufferA, v_uv + vec2(texelSize.x, 0.f)).r;
+  float hu = texture(u_texBufferA, v_uv + vec2(0.f, texelSize.y)).r;
 
   vec3 vr = vec3(texelSize.x, (hr - heightCenter) * u_heightScale, 0.f);
   vec3 vu = vec3(0.f, (hu - heightCenter) * u_heightScale, texelSize.y);
@@ -86,34 +82,25 @@ float getShadow(vec3 normal) {
 }
 
 void main() {
-  const mat4 DITHER_MATRIX = mat4(
-      0.0625, 0.5625, 0.1875, 0.6875,
-      0.8125, 0.3125, 0.9375, 0.4375,
-      0.2500, 0.7500, 0.1250, 0.6250,
-      1.0000, 0.5000, 0.8750, 0.3750
-  );
+  if (u_debugLOD) {
+    FragColor = vec4(plasma[v_meshIdx % 10], 1.f);
+    return;
+  }
 
-  ivec2 pixCoord = ivec2(gl_FragCoord.xy) % 4;
-  float threshold = DITHER_MATRIX[pixCoord.x][pixCoord.y];
-
-  if (u_appearance < threshold)
-    discard;
-
-  Chunk chunk = chunks[v_chunkIdx];
-  vec2 texelSize = 1.f / textureSize(u_bufferA, 0).xy;
+  vec2 texelSize = 1.f / textureSize(u_texBufferA, 0).xy;
   float worldPosDist = length(v_viewDir);
   vec3 viewDir = v_viewDir / worldPosDist;
 
-  vec4 bufA = texture(u_bufferA, vec3(v_uv, chunk.textureSlot));
+  vec4 bufA = texture(u_texBufferA, v_uv);
   float height  = bufA.r;
   float ridge   = bufA.g;
   float trees   = bufA.b;
   float erosion = bufA.a * 2.f - 1.f;
   float drainage = saturate((1.f - saturate(ridge / DRAINAGE_WIDTH)) * 1.5f);
   float diff = u_camPos.y - height;
-  vec3 normal = getNormal(texelSize, chunk.textureSlot, height);
+  vec3 normal = getNormal(texelSize, height);
 
-  vec4 breakupTex = texture(u_bufferB, vec3(v_uv, chunk.textureSlot));
+  vec4 breakupTex = texture(u_texBufferB, v_uv);
   float breakup = breakupTex.x;
 
   float occlusion = saturate(erosion + 0.5f);
@@ -154,8 +141,6 @@ void main() {
   color += diffuseColor * u_lightColor
     * (dot(normal, u_lightDir * vec3(1.f, -1.f, 1.f)) * 0.5f + 0.5f)
     * Fd_Lambert() / PI;
-
-  applyMask(color, u_debugChunkGroupColor, u_showChunkGroups);
 
   FragColor = vec4(color, 1.f);
 }

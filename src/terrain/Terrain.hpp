@@ -1,9 +1,5 @@
 #pragma once
 
-#include <functional>
-#include <stack>
-#include <unordered_map>
-
 #include "../engine/Camera.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
 #include "GenerationManager.hpp"
@@ -14,128 +10,50 @@ namespace terrain {
 
 class Terrain {
 public:
-  Terrain(int bufferSize, int resolution);
-
-  const float& getHeightScale() const;
+  Terrain(int bufferSize, int rings);
 
   void update(const Camera* cam);
-  void regenerateAllChunks();
-  void changeScale(float s);
-  void draw(const Camera* cam, Shader& shader) const;
+
+  void drawCore(const Camera* cam, Shader& shader) const;
+  void drawCoreShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const;
+  void drawRings(const Camera* cam, Shader& shader) const;
+  void drawRingsShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const;
   void drawPostprocess(const Camera* cam, Shader& shader) const;
 
 private:
   friend struct ::gui;
 
-  // alignans(8) becuase the largest element in std430 is a vec2 (8 bytes)
-  struct Chunk {
-    vec2 worldPos;
-    int textureSlot;
-    int _pad;
+  struct {
+    BufferObject cmd{GL_DRAW_INDIRECT_BUFFER};
+  } ibo;
+
+  struct DrawElementsIndirectCommand {
+    uint count = 0;
+    uint instanceCount = 0;
+    uint firstIndex = 0;
+    int baseVertex = 0;
+    uint baseInstance = 0;
   };
-
-  struct ChunkMetadata {
-    enum State {
-      PENDING    = 0,
-      GENERATING = 1,
-      ACTIVE     = 2,
-    };
-    State state = PENDING;
-    GLsync syncFence = nullptr;
-  };
-
-  struct ChunkHash {
-    std::size_t operator() (const ivec2& v) const {
-      size_t h1 = std::hash<int>{}(v.x);
-      size_t h2 = std::hash<int>{}(v.y);
-      return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
-    }
-  };
-
-  struct ChunkIndexInstance {
-    int index;
-
-    static const vertex::Layout& getLayout() {
-      static constexpr vertex::Attribute attribs[] = {
-        {2, 1, GL_INT}
-      };
-
-      static constexpr vertex::Layout layout = {attribs, 1, sizeof(ChunkIndexInstance)};
-
-      return layout;
-    }
-  };
-
-  struct alignas(16) ErosionConfig {
-    float erosion_scale = 0.15;
-    float erosion_strength = 0.22;
-    float erosion_gully_weight = 0.5;
-    float erosion_detail = 1.5;
-
-    float ridgeRounding = 0.1;
-    float creaseRounding = 0.0;
-    float _pad0[2];
-
-    vec4 erosion_rounding = vec4(ridgeRounding, creaseRounding, 0.1, 2.0);
-    vec4 erosion_onset = vec4(1.25, 1.25, 2.8, 1.5);
-    vec2 erosion_assumed_slope = vec2(0.7, 1.0);
-
-    float erosion_cell_scale = 0.7;
-    float erosion_normalization = 0.5;
-    int erosion_octaves = 5;
-    float erosion_lacunarity = 2.0;
-    float erosion_gain = 0.5;
-
-    float _pad1;
-
-    vec2 terrain_height_offset = vec2(-0.65, 0.0);
-
-    float height_frequency = 3.0;
-    float height_amp = 0.125;
-    int height_octaves = 3;
-    float height_lacunarity = 2.0;
-    float height_gain = 0.1;
-
-    float heightFunctionScale = 1.0;
-  };
-  static_assert(sizeof(ErosionConfig) % 16 == 0);
 
   struct {
-    BufferObject chunks{GL_SHADER_STORAGE_BUFFER};
-  } ssbo;
-
-  struct {
-    BufferObject erosionConfig{GL_UNIFORM_BUFFER};
-  } ubo;
+    vec2 gridAnchor{};
+    vec2 globalOffsetUV{};
+  } pending;
 
   int bufferSize;
-  int radius;
+  int rings;
+  vec2 gridAnchor{};
+  vec2 globalOffsetUV{};
+  float chunkSize = 64.f;
 
-  vec2 bufferSizeInv;
   GenerationManager texManager;
-  ErosionConfig erosionConfig{};
 
-  MeshElementsInstancing mesh0; // 3x3
-  MeshElementsInstancing mesh1; // 5x5 (ring)
-  MeshElementsInstancing mesh2; // 7x7 (ring)
-
-  float chunkSize{1.f};
-  float chunkSizeInv{1.f};
-  ivec2 lastCoord{9999};
-  std::unordered_map<ivec2, int, ChunkHash> chunksCache;
-  std::vector<Chunk*> visibleChunks;
-
-  std::stack<int> freeChunks;
-  std::vector<ChunkMetadata> cpuChunkStates;
-
-  std::vector<GLuint> c0;
-  std::vector<GLuint> c1;
-  std::vector<GLuint> c2;
+  MeshElementsInstancing meshCore;
+  MeshElements meshRing;
 
   float heightScale = 0.5f;
-  float appearance = 0.f;
-  float waterShoreScale = 0.2f;
-  float waterRefractionScale = 0.25f;
+  float waterShoreScale = 0.06f;
+  float waterRefractionScale = 0.082;
   float waterRefractionDistortScale = 0.05f;
   float waterNormalScaleUV = 0.25f;
   float waterNoiseScale = 0.15f;
@@ -154,15 +72,10 @@ private:
   vec2 grass1Edges {0.30f , 0.00f}; // inversed, GRASS_HEIGHT offset
   vec2 grass2Edges {0.30f , 0.00f};
 
-  bool showChunkGroups = false;
-  bool forceUpate = false;
+  bool debugLOD = false;
 
 private:
-  static int getTotalChunksFromRadius(int radius);
-
-  void invalidateChunk(int idx);
-  void evictDistantChunks(ivec2 currChunk, int maxRadius);
-  void pushToDraw(const Chunk& chunk, vec2 camPos, float camFar);
+  void setTerrainUniforms(Shader& shader) const;
 };
 
 } // terrain

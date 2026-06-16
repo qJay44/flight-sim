@@ -47,8 +47,12 @@ public:
     glBindBuffer(target, id);
   }
 
-  void bindBase(GLuint index) const {
+  void bindBaseAs(GLenum target, GLuint index) const {
     glBindBufferBase(target, index, id);
+  }
+
+  void bindBase(GLuint index) const {
+    bindBaseAs(target, index);
   }
 
   void allocate(const void* data, GLsizeiptr dataSize, GLenum usage) const {

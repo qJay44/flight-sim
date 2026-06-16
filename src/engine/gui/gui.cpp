@@ -148,15 +148,11 @@ void gui::draw() {
   if (ImGui::CollapsingHeader("Terrain")) {
     bool u = false;
 
-    ImGui::Text("Coord: [%d, %d]", terrainPtr->lastCoord.x, terrainPtr->lastCoord.y);
-    ImGui::Checkbox("Show chunk groups ", &terrainPtr->showChunkGroups);
+    ImGui::Checkbox("Show debug colors", &terrainPtr->debugLOD);
 
     u |= ImGui::SliderFloat("Heightmap scale", &terrainPtr->texManager.heightmapScale, 0.01f, 1.f);
 
     ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 50.f);
-
-    if (ImGui::SliderFloat("Chunk scle", &terrainPtr->chunkSize, 0.f, 10.f))
-      terrainPtr->changeScale(terrainPtr->chunkSize);
 
     ImGui::SliderFloat2("Cliff edges",                                 glm::value_ptr(terrainPtr->cliffEdges),  0.f, 1.f);
     ImGui::SliderFloat2("Dirt edges (inversed)",                       glm::value_ptr(terrainPtr->dirtEdges),   0.f, 1.f);
@@ -167,9 +163,9 @@ void gui::draw() {
     ImGui::SliderFloat2("Grass2 edges",                                glm::value_ptr(terrainPtr->grass2Edges), 0.f, 1.f);
 
     ImGui::SeparatorText("Erosion config");
-    auto& cfg = terrainPtr->erosionConfig;
+    auto& cfg = terrainPtr->texManager.erosionConfig;
 
-    u |= ImGui::SliderFloat("Scale", &cfg.erosion_scale, 0.08f, 0.25f);
+    u |= ImGui::SliderFloat("Scale##2", &cfg.erosion_scale, 0.08f, 0.25f);
     CreateMyTooltip("The scale of the erosion effect, affecting it both horizontally and vertically");
 
     u |= ImGui::SliderFloat("Strength", &cfg.erosion_strength, 0.01f, 0.10f);
@@ -312,7 +308,7 @@ void gui::draw() {
     u |= ImGui::SliderFloat("Height function scale", &cfg.heightFunctionScale, 0.f, 1.f);
 
     if (u)
-      terrainPtr->regenerateAllChunks();
+      terrainPtr->texManager.generateInit();
   }
 
   if (ImGui::CollapsingHeader("Postprocess")) {

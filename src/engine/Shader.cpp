@@ -76,29 +76,31 @@ bool Shader::initialized() const {
   return program;
 }
 
-void Shader::setUniform1f (GLint loc, const GLfloat& n) { glProgramUniform1f (program, loc, n); }
-void Shader::setUniform2f (GLint loc, const vec2& v)    { glProgramUniform2f (program, loc, v.x, v.y); }
-void Shader::setUniform3f (GLint loc, const vec3& v)    { glProgramUniform3f (program, loc, v.x, v.y, v.z); }
-void Shader::setUniform4f (GLint loc, const vec4& v)    { glProgramUniform4f (program, loc, v.x, v.y, v.z, v.w); }
-void Shader::setUniform1i (GLint loc, const GLint& v)   { glProgramUniform1i (program, loc, v); }
-void Shader::setUniform1ui(GLint loc, const GLuint& v)  { glProgramUniform1ui(program, loc, v); }
-void Shader::setUniform2i (GLint loc, const ivec2& v)   { glProgramUniform2i (program, loc, v.x, v.y); }
-void Shader::setUniform1fv(GLint loc, GLsizei count, const GLfloat* v) { glProgramUniform1fv(program, loc, count, v); }
-void Shader::setUniform3fv(GLint loc, GLsizei count, const GLfloat* v) { glProgramUniform3fv(program, loc, count, v); }
-void Shader::setUniformMatrix3f(const GLint& loc, const mat3& m) { glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value_ptr(m)); }
-void Shader::setUniformMatrix4f(const GLint& loc, const mat4& m) { glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value_ptr(m)); }
+void Shader::setUniform1f (GLint loc, const GLfloat& n)                { glProgramUniform1f       (program, loc, n);                         }
+void Shader::setUniform2f (GLint loc, const vec2& v)                   { glProgramUniform2f       (program, loc, v.x, v.y);                  }
+void Shader::setUniform3f (GLint loc, const vec3& v)                   { glProgramUniform3f       (program, loc, v.x, v.y, v.z);             }
+void Shader::setUniform4f (GLint loc, const vec4& v)                   { glProgramUniform4f       (program, loc, v.x, v.y, v.z, v.w);        }
+void Shader::setUniform1i (GLint loc, const GLint& v)                  { glProgramUniform1i       (program, loc, v);                         }
+void Shader::setUniform1ui(GLint loc, const GLuint& v)                 { glProgramUniform1ui      (program, loc, v);                         }
+void Shader::setUniform2i (GLint loc, const ivec2& v)                  { glProgramUniform2i       (program, loc, v.x, v.y);                  }
+void Shader::setUniform1fv(GLint loc, GLsizei count, const GLfloat* v) { glProgramUniform1fv      (program, loc, count, v);                  }
+void Shader::setUniform3fv(GLint loc, GLsizei count, const GLfloat* v) { glProgramUniform3fv      (program, loc, count, v);                  }
+void Shader::setUniform4i (GLint loc, const ivec4& v)                  { glProgramUniform4i       (program, loc, v.x, v.y, v.z, v.w);        }
+void Shader::setUniformMatrix3f(const GLint& loc, const mat3& m)       { glProgramUniformMatrix3fv(program, loc, 1, GL_FALSE, value_ptr(m)); }
+void Shader::setUniformMatrix4f(const GLint& loc, const mat4& m)       { glProgramUniformMatrix4fv(program, loc, 1, GL_FALSE, value_ptr(m)); }
 
-void Shader::setUniform1f (const std::string& name, const GLfloat& n) { setUniform1f (getUniformLoc(name), n); }
-void Shader::setUniform2f (const std::string& name, const vec2& v)    { setUniform2f (getUniformLoc(name), v); }
-void Shader::setUniform3f (const std::string& name, const vec3& v)    { setUniform3f (getUniformLoc(name), v); }
-void Shader::setUniform4f (const std::string& name, const vec4& v)    { setUniform4f (getUniformLoc(name), v); }
-void Shader::setUniform1i (const std::string& name, const GLint& v)   { setUniform1i (getUniformLoc(name), v); }
-void Shader::setUniform1ui(const std::string& name, const GLuint& v)  { setUniform1ui(getUniformLoc(name), v); }
-void Shader::setUniform2i (const std::string& name, const ivec2& v)   { setUniform2i (getUniformLoc(name), v); }
-void Shader::setUniform1fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform1fv(getUniformLoc(name), count, v); }
-void Shader::setUniform3fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform3fv(getUniformLoc(name), count, v); }
-void Shader::setUniformMatrix3f(const std::string& name, const mat3& m) { setUniformMatrix3f(getUniformLoc(name), m); }
-void Shader::setUniformMatrix4f(const std::string& name, const mat4& m) { setUniformMatrix4f(getUniformLoc(name), m); }
+void Shader::setUniform1f (const std::string& name, const GLfloat& n)                { setUniform1f      (getUniformLoc(name), n);        }
+void Shader::setUniform2f (const std::string& name, const vec2& v)                   { setUniform2f      (getUniformLoc(name), v);        }
+void Shader::setUniform3f (const std::string& name, const vec3& v)                   { setUniform3f      (getUniformLoc(name), v);        }
+void Shader::setUniform4f (const std::string& name, const vec4& v)                   { setUniform4f      (getUniformLoc(name), v);        }
+void Shader::setUniform1i (const std::string& name, const GLint& v)                  { setUniform1i      (getUniformLoc(name), v);        }
+void Shader::setUniform1ui(const std::string& name, const GLuint& v)                 { setUniform1ui     (getUniformLoc(name), v);        }
+void Shader::setUniform2i (const std::string& name, const ivec2& v)                  { setUniform2i      (getUniformLoc(name), v);        }
+void Shader::setUniform1fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform1fv     (getUniformLoc(name), count, v); }
+void Shader::setUniform3fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform3fv     (getUniformLoc(name), count, v); }
+void Shader::setUniform4i (const std::string& name, const ivec4& v)                  { setUniform4i      (getUniformLoc(name), v);        }
+void Shader::setUniformMatrix3f(const std::string& name, const mat3& m)              { setUniformMatrix3f(getUniformLoc(name), m);        }
+void Shader::setUniformMatrix4f(const std::string& name, const mat4& m)              { setUniformMatrix4f(getUniformLoc(name), m);        }
 
 std::string Shader::load(std::unordered_set<std::string>& includedShaders, fspath path) {
   constexpr std::string_view includePrefix = "#include";

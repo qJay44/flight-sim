@@ -1,5 +1,6 @@
 #include "MeshElements.hpp"
 
+#include "Mesh.hpp"
 #include "MeshData.hpp"
 #include "vertex.hpp"
 #include "utils/status.hpp"
@@ -167,6 +168,22 @@ void MeshElements::draw(const Camera* camera, Shader& shader, const mat4& model)
   shader.use();
   glDrawElements(mode, elementCount, GL_UNSIGNED_INT, 0);
 
+  vao.unbind();
+}
+
+void MeshElements::drawMultiIndirect(const Camera* camera, Shader& shader, const BufferObject& ibo, GLsizei drawCount) const {
+  assert(mode && elementCount);
+  vao.bind();
+  ibo.bind();
+
+  camera->setUniforms(shader);
+  setGlobalUniforms(shader);
+  shader.setUniformMatrix4f("u_model", getModel());
+
+  shader.use();
+  glMultiDrawElementsIndirect(mode, GL_UNSIGNED_INT, nullptr, drawCount, 0);
+
+  ibo.unbind();
   vao.unbind();
 }
 

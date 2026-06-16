@@ -14,6 +14,7 @@ public:
 
   void draw(const Camera* camera, Shader& shader) const override;
   void draw(const Camera* camera, Shader& shader, const mat4& model) const override;
+  void drawMultiIndirect(const Camera* camera, Shader& shader, const BufferObject& ibo, GLsizei drawCount) const;
 
   BufferObject ebo{GL_ELEMENT_ARRAY_BUFFER};
 private:

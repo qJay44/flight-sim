@@ -4,7 +4,8 @@
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
-layout(rgba16f, binding = 0) writeonly uniform image2DArray imageWrite;
+layout(rgba16f, binding = 0) readonly  uniform image2D imageRead;
+layout(rgba16f, binding = 1) writeonly uniform image2D imageWrite;
 
 layout(std140, binding = 0) uniform ConfigBlock {
   float erosion_scale;
@@ -36,9 +37,12 @@ layout(std140, binding = 0) uniform ConfigBlock {
   float heightFunctionScale;
 } cfg;
 
+uniform ivec2 u_dirtyX;
+uniform ivec2 u_dirtyY;
+uniform ivec2 u_pixelDelta;
 uniform vec2 u_offset;
 uniform float u_heightmapScale;
-uniform int u_slot;
+uniform int u_currOffsetY;
 
 // ----- Pacell Noise Function ---------------------------------------------------------------------------------- //
 
@@ -262,19 +266,39 @@ vec4 Heightmap(vec2 p) {
   );
 }
 
+bool isInside(int value, int start, int end) {
+  if (start == end)
+    return false;
+
+  if (start < end)
+    return value >= start && value < end;
+  else
+    return value >= start || value < end;
+}
+
 void main() {
-  const ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
-  const ivec2 imgSize = imageSize(imageWrite).xy;
+  const ivec2 texCoord = ivec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y + u_currOffsetY);
+  const ivec2 imgSize = imageSize(imageWrite);
 
   if (texCoord.x >= imgSize.x || texCoord.y >= imgSize.y)
     return;
 
-  vec2 texelSize = 1.f / (imgSize - 1);
-  vec2 localUV = texCoord * texelSize;
-  vec2 uv = localUV - u_offset;
+  bool isDirty = false;
+  if (u_pixelDelta.x != 0 && isInside(texCoord.x, u_dirtyX.x, u_dirtyX.y)) isDirty = true;
+  if (u_pixelDelta.y != 0 && isInside(texCoord.y, u_dirtyY.x, u_dirtyY.y)) isDirty = true;
 
-  vec4 hm = Heightmap(uv * u_heightmapScale);
+  if (!isDirty) {
+    vec4 old = imageLoad(imageRead, texCoord);
+    imageStore(imageWrite, texCoord, old);
+    return;
+  }
 
-  imageStore(imageWrite, ivec3(texCoord, u_slot), hm);
+  vec2 localUV = vec2(texCoord) / (imgSize - 1);
+  vec2 uv = (localUV - u_offset) * u_heightmapScale;
+
+  // heightmap (X), normals (YZ) and erosion mask (W)
+  vec4 hm = Heightmap(uv);
+
+  imageStore(imageWrite, texCoord, hm);
 }
 

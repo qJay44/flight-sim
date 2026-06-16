@@ -21,6 +21,8 @@ public:
   static void linkAttributes(const vertex::Layout& layout);
   static void drawScreen(const Camera* camera, Shader& shader);
 
+  GLsizei getElementCount() const;
+
   void updateBufferVBO(const MeshData& data);
 
   virtual void draw(const Camera* camera, Shader& shader) const = 0;
