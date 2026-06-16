@@ -12,7 +12,7 @@ out vec3 v_normal;
 
 uniform mat4 u_model;
 uniform mat4 u_modelView;
-uniform mat4 u_camProj;
+uniform mat4 u_jetProj;
 
 void main() {
   vec4 ndc = vec4(a_pos, 1.f);
@@ -21,6 +21,6 @@ void main() {
   v_uv = a_tex;
   v_normal = mat3(u_model) * a_normal;
 
-	gl_Position = u_camProj * u_modelView * ndc;
+	gl_Position = u_jetProj * u_modelView * ndc;
 }
 

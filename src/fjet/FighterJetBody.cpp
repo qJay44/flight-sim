@@ -77,10 +77,9 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
 
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
-  rigidbody.position.y = 100.f;
+  rigidbody.position.y = 500.f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // Calculate at runtime?
   rigidbody.drag = 0.02f;
-  rigidbody.angularDrag = 0.5f;
 
   initialRotation = glm::angleAxis(PI, vec3{0.f, 1.f, 0.f});
 
@@ -134,7 +133,7 @@ void FighterJetBody::update(float dt) {
   updateForceFromParts(dt);
 
   rigidbody.addForce({0.f, -9.81f * rigidbody.mass * 2.f, 0.f});
-  rigidbody.update(dt, cfg.meshScale * 100.f); // idk
+  rigidbody.update(dt, cfg.meshScale * 10000.f); // idk
 
   updateMesh(dt);
 
@@ -142,6 +141,9 @@ void FighterJetBody::update(float dt) {
 }
 
 void FighterJetBody::draw(DrawMesh type, const Camera* camera, Shader& shader) const {
+  mat4 proj = glm::perspective(glm::radians(camera->getFov()), camera->getAspectRatio(), 0.1f, camera->getFarPlane());
+  shader.setUniformMatrix4f("u_jetProj", proj);
+
   mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
   mat4 localView;
   if (isActive)

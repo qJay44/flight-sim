@@ -13,7 +13,6 @@
 static bool configCollapsed = true;
 static bool infoCollapsed = true;
 
-Camera* gui::camPtr = nullptr;
 Sun* gui::sunPtr = nullptr;
 FighterJet* gui::fjetPtr = nullptr;
 terrain::Terrain* gui::terrainPtr = nullptr;
@@ -328,17 +327,18 @@ void gui::draw() {
     ImGui::SliderFloat("Horizon falloff", &terrainPtr->horizonFalloff, 0.f, 20.f);
   }
 
-  // ===== Spectate camera =============================================================================== //
+  // ===== Active camera ================================================================================= //
 
-  assert(camPtr);
-  if (ImGui::CollapsingHeader("Spectate camera")) {
-    ImGui::SliderFloat("Near##2", &camPtr->nearPlane, 0.01f, 1.f);
-    ImGui::SliderFloat("Far##2", &camPtr->farPlane,  10.f, 1000.f);
-    ImGui::SliderFloat("Speed##2", &camPtr->speedDefault, 1.f, 50.f);
-    ImGui::SliderFloat("FOV##2", &camPtr->fov, 45.f, 179.f);
-    ImGui::DragFloat("Yaw##2", &camPtr->yaw);
-    ImGui::DragFloat("Pitch##2", &camPtr->pitch);
-    ImGui::DragFloat3("Position", glm::value_ptr(camPtr->position));
+  auto& cam = Camera::activeCam;
+  assert(cam);
+  if (ImGui::CollapsingHeader("Active camera")) {
+    ImGui::SliderFloat("Near##2", &cam->nearPlane, 0.01f, 1.f);
+    ImGui::SliderFloat("Far##2", &cam->farPlane,  10.f, 1000.f);
+    ImGui::SliderFloat("Speed##2", &cam->speedDefault, 1.f, 50.f);
+    ImGui::SliderFloat("FOV##2", &cam->fov, 45.f, 179.f);
+    ImGui::DragFloat("Yaw##2", &cam->yaw);
+    ImGui::DragFloat("Pitch##2", &cam->pitch);
+    ImGui::DragFloat3("Position", glm::value_ptr(cam->position));
   }
 
   // ===== Sun =========================================================================================== //

@@ -140,6 +140,7 @@ void GenerationManager::bindTextures(GLuint slotA, GLuint slotB) const {
 
 void GenerationManager::updateBufferA() {
   int writeIdx = 1 - currReadIdx;
+  ubo.erosionConfig.updateSubData(&erosionConfig, sizeof(ErosionConfig));
   ubo.erosionConfig.bindBase(0);
 
   shaderBufferA.use();

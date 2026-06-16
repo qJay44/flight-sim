@@ -5,7 +5,6 @@
 #include "../../terrain/Terrain.hpp"
 
 struct gui {
-  static Camera* camPtr;
   static Sun* sunPtr;
   static FighterJet* fjetPtr;
   static terrain::Terrain* terrainPtr;

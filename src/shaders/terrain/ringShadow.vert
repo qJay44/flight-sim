@@ -3,15 +3,8 @@
 layout(location = 0) in vec3 a_pos;
 layout(location = 1) in vec2 a_uv;
 
-out vec4 v_lightSpacePos;
-out vec3 v_viewDir;
-out vec2 v_uv;
-out flat uint v_meshIdx;
-
 uniform mat4 u_model;
-uniform mat4 u_camPV;
 uniform mat4 u_lightSpace;
-uniform vec3 u_camPos;
 uniform vec2 u_gridAnchor;
 uniform float u_heightScale;
 uniform float u_chunkSize;
@@ -45,11 +38,6 @@ void main() {
   float h = textureLod(u_texBufferA, uv, 0.f).r;
   vec4 worldPos = vec4(absoluteWorldXZ.x, h * u_heightScale + skirtModifier, absoluteWorldXZ.y, 1.f);
 
-  v_viewDir = u_camPos - worldPos.xyz;
-  v_lightSpacePos = u_lightSpace * worldPos;
-  v_uv = uv;
-  v_meshIdx = 0;
-
-  gl_Position = u_camPV * u_model * worldPos;
+  gl_Position = u_lightSpace * u_model * worldPos;
 }
 

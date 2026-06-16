@@ -14,7 +14,7 @@ Terrain::Terrain(int bufferSize, int rings) : bufferSize(bufferSize), rings(ring
 
   heightScale = 300.f;
 
-  meshCore = meshes::plane(256);
+  meshCore = meshes::plane(128);
   meshCore.setInstanceCount(16);
 
   meshRing = meshes::plane(128);
@@ -53,15 +53,13 @@ void Terrain::update(const Camera* cam) {
 
 void Terrain::drawCore(const Camera* cam, Shader& shader) const {
   setTerrainUniforms(shader);
-  shader.setUniformMatrix4f("u_projView", cam->getProjView());
   texManager.bindTextures();
 
   meshCore.draw(cam, shader);
 }
 
-void Terrain::drawCoreShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const {
+void Terrain::drawCoreShadow(const Camera* cam, Shader& shader) const {
   setTerrainUniforms(shader);
-  shader.setUniformMatrix4f("u_projView", lightSpace);
   texManager.bindTextures();
 
   meshCore.draw(cam, shader);
@@ -69,16 +67,14 @@ void Terrain::drawCoreShadow(const Camera* cam, Shader& shader, const mat4& ligh
 
 void Terrain::drawRings(const Camera* cam, Shader& shader) const {
   setTerrainUniforms(shader);
-  shader.setUniformMatrix4f("u_projView", cam->getProjView());
   texManager.bindTextures();
 
   ibo.cmd.bindBaseAs(GL_SHADER_STORAGE_BUFFER, 0);
   meshRing.drawMultiIndirect(cam, shader, ibo.cmd, rings);
 }
 
-void Terrain::drawRingsShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const {
+void Terrain::drawRingsShadow(const Camera* cam, Shader& shader) const {
   setTerrainUniforms(shader);
-  shader.setUniformMatrix4f("u_projView", lightSpace);
   texManager.bindTextures();
 
   ibo.cmd.bindBaseAs(GL_SHADER_STORAGE_BUFFER, 0);
@@ -112,6 +108,7 @@ void Terrain::setTerrainUniforms(Shader& shader) const {
   shader.setUniform1f("u_heightmapScale", texManager.getHeightmapScale());
   shader.setUniform1i("u_rings", rings);
   shader.setUniform1i("u_debugLOD", debugLOD);
+  shader.setUniform2f("u_globalOffsetUV", globalOffsetUV);
   shader.setUniform2f("u_gridAnchor", gridAnchor);
   shader.setUniform2f("u_cliffEdges", cliffEdges);
   shader.setUniform2f("u_dirtEdges", dirtEdges);

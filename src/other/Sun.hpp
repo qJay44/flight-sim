@@ -9,10 +9,10 @@ struct Sun {
   float intensity = 2.f;
   float yaw = 0.f;   // Radians
   float pitch = 0.f; // Radians
-  float shadowSize = 100.f;
-  float shadowDist = 1000.f;
-  float shadowProjNear = 1.f;
-  float shadowProjFar = 250.f;
+  float shadowSize = 512.f;
+  float shadowDist = 2000.f;
+  float shadowProjNear = 0.1f;
+  float shadowProjFar = shadowDist * 2.f;
   vec3 color{2.f, 1.8f, 1.4f}; // Is it okay?
 
   vec3 dir{-1.f, 0.f, 0.f}; // Towards light source

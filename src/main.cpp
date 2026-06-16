@@ -102,8 +102,11 @@ int main() {
   Shader gridShader("grid.vert", "grid.frag");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
+
   Shader terrainCoreShader("terrain/core.vert", "terrain/terrain.frag");
+  Shader terrainCoreShadowShader("terrain/coreShadow.vert", "terrain/shadow.frag");
   Shader terrainRingShader("terrain/ring.vert", "terrain/terrain.frag");
+  Shader terrainRingShadowShader("terrain/ringShadow.vert", "terrain/shadow.frag");
   Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
@@ -165,8 +168,9 @@ int main() {
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texTerrainColor);
   fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texTerrainDepth);
 
-  ivec2 shadowResolution(512);
+  ivec2 shadowResolution(1024);
 
+  fboTexDesc.internalFormat = GL_DEPTH_COMPONENT32F;
   fboTexDesc.minFilter = GL_LINEAR;
   fboTexDesc.magFilter = GL_LINEAR;
   Texture2D texTerrainShadow(shadowResolution, fboTexDesc);
@@ -179,7 +183,11 @@ int main() {
   texTerrainShadow.unbind();
 
   FBO fboTerrainShadow{};
+  fboTerrainShadow.bind();
+  glReadBuffer(GL_NONE);
+  glDrawBuffer(GL_NONE);
   fboTerrainShadow.attach2D(GL_DEPTH_ATTACHMENT, texTerrainShadow);
+  fboTerrainShadow.unbind();
 
   // ============================================================ //
 
@@ -190,7 +198,8 @@ int main() {
 
   terrain::Terrain terrain(4096, 10);
 
-  gui::camPtr = &cameraSpectate;
+  static const auto& activeCam = Camera::activeCam;
+
   gui::sunPtr = &env.sun;
   gui::fjetPtr = &f15;
   gui::terrainPtr = &terrain;
@@ -204,7 +213,6 @@ int main() {
     static double titleTimer = glfwGetTime();
     static double prevTime = titleTimer;
     static double currTime = prevTime;
-    static const auto& activeCam = Camera::activeCam;
 
     constexpr double fpsLimit = 1. / 90.;
     currTime = glfwGetTime();
@@ -227,7 +235,7 @@ int main() {
     if (!global::guiFocused)
       glfwSetCursorPos(global::window, winCenter.x, winCenter.y);
 
-    // Update window title every 0.3 seconds
+    // Update fps counter every 0.3 seconds
     if (currTime - titleTimer >= 0.3) {
       gui::fps = static_cast<u16>(1.f / global::dt);
       titleTimer = currTime;
@@ -243,7 +251,9 @@ int main() {
     env.sun.setUniforms(environmentShader);
     env.sun.setUniforms(airplaneShader);
     env.sun.setUniforms(terrainCoreShader);
+    env.sun.setUniforms(terrainCoreShadowShader);
     env.sun.setUniforms(terrainRingShader);
+    env.sun.setUniforms(terrainRingShadowShader);
     env.sun.setUniforms(postprocessShader);
 
     // ===== Terrain Shadow buffer ================================ //
@@ -252,8 +262,8 @@ int main() {
     glViewport(0, 0, shadowResolution.x, shadowResolution.y);
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
-    terrain.drawCoreShadow(activeCam, terrainCoreShader, env.sun.lightSpace);
-    terrain.drawRingsShadow(activeCam, terrainRingShader, env.sun.lightSpace);
+    // terrain.drawCoreShadow(activeCam, terrainCoreShadowShader);
+    // terrain.drawRingsShadow(activeCam, terrainRingShadowShader);
 
     // ===== Terrain buffer ======================================= //
 
@@ -271,7 +281,10 @@ int main() {
     texTerrainShadow.bind(2);
     terrain.drawCore(activeCam, terrainCoreShader);
     terrain.drawRings(activeCam, terrainRingShader);
+
+    glEnable(GL_DEPTH_CLAMP);
     f15.draw(activeCam, airplaneShader);
+    glDisable(GL_DEPTH_CLAMP);
 
     if (global::jetDrawDebugMass)
       f15.drawDebugMass(activeCam, massShader);

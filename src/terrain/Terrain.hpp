@@ -15,9 +15,9 @@ public:
   void update(const Camera* cam);
 
   void drawCore(const Camera* cam, Shader& shader) const;
-  void drawCoreShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const;
+  void drawCoreShadow(const Camera* cam, Shader& shader) const;
   void drawRings(const Camera* cam, Shader& shader) const;
-  void drawRingsShadow(const Camera* cam, Shader& shader, const mat4& lightSpace) const;
+  void drawRingsShadow(const Camera* cam, Shader& shader) const;
   void drawPostprocess(const Camera* cam, Shader& shader) const;
 
 private:
@@ -55,7 +55,7 @@ private:
   float waterShoreScale = 0.06f;
   float waterRefractionScale = 0.082;
   float waterRefractionDistortScale = 0.05f;
-  float waterNormalScaleUV = 0.25f;
+  float waterNormalScaleUV = 0.112f;
   float waterNoiseScale = 0.15f;
   float foamEdge0 = 2.f;
   float foamEdge1 = -10.f;

@@ -10,7 +10,6 @@ out flat uint v_meshIdx;
 
 uniform mat4 u_model;
 uniform mat4 u_camPV;
-uniform mat4 u_projView;
 uniform mat4 u_lightSpace;
 uniform vec3 u_camPos;
 uniform vec2 u_gridAnchor;
@@ -40,6 +39,6 @@ void main() {
   v_uv = uv;
   v_meshIdx = 0;
 
-  gl_Position = u_projView * u_model * worldPos;
+  gl_Position = u_camPV * u_model * worldPos;
 }
 

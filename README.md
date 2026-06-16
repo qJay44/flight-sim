@@ -6,3 +6,4 @@
 ## TODO
 - [x] Chunk async load
 - [ ] Fix shadows
+- [ ] Rewrite Erosion generation to be based on world postion coordinates

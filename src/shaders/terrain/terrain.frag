@@ -75,8 +75,8 @@ float getShadow(vec3 normal) {
   vec3 projCoords = v_lightSpacePos.xyz / v_lightSpacePos.w;
   projCoords = projCoords * 0.5f + 0.5f;
 
-  float bias = max(0.005f * (1.f - dot(normal, u_lightDir)), 0.0005f);
-  projCoords.z -= bias;
+  if (projCoords.z > 1.f)
+    return 1.f;
 
   return texture(u_shadowMap, projCoords);
 }
@@ -129,18 +129,20 @@ void main() {
   diffuseColor = mix(diffuseColor, DEBRIS_COLOR, drainage);
 
   // Ambient
-  vec3 color = diffuseColor * Fd_Lambert() * getSkyColor(normal);
-  color *= occlusion;
+  vec3 ambientColor = diffuseColor * Fd_Lambert() * getSkyColor(normal) * occlusion;
 
   vec3 f0 = vec3(0.04f);
   float smoothness = 0.1f;
-  float shadow = getShadow(normal);
-  color += Shade(diffuseColor, f0, smoothness, normal, -viewDir, u_lightDir, u_lightColor * shadow);
+  // float shadow = getShadow(normal);
+  float shadow = 1.f;
+  vec3 directColor = Shade(diffuseColor, f0, smoothness, normal, -viewDir, u_lightDir, u_lightColor * shadow);
 
   // Bounce
-  color += diffuseColor * u_lightColor
+  vec3 bounceColor = diffuseColor * u_lightColor
     * (dot(normal, u_lightDir * vec3(1.f, -1.f, 1.f)) * 0.5f + 0.5f)
     * Fd_Lambert() / PI;
+
+  vec3 color = ambientColor + directColor + bounceColor;
 
   FragColor = vec4(color, 1.f);
 }
