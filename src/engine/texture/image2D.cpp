@@ -6,8 +6,6 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 
-#include "utils/loadTif.hpp"
-
 void image2D::write(const std::string& path, uvec2 size, u8 channels, byte* buf) {
   stbi_flip_vertically_on_write(true);
   stbi_write_png(path.c_str(), size.x, size.y, channels, buf, size.x * channels);
@@ -65,12 +63,6 @@ void image2D::load(fspath path, GLenum loadType, bool flipVertically) {
     case IMAGE2D_LOAD_NO:
       error("[image2D::load] What?");
       break;
-    case IMAGE2D_LOAD_R16I:
-      loadTif_R16I();
-      break;
-    case IMAGE2D_LOAD_R16UI:
-      loadTif_R16UI();
-      break;
     default:
       load_STB();
       this->loadType = IMAGE2D_LOAD_STB;
@@ -85,22 +77,6 @@ void image2D::load_STB() {
   pixels = stbi_load(path.string().c_str(), &width, &height, &channels, 0);
 }
 
-void image2D::loadTif_R16I() {
-  u32 w, h;
-  pixels = ::loadTif_R16I(path.string().c_str(), &w, &h, flipVertically);
-  width = w;
-  height = h;
-  channels = 1;
-}
-
-void image2D::loadTif_R16UI() {
-  u32 w, h;
-  pixels = ::loadTif_R16UI(path.string().c_str(), &w, &h, flipVertically);
-  width = w;
-  height = h;
-  channels = 1;
-}
-
 void image2D::clear() {
   switch (loadType) {
     case IMAGE2D_LOAD_NO:
@@ -109,12 +85,6 @@ void image2D::clear() {
       break;
     case IMAGE2D_LOAD_STB:
       stbi_image_free(pixels);
-      break;
-    case IMAGE2D_LOAD_R16I:
-      delete[] (s16*)pixels;
-      break;
-    case IMAGE2D_LOAD_R16UI:
-      delete[] (u16*)pixels;
       break;
     default:
       error("[image2D::clear] Should never happen [{}]", loadType);

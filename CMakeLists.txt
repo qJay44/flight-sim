@@ -10,7 +10,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Run)
 project(MyProject VERSION 1.0)
 
 find_package(glfw3 REQUIRED)
-find_package(TIFF REQUIRED)
 find_package(Freetype REQUIRED)
 
 # ===== GLAD ====================================================== #
@@ -18,7 +17,7 @@ find_package(Freetype REQUIRED)
 add_library(GLAD STATIC ${GLAD_PATH}/src/gl.c)
 target_include_directories(GLAD PUBLIC ${GLAD_PATH}/include)
 
-# ===== ImGui (GLFW with OpenGL) + ImPlot ========================= #
+# ===== ImGui (GLFW with OpenGL) ================================== #
 
 add_library(ImGui_GLFW_OpenGL STATIC
   ${IMGUI_PATH}/imgui.cpp
@@ -27,13 +26,10 @@ add_library(ImGui_GLFW_OpenGL STATIC
   ${IMGUI_PATH}/imgui_widgets.cpp
   ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
   ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp
-  # ${IMPLOT_PATH}/implot.cpp
-  # ${IMPLOT_PATH}/implot_items.cpp
 )
 
 target_include_directories(ImGui_GLFW_OpenGL PUBLIC
   ${IMGUI_PATH}
-  # ${IMPLOT_PATH}
 )
 
 # ===== ufbx ====================================================== #
@@ -58,6 +54,11 @@ target_include_directories(ufbx PUBLIC ${ufbx_external_SOURCE_DIR})
 # ===== My utils ================================================== #
 
 file(GLOB_RECURSE UTILS_SOURCES ${UTILS_PATH}/src/*.cpp)
+
+# Remove TIFF from sources
+list(REMOVE_ITEM UTILS_SOURCES ${UTILS_PATH}/src/loadTif.cpp)
+list(REMOVE_ITEM UTILS_SOURCES ${UTILS_PATH}/src/saveTif.cpp)
+
 add_library(Utils STATIC ${UTILS_SOURCES})
 
 target_include_directories(Utils PUBLIC ${UTILS_PATH}/include)
@@ -80,5 +81,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw TIFF::TIFF GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)
 
