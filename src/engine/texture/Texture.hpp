@@ -17,6 +17,8 @@ public:
   const GLuint& getId() const;
   const GLenum& getTarget() const;
 
+  bool isGenerated() const;
+
   ivec2 getSize(GLint mipLevel) const;
 
 protected:

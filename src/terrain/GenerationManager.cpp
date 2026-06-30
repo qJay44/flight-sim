@@ -2,172 +2,72 @@
 
 #include <cassert>
 
+#include "../engine/Shader.hpp"
+#include "Terrain.hpp"
+#include "shared.hpp"
+
+#define MAX_SLOTS TERRAIN_MAX_NODES
+
 namespace terrain {
 
-Shader GenerationManager::shaderBufferA;
-Shader GenerationManager::shaderBufferB;
+static Shader generateTextureShader;
 
-GenerationManager::GenerationManager(int resolution) : resolution(resolution) {
-  if (!shaderBufferA.initialized()) {
-    shaderBufferA = Shader("terrain/bufferA.comp");
-    shaderBufferB = Shader("terrain/bufferB.comp");
+GenerationManager::GenerationManager(int textureSize) {
+  if (!generateTextureShader.initialized()) {
+    generateTextureShader = Shader("terrain/terrain.comp");
+    texArray = Texture2DArray(MAX_SLOTS, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
+    numGroups = textureSize / 16;
   }
 
-  ivec2 size{resolution};
+  for (int i = 0; i < MAX_SLOTS; i++)
+    freeSlots.push(i);
 
-  TextureDescriptor texDesc{};
-  texDesc.target = GL_TEXTURE_2D;
-  texDesc.internalFormat = GL_RGBA16F;
-  texDesc.format = GL_RGBA;
-  texDesc.wrapS = GL_REPEAT;
-  texDesc.wrapT = GL_REPEAT;
-
-  buffers[0][0] = Texture2D::storage(size, texDesc);
-  buffers[0][1] = Texture2D::storage(size, texDesc);
-  buffers[1][0] = Texture2D::storage(size, texDesc);
-  buffers[1][1] = Texture2D::storage(size, texDesc);
-
-  ubo.erosionConfig.allocate(&erosionConfig, sizeof(ErosionConfig), GL_DYNAMIC_DRAW);
+  ubo.config.gen();
+  ubo.config.storage(&cfg, sizeof(Config), GL_DYNAMIC_STORAGE_BIT);
 }
 
-const float& GenerationManager::getHeightmapScale() const {
-  return heightmapScale;
+void GenerationManager::update() {
+  ubo.config.updateSubData(&cfg, sizeof(Config));
 }
 
-void GenerationManager::setHeightmapScale(float s) {
-  heightmapScale = s;
+int GenerationManager::acquireSlot() {
+  assert(!freeSlots.empty());
+  int slot = freeSlots.top();
+  freeSlots.pop();
+
+  return slot;
 }
 
-void GenerationManager::generateInit() {
-  if (fence) {
-    glDeleteSync(fence);
-    fence = nullptr;
-  }
-
-  activeTask.dirtyX = ivec2(0, resolution);
-  activeTask.dirtyY = ivec2(0, resolution);
-  activeTask.pixelDelta = ivec2(1);
-  activeTask.offset = vec2(0);
-  currOffsetY = 0;
-  sliceHeight = resolution;
-  currReadIdx = 1;
-
-  updateBufferA();
-  updateBufferB();
-
-  glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
-
-  // Full wait
-  GLsync fenceInit = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-  glClientWaitSync(fenceInit, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
-  glDeleteSync(fenceInit);
-
-  sliceHeight = resolution / 16;
-  currReadIdx = 0;
-  status = IDLE;
+void GenerationManager::freeSlot(int slot) {
+  assert(freeSlots.size() < MAX_SLOTS);
+  freeSlots.push(slot);
 }
 
-void GenerationManager::generate(ivec2 pixelDelta, vec2 offset) {
-  if (status == GENERATING)
-    return;
+void GenerationManager::freeSlotAll() {
+  while (!freeSlots.empty())
+    freeSlots.pop();
 
-  ivec2 dirtyX(0);
-  ivec2 dirtyY(0);
-
-  if (pixelDelta.x != 0) {
-    int startX = texWriteHead.x;
-    int endX = (texWriteHead.x + pixelDelta.x) % resolution;
-    if (endX < 0) endX += resolution;
-    dirtyX = ivec2{startX, endX};
-  }
-
-  if (pixelDelta.y != 0) {
-    int startY = texWriteHead.y;
-    int endY = (texWriteHead.y + pixelDelta.y) % resolution;
-    if (endY < 0) endY += resolution;
-    dirtyY = ivec2{startY, endY};
-  }
-
-  activeTask.dirtyX = dirtyX;
-  activeTask.dirtyY = dirtyY;
-  activeTask.pixelDelta = pixelDelta;
-  activeTask.offset = offset;
-
-  currOffsetY = 0;
-  status = GENERATING;
-
-  texWriteHead = (texWriteHead + pixelDelta) % resolution;
-  if (texWriteHead.x < 0) texWriteHead.x += resolution;
-  if (texWriteHead.y < 0) texWriteHead.y += resolution;
+  for (int i = 0; i < MAX_SLOTS; i++)
+    freeSlots.push(i);
 }
 
-GenerationManager::Status GenerationManager::checkStatus() {
-  if (status != GENERATING)
-    return status = IDLE;
+void GenerationManager::generate(const NodeData& node) {
+  generateTextureShader.use();
+  generateTextureShader.setUniform2f("u_nodeCenter", node.center);
+  generateTextureShader.setUniform1f("u_nodeExtents", node.extents);
+  generateTextureShader.setUniform1f("u_planetRadius", planetRadius);
+  generateTextureShader.setUniform1f("u_heightScale", heightScale);
+  generateTextureShader.setUniform1i("u_nodeFaceIdx", node.faceIdx);
+  generateTextureShader.setUniform1i("u_layer", node.texLayerIdx);
 
-  if (fence) {
-    GLenum fenceStatus = glClientWaitSync(fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-    if (fenceStatus != GL_ALREADY_SIGNALED && fenceStatus != GL_CONDITION_SATISFIED)
-      return status;
-
-    glDeleteSync(fence);
-    fence = nullptr;
-
-    currOffsetY += sliceHeight;
-    if (currOffsetY >= resolution) {
-      currOffsetY = 0;
-      currReadIdx = 1 - currReadIdx;
-
-      return status = DONE;
-    }
-  }
-
-  updateBufferA();
-  updateBufferB();
-
-  glMemoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
-
-  fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-  glFlush();
-
-  return status = GENERATING;
+  ubo.config.bindBase(0);
+  glBindImageTexture(0, texArray.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  glDispatchCompute(numGroups, numGroups, 1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void GenerationManager::bindTextures(GLuint slotA, GLuint slotB) const {
-  buffers[currReadIdx][0].bind(slotA);
-  buffers[currReadIdx][1].bind(slotB);
-}
-
-void GenerationManager::updateBufferA() {
-  int writeIdx = 1 - currReadIdx;
-  ubo.erosionConfig.updateSubData(&erosionConfig, sizeof(ErosionConfig));
-  ubo.erosionConfig.bindBase(0);
-
-  shaderBufferA.use();
-  shaderBufferA.setUniform2i("u_dirtyX", activeTask.dirtyX);
-  shaderBufferA.setUniform2i("u_dirtyY", activeTask.dirtyY);
-  shaderBufferA.setUniform2i("u_pixelDelta", activeTask.pixelDelta);
-  shaderBufferA.setUniform2f("u_offset", activeTask.offset);
-  shaderBufferA.setUniform1f("u_heightmapScale", heightmapScale);
-  shaderBufferA.setUniform1i("u_currOffsetY", currOffsetY);
-  glBindImageTexture(0, buffers[currReadIdx][0].getId(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-  glBindImageTexture(1, buffers[writeIdx][0].getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-  glDispatchCompute(resolution / 16, sliceHeight / 16, 1);
-}
-
-void GenerationManager::updateBufferB() {
-  int writeIdx = 1 - currReadIdx;
-
-  shaderBufferB.use();
-  shaderBufferB.setUniform2i("u_dirtyX", activeTask.dirtyX);
-  shaderBufferB.setUniform2i("u_dirtyY", activeTask.dirtyY);
-  shaderBufferB.setUniform2i("u_pixelDelta", activeTask.pixelDelta);
-  shaderBufferB.setUniform2f("u_offset", activeTask.offset);
-  shaderBufferB.setUniform1f("u_heightmapScale", heightmapScale);
-  shaderBufferB.setUniform1i("u_currOffsetY", currOffsetY);
-  glBindImageTexture(0, buffers[currReadIdx][1].getId(), 0, GL_FALSE, 0, GL_READ_ONLY, GL_RGBA16F);
-  glBindImageTexture(1, buffers[writeIdx][1].getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
-  glDispatchCompute(resolution / 16, sliceHeight / 16, 1);
+void GenerationManager::bindTexture(GLuint slot) const {
+  texArray.bind(slot);
 }
 
 } // terrain

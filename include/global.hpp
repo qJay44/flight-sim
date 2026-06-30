@@ -18,6 +18,7 @@ extern float time;
 extern bool wireframeMode;
 extern bool guiFocused;
 extern bool drawGrid;
+extern bool drawWorldAxis;
 
 extern bool jetDrawHUD;
 extern bool jetDrawDebugMass;

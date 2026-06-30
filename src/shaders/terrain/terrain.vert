@@ -1,46 +1,68 @@
 #version 460 core
 
+#define MAX_NODES 512
+
 layout(location = 0) in vec3 a_pos;
-layout(location = 1) in vec2 a_uv;
-layout(location = 2) in int a_chunkIdx;
 
-out vec4 v_lightSpacePos;
-out vec3 v_viewDir;
-out vec3 v_worldPos;
+out vec3 v_sphereDir;
 out vec2 v_uv;
-out flat int v_chunkIdx;
+out flat int v_layerIdx;
 
-struct Chunk {
-  vec2 worldPos;
-  int textureSlot;
+struct NodeData {
+  vec2 center;
+  float extents;
+  int faceIdx;
+  int texLayerIdx;
 };
 
-uniform mat4 u_model;
-uniform mat4 u_camPV;
-uniform mat4 u_lightSpace;
-uniform vec3 u_camPos;
+uniform mat4 u_camProj;
+uniform mat4 u_localView;
+uniform mat4 u_localTranslation;
+uniform float u_camFar;
+uniform float u_planetRadius;
 uniform float u_heightScale;
 
-layout(binding = 0) uniform sampler2DArray u_bufferA;
+layout(binding = 0) uniform sampler2DArray u_texArray;
 
-layout(std430, binding = 0) readonly buffer ChunkBuffer {
-  Chunk chunks[];
+layout(std140, binding = 0) uniform NodesDataBlock {
+  NodeData nodesData[MAX_NODES];
 };
 
+vec3 cubeToSphere(vec2 pos, int faceIdx) {
+  float u = pos.x;
+  float v = pos.y;
+  vec3 p;
+
+  switch (faceIdx) {
+    case 0: p = vec3( 1,  v,  u); break; // Right
+    case 1: p = vec3(-1,  v, -u); break; // Left
+    case 2: p = vec3( u,  1,  v); break; // Top
+    case 3: p = vec3(-u, -1,  v); break; // Bottom
+    case 4: p = vec3(-u,  v,  1); break; // Front
+    case 5: p = vec3( u,  v, -1); break; // Back
+  }
+
+  return p;
+}
+
 void main() {
-  Chunk chunk = chunks[a_chunkIdx];
-  vec4 worldPos = u_model * vec4(a_pos, 1.f);
-  float h = texture(u_bufferA, vec3(a_uv, chunk.textureSlot)).r;
+  NodeData node = nodesData[gl_InstanceID];
 
-  worldPos.xz += chunk.worldPos;
-  worldPos.y = h * u_heightScale;
+  vec2 nodePos = a_pos.xz * node.extents + node.center;
+  vec2 uv = a_pos.xz * 0.5f + 0.5f;
+  vec3 sphereDir = normalize(cubeToSphere(nodePos, node.faceIdx));
 
-  v_viewDir = u_camPos - worldPos.xyz;
-  v_worldPos = worldPos.xyz;
-  v_lightSpacePos = u_lightSpace * worldPos;
-  v_uv = a_uv;
-  v_chunkIdx = a_chunkIdx;
+  vec4 terrainData = texture(u_texArray, vec3(uv, node.texLayerIdx));
+  float height = terrainData.r;
+  vec3 normal = terrainData.gba;
 
-	gl_Position = u_camPV * worldPos;
+  vec3 localSpherePos = sphereDir * (u_planetRadius + height);
+  vec4 worldPos = vec4(localSpherePos, 1.f);
+
+  v_sphereDir = sphereDir;
+  v_uv = uv;
+  v_layerIdx = node.texLayerIdx;
+
+	gl_Position = u_camProj * (u_localView * (u_localTranslation * worldPos));
 }
 

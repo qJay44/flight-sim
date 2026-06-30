@@ -1,5 +1,7 @@
 #include "gui.hpp"
 
+#include <cassert>
+
 #include "imgui.h"
 // #include "implot.h"
 #include "backends/imgui_impl_glfw.h"
@@ -8,7 +10,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "global.hpp"
 #include "utils/utils.hpp"
-#include <cassert>
+#include "../../terrain/shared.hpp"
 
 static bool configCollapsed = true;
 static bool infoCollapsed = true;
@@ -27,6 +29,7 @@ void TextVec3(const char* label, const vec3& v) {
   ImGui::Text("%s: [%.2f, %.2f, %.2f]", label, v.x, v.y, v.z);
 }
 
+[[maybe_unused]]
 void CreateMyTooltip(const char* text) {
   if (ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
     ImGui::BeginTooltip();
@@ -145,14 +148,36 @@ void gui::draw() {
 
   assert(terrainPtr);
   if (ImGui::CollapsingHeader("Terrain")) {
-    bool u = false;
+    ImGui::SeparatorText("General");
+    ImGui::SliderFloat("Planet radius", &terrain::planetRadius, 1.f, 1e6f);
 
-    ImGui::Checkbox("Show debug colors", &terrainPtr->debugLOD);
+    ImGui::SeparatorText("Height coloring thresholds");
+    ImGui::SliderFloat("Sea", &terrainPtr->seaThreshold, 0.f, 1.f);
+    ImGui::SliderFloat("Sand", &terrainPtr->sandThreshold, terrainPtr->seaThreshold, 1.f);
+    ImGui::SliderFloat("Mountain", &terrainPtr->mountainThreshold, terrainPtr->sandThreshold, 1.f);
 
-    u |= ImGui::SliderFloat("Heightmap scale", &terrainPtr->texManager.heightmapScale, 0.01f, 1.f);
+    ImGui::SeparatorText("FBM");
+    {
+      auto& cfg = terrain::Quadnode::gm.cfg;
+      bool u = false;
 
-    ImGui::SliderFloat("Height scale", &terrainPtr->heightScale, 0.f, 50.f);
+      u |= ImGui::SliderFloat("Planet radius percent (height scale)", &terrainPtr->planetRadiusPercent, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
+      u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 1.f, 10.f);
+      u |= ImGui::SliderFloat("Frequency multiplier", &cfg.frequencyMult, 1.f, 10.f);
+      u |= ImGui::SliderFloat("Amplitude multiplier", &cfg.amplitudeMult, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Detail frequency multiplier", &cfg.detailFrequencyMult, 1.f, 10.f);
+      u |= ImGui::SliderFloat("Detail amplitude multiplier", &cfg.detailAmplitudeMult, 1.f, 100.f);
+      u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
+      u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
 
+      if (u)
+        terrainPtr->reload();
+    }
+
+    ImGui::Separator();
     ImGui::SliderFloat2("Cliff edges",                                 glm::value_ptr(terrainPtr->cliffEdges),  0.f, 1.f);
     ImGui::SliderFloat2("Dirt edges (inversed)",                       glm::value_ptr(terrainPtr->dirtEdges),   0.f, 1.f);
     ImGui::SliderFloat2("Snow edges",                                  glm::value_ptr(terrainPtr->snowEdges),   0.f, 1.f);
@@ -160,157 +185,11 @@ void gui::draw() {
     ImGui::SliderFloat2("Grass0 edges",                                glm::value_ptr(terrainPtr->grass0Edges), 0.f, 1.f);
     ImGui::SliderFloat2("Grass1 edges (inversed) grass height offset", glm::value_ptr(terrainPtr->grass1Edges), 0.f, 1.f);
     ImGui::SliderFloat2("Grass2 edges",                                glm::value_ptr(terrainPtr->grass2Edges), 0.f, 1.f);
-
-    ImGui::SeparatorText("Erosion config");
-    auto& cfg = terrainPtr->texManager.erosionConfig;
-
-    u |= ImGui::SliderFloat("Scale##2", &cfg.erosion_scale, 0.08f, 0.25f);
-    CreateMyTooltip("The scale of the erosion effect, affecting it both horizontally and vertically");
-
-    u |= ImGui::SliderFloat("Strength", &cfg.erosion_strength, 0.01f, 0.10f);
-    CreateMyTooltip(
-      "The strength of the erosion effect, affecting the magnitude of "
-      "all octaves, and indirectly affecting the directions of the gullies as a result"
-    );
-
-    u |= ImGui::SliderFloat("Gully weight", &cfg.erosion_gully_weight, 0.f, 1.f);
-    CreateMyTooltip(
-      "The magnitude of the gullies as a weight value from 0 to 1. "
-      "A value of 0 can sharpen peaks and valleys but feature virtually no gullies. "
-      "A value of 1 produces full gullies but may leave peaks and valleys rounded. "
-      "Adjusting erosion gully weight while inversely adjusting erosion scale can be "
-      "used to control the sharpness of peaks and valleys while leaving gully "
-      "magnitudes largely untouched."
-    );
-
-    u |= ImGui::SliderFloat("Detail", &cfg.erosion_detail, 0.7f, 3.f);
-    CreateMyTooltip(
-      "The overall detail of the erosion. Lower values restrict the effect of higher "
-      "frequency gullies to steeper slopes."
-    );
-
-    u |= ImGui::SliderFloat("Ridge rounding", &cfg.ridgeRounding, 0.1f, 1.f);
-    u |= ImGui::SliderFloat("Crease rounding", &cfg.creaseRounding, 0.0f, 1.f);
-
-    u |= ImGui::SliderFloat("Rounding multiplier 1", &cfg.erosion_rounding.z, 0.f, 5.f);
-    CreateMyTooltip(
-      "Multiplier applied to the initial height function. "
-      "E.g. if the height function has noise of 5 times lower frequency "
-      "than the largest gullies, a value of 0.2 can compensate for that."
-    );
-
-    u |= ImGui::SliderFloat("Rounding multiplier 2", &cfg.erosion_rounding.w, 0.f, 5.f);
-    CreateMyTooltip(
-      "Multiplier applied to each subsequent gully octave after the first. "
-      "Setting it to the same value as the erosion lacunarity will produce "
-      "consistent rounding of all octaves."
-    );
-
-    u |= ImGui::SliderFloat4("Onset", glm::value_ptr(cfg.erosion_onset), 0.f, 5.f);
-    CreateMyTooltip(
-      "Control over how far away from ridges/creases the erosion takes effect. "
-      "x: Onset used on the initial height function. "
-      "y: Onset used on each gully octave. "
-      "z: RidgeMap-specific onset used on the initial height function. "
-      "w: RidgeMap-specific onset used on each gully octave."
-    );
-
-    u |= ImGui::SliderFloat2("Assumed slope", glm::value_ptr(cfg.erosion_assumed_slope), 0.f, 1.f);
-    CreateMyTooltip(
-      "Control over the assumed slope of the initial height function. "
-      "In practise, assuming a slope can work better than using the input slope, "
-      "since the final terrain can be shaped quite differently than the input. "
-      " x: An assumed slope value to override the actual slope. "
-      " y: The amount (from 0 to 1) to override the actual slope."
-    );
-
-    u |= ImGui::SliderFloat("Cell scale", &cfg.erosion_cell_scale, 0.f, 1.f);
-    CreateMyTooltip(
-      "Gullies are based on stripes within Voronoi-like cells in the Phacelle noise "
-      "function. The cell scale parameter controls the sizes of the cells relative "
-      "to the overall erosion scale, while keeping the stripe widths unaffected. "
-      "Values close to 1 usually produce good results. Smaller values produce more "
-      "grainy gullies while larger values produce longer unbroken gullies, but too "
-      "large values produce chaotic curved gullies that are not aligned with the "
-      "slopes. Value changes can cause abrupt changes in output, especially far away "
-      "from the origin, so this parameter is not well suited for animation or for "
-      "modulation by other functions."
-    );
-
-    u |= ImGui::SliderFloat("Normalization", &cfg.erosion_normalization, 0.f, 1.f);
-    CreateMyTooltip(
-      "The degree of normalization applied in the Phacelle noise, between 0 and 1. "
-      "The erosion filter depends on a certain consistency in magnitude of the "
-      "Phacelle output. However, high values can create loopy results where ridges "
-      "and creases meet up at a point, which produces unnatural looking results."
-    );
-
-    u |= ImGui::SliderInt("Octaves", &cfg.erosion_octaves, 0, 20);
-    CreateMyTooltip(
-      "Control over the erosion octaves, with each successive octave layering "
-      "smaller gullies onto the terrain."
-    );
-
-    u |= ImGui::SliderFloat("Lacunarity", &cfg.erosion_lacunarity, 0.f, 10.f);
-    CreateMyTooltip(
-      "The lacunarity controls the frequency (the inverse "
-      "horizontal scale) of each octave relative to the last."
-    );
-
-    u |= ImGui::SliderFloat("Gain", &cfg.erosion_gain, 0.f, 5.f);
-    CreateMyTooltip(
-      "The gain controls the magnitude (the vertical "
-      "scale) of each octave relative to the last."
-    );
-
-    ImGui::SeparatorText("Terrain parameters not used in the erosion function itself.");
-
-    u |= ImGui::SliderFloat2("Terrain height offset", glm::value_ptr(cfg.terrain_height_offset), -1.f, 1.f);
-    CreateMyTooltip(
-      "Control over whether the erosion effect raises or lowers the terrain. "
-      " x: An offset value between -1 and 1, where a value of -1 only lowers, while "
-      "    1 only raises. The offset is proportional to the erosion strength "
-      "    parameter, so if that parameter is the same for the entire terrain, the "
-      "    effect of the height offset will move the entire terrain surface up or "
-      "    down by the same emount. "
-      " y: A value between 0 and 1 which is the degree to which the offset value is "
-      "    replaced by the negated erosion fade target value. This has the effect "
-      "    of only raising at valleys and only lowering at peaks, which, due to how "
-      "    the erosion filter works, has the effect of largely preserving the minima "
-      "    and maxima of the terrain."
-    );
-
-    u |= ImGui::SliderFloat("Height frequency", &cfg.height_frequency, 0.f, 10.f);
-    CreateMyTooltip("The inverse horizontal scale of the terrain noise function.");
-
-    u |= ImGui::SliderFloat("Height amplitude", &cfg.height_amp, 0.f, 1.f);
-    CreateMyTooltip("The vertical scale (amplitude) of the terrain noise function.");
-
-    u |= ImGui::SliderInt("Height octaves", &cfg.height_octaves, 0, 10);
-    CreateMyTooltip(
-      "Control over the noise function octaves, with each successive "
-      "octave layering smaller bumps onto the terrain."
-    );
-
-    u |= ImGui::SliderFloat("Height lacunarity", &cfg.height_lacunarity, 0.f, 10.f);
-    CreateMyTooltip(
-      "The lacunarity controls the frequency (the inverse "
-      "horizontal scale) of each octave relative to the last."
-    );
-
-    u |= ImGui::SliderFloat("Height gain", &cfg.height_gain, 0.f, 1.f);
-    CreateMyTooltip(
-      "The gain controls the magnitude (the vertical scale) "
-      "of each octave relative to the last."
-    );
-
-    u |= ImGui::SliderFloat("Height function scale", &cfg.heightFunctionScale, 0.f, 1.f);
-
-    if (u)
-      terrainPtr->texManager.generateInit();
   }
 
   if (ImGui::CollapsingHeader("Postprocess")) {
+    ImGui::SliderFloat("Atmosphere scale", &terrainPtr->atmosphereScale, 0.f, 20.f);
+
     ImGui::SeparatorText("Water");
     ImGui::SliderFloat("Shore scale", &terrainPtr->waterShoreScale, 0.f, 2.f);
     ImGui::SliderFloat("Rerfraction scale", &terrainPtr->waterRefractionScale, 0.f, 2.f);

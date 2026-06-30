@@ -6,6 +6,7 @@
 #include "engine/InputsHandler.hpp"
 #include "engine/Shader.hpp"
 #include "engine/gui/gui.hpp"
+#include "engine/mesh/meshes.hpp"
 #include "engine/texture/TextureDescriptor.hpp"
 #include "global.hpp"
 #include "other/Grid.hpp"
@@ -102,11 +103,9 @@ int main() {
   Shader gridShader("grid.vert", "grid.frag");
   Shader textShader("text.vert", "text.frag");
   Shader markupShader("markup.vert", "markup.frag");
+  Shader axisShader("axis.vert", "axis.frag");
 
-  Shader terrainCoreShader("terrain/core.vert", "terrain/terrain.frag");
-  Shader terrainCoreShadowShader("terrain/coreShadow.vert", "terrain/shadow.frag");
-  Shader terrainRingShader("terrain/ring.vert", "terrain/terrain.frag");
-  Shader terrainRingShadowShader("terrain/ringShadow.vert", "terrain/shadow.frag");
+  Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
   Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
@@ -115,10 +114,7 @@ int main() {
 
   // ===== Cameras ============================================== //
 
-  Camera cameraSpectate({0.f, 150.f, 0.f}, -2.385f, -0.582f);
-  cameraSpectate.setNearPlane(2.f);
-  cameraSpectate.setFarPlane(10000.f);
-  cameraSpectate.setSpeedDefault(10.f);
+  Camera cameraSpectate({0.f, 10.f, 0.f}, -2.385f, -0.582f);
 
   // ===== Inputs Handler ======================================= //
 
@@ -126,6 +122,16 @@ int main() {
   glfwSetScrollCallback(window, InputsHandler::scrollCallback);
   glfwSetKeyCallback(window, InputsHandler::keyCallback);
   glfwSetCursorPosCallback(window, InputsHandler::cursorPosCallback);
+
+  // ===== Terrain ============================================== //
+
+  float initPlanetRadius = 1e5f;
+  terrain::Terrain terrain(initPlanetRadius);
+  cameraSpectate.setPosition({0.f, initPlanetRadius * 1.1f, 0.f});
+  cameraSpectate.setNearPlane(0.1f);
+  cameraSpectate.setFarPlane(initPlanetRadius * 20.f);
+  cameraSpectate.setSpeedDefault(initPlanetRadius * 0.1f);
+  terrain.update(&cameraSpectate);
 
   // ===== Jet ================================================== //
 
@@ -196,8 +202,6 @@ int main() {
   Environment env = Environment::createDefault("res/tex/Cubemaps/Cubemap_Sky_04-512x512.png");
   env.sun.intensity = 7.f;
 
-  terrain::Terrain terrain(4096, 10);
-
   static const auto& activeCam = Camera::activeCam;
 
   gui::sunPtr = &env.sun;
@@ -207,6 +211,9 @@ int main() {
 
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
+
+  auto axis = meshes::axis();
+  axis.scale(1e6f);
 
   // Render loop
   while (!glfwWindowShouldClose(window)) {
@@ -250,10 +257,7 @@ int main() {
 
     env.sun.setUniforms(environmentShader);
     env.sun.setUniforms(airplaneShader);
-    env.sun.setUniforms(terrainCoreShader);
-    env.sun.setUniforms(terrainCoreShadowShader);
-    env.sun.setUniforms(terrainRingShader);
-    env.sun.setUniforms(terrainRingShadowShader);
+    env.sun.setUniforms(terrainShader);
     env.sun.setUniforms(postprocessShader);
 
     // ===== Terrain Shadow buffer ================================ //
@@ -279,12 +283,9 @@ int main() {
       grid.draw(activeCam, gridShader);
 
     texTerrainShadow.bind(2);
-    terrain.drawCore(activeCam, terrainCoreShader);
-    terrain.drawRings(activeCam, terrainRingShader);
+    terrain.draw(activeCam, terrainShader);
 
-    glEnable(GL_DEPTH_CLAMP);
     f15.draw(activeCam, airplaneShader);
-    glDisable(GL_DEPTH_CLAMP);
 
     if (global::jetDrawDebugMass)
       f15.drawDebugMass(activeCam, massShader);
@@ -309,9 +310,13 @@ int main() {
     if (global::jetDrawHUD && activeCam != &cameraSpectate)
       f15.drawHUD(activeCam, hudShader);
 
+    glDisable(GL_FRAMEBUFFER_SRGB);
+
+    if (global::drawWorldAxis)
+      axis.draw(activeCam, axisShader);
+
     // markup::drawCross(activeCam, markupShader);
 
-    glDisable(GL_FRAMEBUFFER_SRGB);
     gui::draw();
 
     // ============================================================ //

@@ -1,0 +1,204 @@
+#version 460 core
+
+#define PI 3.141592265359f
+#define TAU (PI * 2.f)
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(rgba32f, binding = 0) writeonly uniform image2DArray imageWrite;
+
+struct Config {
+  float initAmplitude;
+  float initFrequency;
+  float gain;
+  float lacunarity;
+  float amplitudeMult;
+  float frequencyMult;
+  float detailInitAmplitude;
+  float detailInitFrequency;
+  float detailGain;
+  float detailLacunarity;
+  float detailAmplitudeMult;
+  float detailFrequencyMult;
+  int octaves;
+  int detailOctaves;
+};
+
+uniform vec2 u_nodeCenter;
+uniform float u_nodeExtents;
+uniform float u_planetRadius;
+uniform float u_heightScale;
+uniform int u_nodeFaceIdx;
+uniform int u_layer;
+
+layout(std140, binding = 0) uniform ConfigBlock {
+  Config cfg;
+};
+
+// TODO:
+// 1. Continent Map Level
+// 2. Mountain Map Level (2 octaves of F1 Voronoi noise + FBM displacement)
+// 3. Mountain Detail Level (10 octaves of F1 Voronoi noise + Terraced modifier)
+
+vec3 cubeToSphere(vec2 pos, int faceIdx) {
+  float u = pos.x;
+  float v = pos.y;
+  vec3 p;
+
+  switch (faceIdx) {
+    case 0: p = vec3( 1,  v,  u); break; // Right
+    case 1: p = vec3(-1,  v, -u); break; // Left
+    case 2: p = vec3( u,  1,  v); break; // Top
+    case 3: p = vec3(-u, -1,  v); break; // Bottom
+    case 4: p = vec3(-u,  v,  1); break; // Front
+    case 5: p = vec3( u,  v, -1); break; // Back
+  }
+
+  return p;
+}
+
+float hash(vec3 p) {
+  p = fract(p * 0.3183099 + vec3(0.1, 0.1, 0.1));
+  p *= dot(p, p + 23.33);
+
+  return fract(p.x * p.y * p.z);
+}
+
+float noise(vec3 x) {
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  f = f * f * (3.0 - 2.0 * f);
+
+  return mix(mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                 mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                 mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+
+float voronoi(vec3 p) {
+  vec3 baseCell = floor(p);
+  vec3 localPos = fract(p);
+  float minDist = 1.f;
+
+  for (int z = -1; z <= 1; z++) {
+    for (int y = -1; y <= 1; y++) {
+      for (int x = -1; x <= 1; x++) {
+        vec3 neighbour = vec3(x, y, z);
+        vec3 cellSeed = baseCell + neighbour;
+        vec3 featurePoint = vec3(hash(cellSeed),
+                                 hash(cellSeed + 13.5f),
+                                 hash(cellSeed + 27.1f));
+
+        featurePoint = 0.5f + 0.5f * sin(featurePoint * TAU);
+
+        vec3 diff = neighbour + featurePoint - localPos;
+        float dist = dot(diff, diff);
+
+        minDist = min(minDist, dist);
+      }
+    }
+  }
+
+  return sqrt(minDist);
+}
+
+float fbm(vec3 p, int octaves) {
+  float value = 0.f;
+  float amplitude = cfg.initAmplitude;
+  float frequency = cfg.initFrequency;
+
+  for (int i = 0; i < octaves; i++) {
+    value += amplitude * noise(p * frequency);
+    frequency *= cfg.lacunarity;
+    amplitude *= cfg.gain;
+  }
+
+  return value;
+}
+
+float evaluateHeight(vec3 sphereDir) {
+  // 1. Continent level (Very low frequency)
+  // Determines where oceans (0.0) and landmasses (1.0) exist
+  float continentMap = noise(sphereDir * 1.2f); // Slow rolling waves
+  float landmask = smoothstep(0.4f, 0.6f, continentMap); // Sharpen the coastlines
+
+  // 2. Mountain map level (2 octabes of F1 Voronoi + FBM displacement)
+  // The FBM displacement acts as "domain warping" to twist and bend the mountain ranges
+  vec3 fbmOffset = vec3(
+    fbm(sphereDir * 3.f, cfg.octaves),
+    fbm(sphereDir * 3.f + vec3(12.5f), cfg.octaves),
+    fbm(sphereDir * 3.f + vec3(45.1f), cfg.octaves)
+  ) * 0.25f; // Controls how much the mountain ranges twist and curve across continents
+
+  vec3 distortedSphereDir = sphereDir + fbmOffset;
+
+  // 2 octaves of F1 Voronoi noise
+  float voronoiLayer1 = voronoi(distortedSphereDir * 5.f);
+  float voronoiLayer2 = voronoi(distortedSphereDir * 10.5f);
+
+  // Combine octaves (0.7 weight on base, 0.3 on secondary detail)
+  float mountainBase = (voronoiLayer1 * 0.7f) + (voronoiLayer2 * 0.3f);
+
+  // Invert the Voronoi to turn valleys into sharp ridges (Ridge Noise)
+  mountainBase = 1.f - mountainBase;
+  mountainBase = pow(max(0.f, mountainBase), 2.f); // Sharpen the crests, flatten the bases
+
+  // 3. Mountain detail level (10 octaves of F1 Voronoi + Terraced Modifier)
+  // 10 octaves of F1 Voronoi gives incredible micro-ridges, mimic-ing heavy rock erosion
+  float microErosion = 0.f;
+  float amp = cfg.detailInitAmplitude;
+  float freq = cfg.detailInitFrequency;
+  for (int i = 0; i < cfg.detailOctaves; i++) {
+    microErosion += (1.f - voronoi(sphereDir * freq)) * amp;
+    amp *= cfg.detailGain;
+    freq *= cfg.detailLacunarity;
+  }
+
+  // The Terraced Modifier: Truncates smooth vertical lines into staircase steps (Layers of stone)
+  // Floor tricks the float into stepping every 0.1 units, creating canyon ledges
+  float steps = 15.f;
+  float terracedErosion = floor(microErosion * steps) / steps;
+  // Mix raw and terraced details so it looks like eroded stone rather than a clean staircase
+  float finalDetail = mix(microErosion, terracedErosion, 0.4f);
+
+  // 4. Combination and Ratio coupling
+  // Mountain base handles macro mountains, detail layers handle rocky surface erosion
+  float terrainProfile = mountainBase * 0.85f + finalDetail * 0.15f;
+
+  // Appy landmask so mountains only grow inland on landmasses, leaving oceans flat
+  float finalHeightFraction = terrainProfile * landmask;
+
+  return finalHeightFraction * u_heightScale;
+}
+
+const float eps = 0.001f;
+
+void main() {
+  ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(imageWrite).xy;
+
+  if (texCoord.x >= size.x || texCoord.y >= size.y)
+    return;
+
+  // [-1, 1]
+  vec2 pixelUV = vec2(texCoord) / vec2(size - 1) * 2.f - 1.f;
+
+  vec2 nodeUV = pixelUV * u_nodeExtents + u_nodeCenter;
+  vec3 sphereDir = normalize(cubeToSphere(nodeUV, u_nodeFaceIdx));
+  float centerHeight = evaluateHeight(sphereDir);
+
+  vec3 sphereDirX = normalize(cubeToSphere(nodeUV + vec2(eps, 0.f), u_nodeFaceIdx));
+  vec3 sphereDirY = normalize(cubeToSphere(nodeUV + vec2(0.f, eps), u_nodeFaceIdx));
+
+  float heightX = evaluateHeight(sphereDirX);
+  float heightY = evaluateHeight(sphereDirY);
+
+  vec3 posCenter = sphereDir  * (u_planetRadius + centerHeight);
+  vec3 posX      = sphereDirX * (u_planetRadius + heightX);
+  vec3 posY      = sphereDirY * (u_planetRadius + heightY);
+
+  vec3 normal = normalize(cross(posY - posCenter, posX - posCenter));
+
+  imageStore(imageWrite, ivec3(texCoord, u_layer), vec4(centerHeight, normal));
+}
+

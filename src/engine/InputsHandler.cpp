@@ -56,6 +56,11 @@ void InputsHandler::keyCallback(GLFWwindow* window, int key, int scancode, int a
           global::drawGrid = !global::drawGrid;
         }
         break;
+      case GLFW_KEY_3:
+        if (action == GLFW_PRESS) {
+          global::drawWorldAxis = !global::drawWorldAxis;
+        }
+        break;
     }
   }
 

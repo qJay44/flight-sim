@@ -11,6 +11,7 @@ float time = 0.f;
 bool wireframeMode = false;
 bool guiFocused = false;
 bool drawGrid = false;
+bool drawWorldAxis = false;
 
 bool jetDrawHUD = true;
 bool jetDrawDebugMass = false;

@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "MeshData.hpp"
+#include "global.hpp"
 
 namespace meshes {
 
@@ -10,7 +11,7 @@ MeshArrays line(vec3 p1, vec3 p2) {
   vertex::P vertices[] = {{p1}, {p2}};
 
   MeshData data;
-  data.vertices = (float*)vertices;
+  data.vertices = vertices;
   data.verticesSize = sizeof(vertices);
   data.layout = vertices[0].getLayout();
   data.mode = GL_LINES;
@@ -32,7 +33,7 @@ MeshElements rectangle() {
   };
 
   MeshData data{};
-  data.vertices = (float*)vertices;
+  data.vertices = vertices;
   data.verticesSize = sizeof(vertices);
   data.indices = indices;
   data.indicesSize = sizeof(indices);
@@ -41,8 +42,8 @@ MeshElements rectangle() {
   return MeshElements(data);
 }
 
-MeshElements plane(size_t resolution, GLenum mode, vec3 up) {
-  std::vector<vertex::PT> vertices;
+MeshElements plane(size_t resolution, GLenum mode) {
+  std::vector<vertex::P> vertices;
   std::vector<GLuint> indices;
   size_t triIndex = 0;
 
@@ -87,30 +88,24 @@ MeshElements plane(size_t resolution, GLenum mode, vec3 up) {
   vertices.resize(resolution * resolution);
   indices.resize((resolution - 1) * (resolution - 1) * indicesPerQuad);
 
-  up = -up; // To achieve CCW without messing inside the loop
-  vec3 axisA = vec3(up.y, up.z, up.x);
-  vec3 axisB = cross(up, axisA);
+  float invRes1 = 1.f / (resolution - 1.f);
 
-  for (size_t y = 0; y < resolution; y++) {
-    float percentY = y / (resolution - 1.f);
-    vec3 pY = (percentY - 0.5f) * 2.f * axisB;
+  for (size_t z = 0; z < resolution; z++) {
+    float v = z * invRes1;
 
     for (size_t x = 0; x < resolution; x++) {
-      size_t idx = x + y * resolution;
-      float percentX = x / (resolution - 1.f);
-      vec3 pX = (percentX - 0.5f) * 2.f * axisA;
+      size_t idx = x + z * resolution;
+      float u = x * invRes1;
 
-      vertex::PT& vert = vertices[idx];
-      vert.position = up + pX + pY;
-      vert.texture = {percentX, percentY};
+      vertices[idx].position = vec3(u, 0.f, v) * 2.f - 1.f;
 
-      if (x != resolution - 1 && y != resolution - 1)
+      if (x != resolution - 1 && z != resolution - 1)
         appendIndicesFunc(idx);
     }
   }
 
   MeshData data;
-  data.vertices = (float*)vertices.data();
+  data.vertices = vertices.data();
   data.verticesSize = vertices.size() * sizeof(vertices[0]);
   data.indices = indices.data();
   data.indicesSize = indices.size() * sizeof(indices[0]);
@@ -131,10 +126,24 @@ MeshArrays circle(int resolution) {
   }
 
   MeshData data;
-  data.vertices = (float*)vertices.data();
+  data.vertices = vertices.data();
   data.verticesSize = vertices.size() * sizeof(vertices[0]);
   data.layout = vertices[0].getLayout();
   data.mode = GL_TRIANGLE_FAN;
+
+  return MeshArrays(data);
+}
+
+MeshArrays axis() {
+  std::vector<vertex::P> vertices {
+    {vec3{0.f}}, {global::right},
+    {vec3{0.f}}, {global::up},
+    {vec3{0.f}}, {global::forward}
+  };
+
+  MeshData data(vertices);
+  data.layout = vertices[0].getLayout();
+  data.mode = GL_LINES;
 
   return MeshArrays(data);
 }

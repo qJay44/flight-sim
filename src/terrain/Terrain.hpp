@@ -1,8 +1,12 @@
 #pragma once
 
 #include "../engine/Camera.hpp"
+#include "../engine/mesh/meshes.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
 #include "GenerationManager.hpp"
+#include "quadtree.hpp"
+
+#define TERRAIN_MAX_NODES 512
 
 struct gui;
 
@@ -10,48 +14,38 @@ namespace terrain {
 
 class Terrain {
 public:
-  Terrain(int bufferSize, int rings);
+  Terrain(float planetRadius);
 
   void update(const Camera* cam);
+  void reload();
 
-  void drawCore(const Camera* cam, Shader& shader) const;
-  void drawCoreShadow(const Camera* cam, Shader& shader) const;
-  void drawRings(const Camera* cam, Shader& shader) const;
-  void drawRingsShadow(const Camera* cam, Shader& shader) const;
+  void draw(const Camera* cam, Shader& shader) const;
   void drawPostprocess(const Camera* cam, Shader& shader) const;
 
 private:
   friend struct ::gui;
 
   struct {
-    BufferObject cmd{GL_DRAW_INDIRECT_BUFFER};
-  } ibo;
+    BufferObject nodesData{GL_UNIFORM_BUFFER};
+  } ubo;
 
-  struct DrawElementsIndirectCommand {
-    uint count = 0;
-    uint instanceCount = 0;
-    uint firstIndex = 0;
-    int baseVertex = 0;
-    uint baseInstance = 0;
+  Quadnode quadtrees[6] = {
+    {Quadnode::Right},
+    {Quadnode::Left},
+    {Quadnode::Top},
+    {Quadnode::Bottom},
+    {Quadnode::Front},
+    {Quadnode::Back},
   };
 
-  struct {
-    vec2 gridAnchor{};
-    vec2 globalOffsetUV{};
-  } pending;
+  std::vector<NodeData> leafs;
+  MeshElementsInstancing chunkMesh = meshes::plane(128);
 
-  int bufferSize;
-  int rings;
-  vec2 gridAnchor{};
-  vec2 globalOffsetUV{};
-  float chunkSize = 64.f;
+  float planetRadiusPercent = 0.02f;
+  float seaThreshold = 0.05f;     // Percentage of [heightScale]
+  float sandThreshold = 0.08f;    // Percentage of [heightScale]
+  float mountainThreshold = 0.6f; // Percentage of [heightScale]
 
-  GenerationManager texManager;
-
-  MeshElementsInstancing meshCore;
-  MeshElements meshRing;
-
-  float heightScale = 0.5f;
   float waterShoreScale = 0.06f;
   float waterRefractionScale = 0.082;
   float waterRefractionDistortScale = 0.05f;
@@ -63,6 +57,7 @@ private:
   float fogDensityFalloff = 2e-4f;
   float horizonThickness = 50.f;
   float horizonFalloff = 10.f;
+  float atmosphereScale = 1.2f;
 
   vec2 cliffEdges  {0.40f , 0.52f};
   vec2 dirtEdges   {0.60f , 0.00f}; // inversed
@@ -72,10 +67,7 @@ private:
   vec2 grass1Edges {0.30f , 0.00f}; // inversed, GRASS_HEIGHT offset
   vec2 grass2Edges {0.30f , 0.00f};
 
-  bool debugLOD = false;
-
-private:
-  void setTerrainUniforms(Shader& shader) const;
+  bool enablePostprocess = true;
 };
 
 } // terrain

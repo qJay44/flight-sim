@@ -39,6 +39,10 @@ void Texture::clear() {
 const GLuint& Texture::getId() const { return id; }
 const GLenum& Texture::getTarget() const { return target; }
 
+bool Texture::isGenerated() const {
+  return id != 0;
+}
+
 ivec2 Texture::getSize(GLint mipLevel) const {
   ivec2 res;
 

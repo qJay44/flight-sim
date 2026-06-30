@@ -4,6 +4,7 @@
 #include "glm/exponential.hpp"
 #include "glm/geometric.hpp"
 #include "global.hpp"
+#include "../terrain/shared.hpp"
 
 FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont, Shader* textShader)
   : Moveable({}, -PI_2, 0.f),
@@ -14,8 +15,7 @@ FighterJet::FighterJet(const fspath& fbxFilepath, float jetMass, Font* textFont,
   camera.setPosition(body.getPosition() + vec3(0.577f) * camDistance);
   camera.setOrientation(vec3(-0.577f));
   camera.setUp(vec3(0.f, 1.f, 0.f));
-  camera.setNearPlane(2.f);
-  camera.setFarPlane(10000.f);
+  camera.setNearPlane(0.1f);
   camera.update();
 }
 
@@ -78,6 +78,8 @@ void FighterJet::toggleFlaps() {
 }
 
 void FighterJet::update() {
+  camera.setFarPlane(terrain::planetRadius * 20.f);
+
   body.update(global::dt);
   body.isActive = isActive();
   updateHUD();
@@ -101,33 +103,39 @@ void FighterJet::drawDebugHitboxes(const Camera* camera, Shader& shader) const {
 }
 
 void FighterJet::updateHUD() {
+  float altidute = glm::length(terrain::planetPos - body.getPosition());
+  altidute -= terrain::planetRadius;
+
   hud.updateSpeed(glm::length(body.velocity));
-  hud.updateAltitude(body.getPosition().y);
+  hud.updateAltitude(altidute);
 }
 
 void FighterJet::updateCamera() {
-  float followSpeed = 25.f;
-  float lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
+  double followSpeed = 25.f;
+  double lerpFactor = 1.f - glm::exp(-followSpeed * global::dt);
 
-  vec3 jetForward = body.rigidbody.orientation * body.localOrientation;
-  vec3 jetUp = body.rigidbody.orientation * vec3(0.f, 1.f, 0.f);
+  dvec3 jetForward = body.rigidbody.orientation * body.localOrientation;
+  dvec3 jetUp = body.rigidbody.orientation * vec3(0.f, 1.f, 0.f);
   jetForward = glm::normalize(jetForward);
   jetUp = glm::normalize(jetUp);
 
   // Look slightly above
-  vec3 camOffsetDir = jetUp * 0.34202f + jetForward * -0.93969f;
+  dvec3 camOffsetDir = jetUp * 0.34202 + jetForward * -0.93969;
   camOffsetDir = glm::normalize(camOffsetDir);
 
-  vec3 relativePos = camOffsetDir * camDistance;
-  vec3 currPos = camera.getPosition();
-  vec3 targetPos = body.getPosition() + relativePos;
-  vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
+  dvec3 camPos = camera.getPosition();
+  dvec3 jetPos = body.getPosition();
+  dvec3 relativePos = camOffsetDir * (double)camDistance;
+  dvec3 targetPos = jetPos + relativePos;
+  dvec3 nextPos = glm::mix(camPos, targetPos, lerpFactor);
 
   // Keep camera look ahead when jet rolls (the jet is visually offsetted from the screen center)
-  float lookAheadDist = 2.f;
-  vec3 lookAtEye = body.getPosition() + jetForward * lookAheadDist;
-  vec3 lookAtCenter = lookAtEye - nextPos;
+  constexpr double lookAheadDist = 2.f;
+  dvec3 lookAtEye = jetPos + jetForward * lookAheadDist;
+  dvec3 lookAtCenter = lookAtEye - nextPos;
 
+  // WARNING: Apply new camera Up here?
+  // What will happen if jet flyes directly towards +y (the jet is located at +x or -x terrain face)?
   camera.setOrientation(glm::normalize(lookAtCenter));
   camera.setPosition(nextPos);
   camera.setPositionRelative(relativePos);

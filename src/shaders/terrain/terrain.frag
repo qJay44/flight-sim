@@ -1,148 +1,66 @@
 #version 460 core
 
-#include "common.glsl"
-
-#define DRAINAGE_WIDTH 0.3
-
-#define CLIFF_COLOR   vec3(0.22, 0.2,  0.2)
-#define DIRT_COLOR    vec3(0.6,  0.5,  0.4)
-#define GRASS_COLOR1  vec3(0.15, 0.3,  0.1)
-#define GRASS_COLOR2  vec3(0.4,  0.5,  0.2)
-#define SAND_COLOR    vec3(0.8,  0.7,  0.6)
-#define SNOW_COLOR    vec3(1.f)
-#define TREE_COLOR    vec3(0.12, 0.26, 0.1)
-#define DEBRIS_COLOR  vec3(1.f)
-#define AMBIENT_COLOR vec3(0.3,  0.5,  0.7)
-
 out vec4 FragColor;
 
-in vec4 v_lightSpacePos;
-in vec3 v_viewDir;
+in vec3 v_sphereDir;
 in vec2 v_uv;
-in flat uint v_meshIdx;
+in flat int v_layerIdx;
+
+layout(binding = 0) uniform sampler2DArray u_texArray;
 
 uniform vec3 u_lightDir;
-uniform vec3 u_lightColor;
-uniform vec3 u_camPos;
-uniform vec2 u_cliffEdges;
-uniform vec2 u_dirtEdges;
-uniform vec2 u_snowEdges;
-uniform vec2 u_sandEdges;
-uniform vec2 u_grass0Edges;
-uniform vec2 u_grass1Edges;
-uniform vec2 u_grass2Edges;
+uniform float u_planetRadius;
+uniform float u_seaThreshold;
+uniform float u_sandThreshold;
+uniform float u_mountainThreshold;
 uniform float u_heightScale;
-uniform bool u_debugLOD;
 
-layout(binding = 0) uniform sampler2D u_texBufferA;
-layout(binding = 1) uniform sampler2D u_texBufferB;
-layout(binding = 2) uniform sampler2DShadow u_shadowMap;
-
-// Plasma gradient: Dark blue -> Purple -> Pink -> Orange -> Yellow
-const vec3 plasma[10] = vec3[](
-  vec3(0.05, 0.02, 0.53), // Deep blue
-  vec3(0.27, 0.01, 0.62), // Purple-blue
-  vec3(0.49, 0.02, 0.67), // Dark violet
-  vec3(0.69, 0.09, 0.65), // Magenta-purple
-  vec3(0.85, 0.21, 0.54), // Hot pink
-  vec3(0.96, 0.38, 0.40), // Coral-pink
-  vec3(0.99, 0.56, 0.27), // Light orange
-  vec3(0.98, 0.75, 0.17), // Yellow-orange
-  vec3(0.95, 0.92, 0.13), // Bright yellow
-  vec3(0.94, 0.98, 0.13)  // Pale yellow
-);
-
-vec3 getNormal(vec2 texelSize, float heightCenter) {
-  float hr = texture(u_texBufferA, v_uv + vec2(texelSize.x, 0.f)).r;
-  float hu = texture(u_texBufferA, v_uv + vec2(0.f, texelSize.y)).r;
-
-  vec3 vr = vec3(texelSize.x, (hr - heightCenter) * u_heightScale, 0.f);
-  vec3 vu = vec3(0.f, (hu - heightCenter) * u_heightScale, texelSize.y);
-
-  return normalize(cross(vr, vu));
-}
-
-vec3 getSkyColor(vec3 normal) {
-  float skyHemisphere = normal.y * 0.5f + 0.5f;
-
-  vec3 skyColor = vec3(0.3f, 0.45f, 0.6f);  // Soft atmospheric blue
-  vec3 groundColor = vec3(0.15f, 0.1f, 0.08f); // Muted dirt/rock brown
-
-  return mix(groundColor, skyColor, skyHemisphere);
-}
-
-float getShadow(vec3 normal) {
-  vec3 projCoords = v_lightSpacePos.xyz / v_lightSpacePos.w;
-  projCoords = projCoords * 0.5f + 0.5f;
-
-  if (projCoords.z > 1.f)
-    return 1.f;
-
-  return texture(u_shadowMap, projCoords);
-}
+#define COLOR_DEEP_OCEAN vec3(0.05, 0.15, 0.3)
+#define COLOR_SHALLOW    vec3(0.1, 0.3, 0.5)
+#define COLOR_SAND       vec3(0.78, 0.72, 0.55)
+#define COLOR_GRASS      vec3(0.22, 0.45, 0.18)
+#define COLOR_ROCK       vec3(0.4, 0.38, 0.36)
+#define COLOR_SNOW       vec3(0.95, 0.95, 0.95)
 
 void main() {
-  if (u_debugLOD) {
-    FragColor = vec4(plasma[v_meshIdx % 10], 1.f);
-    return;
+  vec4 terrainData = texture(u_texArray, vec3(v_uv, v_layerIdx));
+  float height = terrainData.r / u_heightScale;
+  vec3 terrainNormal = normalize(terrainData.gba);
+
+  // Calculate slope (steepness)
+  // We check how much the surface normal aligns with the outward radial direction of the planet.
+  // dot = 1.0 means perfectly flat ground. dot = 0.0 means a vertical 90-degree cliff wall.
+  vec3 radialDir = normalize(v_sphereDir);
+  float flatness = max(0.f, dot(terrainNormal, radialDir));
+  float slope = 1.f - flatness;
+
+  vec3 surfaceColor = COLOR_GRASS;
+
+  // Sea level thresholds
+  if (height < u_seaThreshold) {
+    float waterDeepness = smoothstep(0.f, u_seaThreshold, height);
+    surfaceColor = mix(COLOR_DEEP_OCEAN, COLOR_SHALLOW, waterDeepness);
+  // Beaches / Sand
+  } else if (height < u_sandThreshold) {
+    float sandToGrass = smoothstep(u_seaThreshold, u_sandThreshold, height);
+    surfaceColor = mix(COLOR_SAND, COLOR_GRASS, sandToGrass);
+  } else {
+    float slopeWeight =  smoothstep(0.25f, 0.6f, slope);
+    surfaceColor = mix(COLOR_GRASS, COLOR_ROCK, slopeWeight);
+
+    // Mountains
+    if (height > u_mountainThreshold) {
+      float snowBlend = smoothstep(u_mountainThreshold, 0.90f, height);
+      float cliffWeight = smoothstep(0.35f, 0.15f, slope);
+      vec3 highAltitudeColor = mix(COLOR_ROCK, COLOR_SNOW, cliffWeight);
+      surfaceColor = mix(surfaceColor, highAltitudeColor, snowBlend);
+    }
   }
 
-  vec2 texelSize = 1.f / textureSize(u_texBufferA, 0).xy;
-  float worldPosDist = length(v_viewDir);
-  vec3 viewDir = v_viewDir / worldPosDist;
+  float diffuse = max(0.f, dot(terrainNormal, u_lightDir));
+  float ambient = 0.1f;
 
-  vec4 bufA = texture(u_texBufferA, v_uv);
-  float height  = bufA.r;
-  float ridge   = bufA.g;
-  float trees   = bufA.b;
-  float erosion = bufA.a * 2.f - 1.f;
-  float drainage = saturate((1.f - saturate(ridge / DRAINAGE_WIDTH)) * 1.5f);
-  float diff = u_camPos.y - height;
-  vec3 normal = getNormal(texelSize, height);
-
-  vec4 breakupTex = texture(u_texBufferB, v_uv);
-  float breakup = breakupTex.x;
-
-  float occlusion = saturate(erosion + 0.5f);
-  float tree = max(0.f, trees * 2.f - 1.f);
-
-  float cliffMask  = smoothstep(u_cliffEdges.x, u_cliffEdges.y, height);
-  float dirtMask   = smoothstep_inv(u_dirtEdges.x, u_dirtEdges.y, occlusion + breakup * 1.5f);
-  float snowMask   = smoothstep(u_snowEdges.x, u_snowEdges.y, height + breakup * 0.1f);
-  float sandMask   = smoothstep_inv(WATER_HEIGHT + u_sandEdges.x, WATER_HEIGHT + u_sandEdges.y, height + breakup * 0.01f);
-  float grassMask0 = smoothstep(u_grass0Edges.x, u_grass0Edges.y, height - erosion * 0.05f + breakup * 0.3f);
-  float grassMask1 = smoothstep_inv(GRASS_HEIGHT + u_grass1Edges.x, GRASS_HEIGHT + u_grass1Edges.y, height + 0.01f + (occlusion - 0.8f) * 0.05f - breakup * 0.02f);
-  float grassMask2 = smoothstep(u_grass2Edges.x, u_grass2Edges.y, 1.f - (1.f - normal.y) * (1.f - trees) + breakup * 0.1f);
-  float treeMask   = saturate(trees * 2.2f - 0.8f) * 0.6f;
-
-  vec3 grassMix = mix(GRASS_COLOR1, GRASS_COLOR2, grassMask0);
-
-  vec3 diffuseColor = CLIFF_COLOR * cliffMask;
-  diffuseColor = mix(diffuseColor, DIRT_COLOR, dirtMask);
-  diffuseColor = mix(diffuseColor, SNOW_COLOR, snowMask);
-  diffuseColor = mix(diffuseColor, SAND_COLOR, sandMask);
-  diffuseColor = mix(diffuseColor, grassMix, grassMask1 * grassMask2);
-  diffuseColor = mix(diffuseColor, TREE_COLOR * pow(trees, 8.f), treeMask);
-  diffuseColor *= 1.f + breakup * 0.5f;
-
-  // Drainage (rivers, creeks, debris flow)
-  diffuseColor = mix(diffuseColor, DEBRIS_COLOR, drainage);
-
-  // Ambient
-  vec3 ambientColor = diffuseColor * Fd_Lambert() * getSkyColor(normal) * occlusion;
-
-  vec3 f0 = vec3(0.04f);
-  float smoothness = 0.1f;
-  // float shadow = getShadow(normal);
-  float shadow = 1.f;
-  vec3 directColor = Shade(diffuseColor, f0, smoothness, normal, -viewDir, u_lightDir, u_lightColor * shadow);
-
-  // Bounce
-  vec3 bounceColor = diffuseColor * u_lightColor
-    * (dot(normal, u_lightDir * vec3(1.f, -1.f, 1.f)) * 0.5f + 0.5f)
-    * Fd_Lambert() / PI;
-
-  vec3 color = ambientColor + directColor + bounceColor;
+  vec3 color = surfaceColor * (diffuse + ambient);
 
   FragColor = vec4(color, 1.f);
 }

@@ -11,6 +11,7 @@
 #include "glm/trigonometric.hpp"
 #include "global.hpp"
 #include "utils/types.hpp"
+#include "../terrain/shared.hpp"
 
 static vec3 projectOnPlane(vec3 vec, vec3 normal) {
   vec3 n = glm::normalize(normal);
@@ -77,7 +78,7 @@ FighterJetBody::FighterJetBody(const fspath& fbxFilepath, vec3 orientation, floa
 
   rigidbody.mass = totalMass;
   rigidbody.inverseMass = totalMass == 0.f ? 0.f : 1.f / totalMass;
-  rigidbody.position.y = 500.f;
+  rigidbody.position.y = (terrain::planetRadius + terrain::heightScale) * 1.1f;
   rigidbody.localInertia = { 471906.f, 684784.f, 212878.f }; // Calculate at runtime?
   rigidbody.drag = 0.02f;
 
@@ -132,8 +133,11 @@ void FighterJetBody::update(float dt) {
   updateSteering(dt);
   updateForceFromParts(dt);
 
-  rigidbody.addForce({0.f, -9.81f * rigidbody.mass * 2.f, 0.f});
-  rigidbody.update(dt, cfg.meshScale * 10000.f); // idk
+  vec3 planetDir = glm::normalize(terrain::planetPos - rigidbody.position); // Towards planet
+  vec3 planetForce = planetDir * vec3(0.f, 9.81f * rigidbody.mass, 0.f);
+
+  rigidbody.addForce(planetForce);
+  rigidbody.update(dt, cfg.meshScale * 10000.f); // HACK: idk
 
   updateMesh(dt);
 
@@ -141,15 +145,15 @@ void FighterJetBody::update(float dt) {
 }
 
 void FighterJetBody::draw(DrawMesh type, const Camera* camera, Shader& shader) const {
-  mat4 proj = glm::perspective(glm::radians(camera->getFov()), camera->getAspectRatio(), 0.1f, camera->getFarPlane());
-  shader.setUniformMatrix4f("u_jetProj", proj);
-
   mat4 worldTranslation = glm::translate(mat4(1.f), rigidbody.position);
   mat4 localView;
-  if (isActive)
+  if (isActive) {
     localView = camera->getLocalView(camera->getPositionRelative());
-  else
-    localView = camera->getLocalView(camera->getPosition() - rigidbody.position);
+  } else {
+    dvec3 camPos = camera->getPosition();
+    dvec3 jetPos = rigidbody.position;
+    localView = camera->getLocalView(camPos - jetPos);
+  }
 
   for (const AircraftPart* part : parts)
     part->draw(type, worldTranslation, localView, camera, shader);
@@ -304,22 +308,26 @@ void FighterJetBody::updateForceFromParts(float dt) {
       worldPos + rigidbody.orientation * vec3{-bbSizeH.x,  bbSizeH.y, -bbSizeH.z},
     };
 
-    float lowestY = corners[0].y;
+    float lowestHeightSq = glm::distance2(terrain::planetPos, corners[0]);
     vec3 contactCorner{};
+
     for (const vec3& corner : corners) {
-      if (corner.y < lowestY) {
-        lowestY = corner.y;
+      float heightSq = glm::distance2(terrain::planetPos, corner);
+      if (heightSq < lowestHeightSq) {
+        lowestHeightSq = heightSq;
         contactCorner = corner;
       }
     }
 
-    if (lowestY < cfg.groundHeight) {
-      float depth = cfg.groundHeight - lowestY;
+    float groundHeight = terrain::planetRadius;
+    float groundHeightSq = groundHeight * groundHeight;
+    if (lowestHeightSq < groundHeightSq) {
+      float depthSq = groundHeightSq - lowestHeightSq;
       // rigidbody.position.y += depth;
 
       vec3 r = contactCorner - rigidbody.position;
       vec3 f{};
-      f.y = depth * cfg.stiffness;
+      f.y = sqrtf(depthSq) * cfg.stiffness;
 
       rigidbody.addForce(f);
       rigidbody.addTorque(cross(r, f));

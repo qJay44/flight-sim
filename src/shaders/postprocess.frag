@@ -33,7 +33,10 @@ uniform float u_fogDensity;
 uniform float u_fogDensityFalloff;
 uniform float u_horizonThickness;
 uniform float u_horizonFalloff;
+uniform float u_planetRadius;
+uniform float u_atmosphereScale;
 uniform float u_time;
+uniform bool u_enable;
 
 const vec3 globalUP = vec3(0.f, 1.f, 0.f);
 
@@ -95,38 +98,42 @@ float getExponentialDensityIntegral(Ray ray, float rayLength) {
 }
 
 void main() {
+  vec3 color = texture(u_texTerrainColor, v_uv).rgb;
+  if (!u_enable) {
+    FragColor = vec4(color, 1.f);
+    return;
+  }
+
   Ray ray = Ray(u_camPos, normalize(v_rayDir));
 
   float depth = texture(u_texTerrainDepth, v_uv).r;
   float t_terrain = linearizeDepth(depth) / dot(ray.dir, u_camForward);
-  float t_water = getWaterDist(ray);
-
-  vec3 color = texture(u_texTerrainColor, v_uv).rgb;
+  // float t_water = getWaterDist(ray);
   float dist = t_terrain;
 
-  if (t_water > 0.f && t_water < t_terrain) {
-    vec3 waterPos = ray.origin + t_water * ray.dir;
-    vec3 normal = getWaterNormal(waterPos, u_time);
-    float waterDepth = t_terrain - t_water;
+  // if (t_water > 0.f && t_water < t_terrain) {
+  //   vec3 waterPos = ray.origin + t_water * ray.dir;
+  //   vec3 normal = getWaterNormal(waterPos, u_time);
+  //   float waterDepth = t_terrain - t_water;
 
-    vec3 sunRefl = reflect(u_lightDir, normal);
-    float sunSpec = pow(max(0.f, dot(ray.dir, sunRefl)), 128.f) * u_sunIntensity;
+  //   vec3 sunRefl = reflect(u_lightDir, normal);
+  //   float sunSpec = pow(max(0.f, dot(ray.dir, sunRefl)), 128.f) * u_sunIntensity;
 
-    vec2 distortUV = v_uv + normal.xz * u_waterRefractionDistortScale * saturate(waterDepth);
-    vec3 groundColor = texture(u_texTerrainColor, distortUV).rgb;
+  //   vec2 distortUV = v_uv + normal.xz * u_waterRefractionDistortScale * saturate(waterDepth);
+  //   vec3 groundColor = texture(u_texTerrainColor, distortUV).rgb;
 
-    float shore = exp(-waterDepth * u_waterShoreScale);
-    float refr = exp(-waterDepth * u_waterRefractionScale);
+  //   float shore = exp(-waterDepth * u_waterShoreScale);
+  //   float refr = exp(-waterDepth * u_waterRefractionScale);
 
-    color = mix(WATER_COLOR, WATER_SHORE_COLOR, shore);
-    color = mix(color, groundColor, refr);
+  //   color = mix(WATER_COLOR, WATER_SHORE_COLOR, shore);
+  //   color = mix(color, groundColor, refr);
 
-    color += sunSpec * u_lightColor * 0.95f;
+  //   color += sunSpec * u_lightColor * 0.95f;
 
-    dist = min(t_water, u_camFar);
-  }
+  //   dist = min(t_water, u_camFar);
+  // }
 
-  float atmosphereHeight = 8000.f;
+  float atmosphereHeight = u_planetRadius * u_atmosphereScale;
   float zenithAngle = max(0.03f, ray.dir.y);
   float maxAtmoDist = atmosphereHeight / zenithAngle;
 

@@ -91,7 +91,6 @@ private:
   struct Config {
     float throttle = 0.f;
     float maxThrust = 1.f;
-    float groundHeight = 0.f;
     float stiffness = 100000.f;
     float airbrakeDrag = 1.f;
     float flapsDrag = 2.f;

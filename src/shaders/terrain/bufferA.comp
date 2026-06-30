@@ -44,7 +44,7 @@ uniform vec2 u_offset;
 uniform float u_heightmapScale;
 uniform int u_currOffsetY;
 
-// ----- Pacell Noise Function ---------------------------------------------------------------------------------- //
+// ----- Phacell Noise Function --------------------------------------------------------------------------------- //
 
 vec4 PhacelleNoise(vec2 p, vec2 normDir, float freq, float offset, float normalization)  {
   vec2  sideDir = normDir.yx * vec2(-1.f, 1.f) * freq * TAU;

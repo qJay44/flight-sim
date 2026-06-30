@@ -32,14 +32,14 @@ vec3 Moveable::getRight()   const { return normalize(cross(up, -orientation));};
 vec3 Moveable::getForward() const { return getOrientation();};
 vec3 Moveable::getDown()    const { return -getUp();};
 
-void Moveable::setSpeedDefault(float n)      { speedDefault = n;   }
-void Moveable::setSpeedMultiplier(float n)   { speedMul     = n;   }
-void Moveable::setSensitivity(float n)       { sensitivity  = n;   }
-void Moveable::setYaw(float n)               { yaw          = n;   }
-void Moveable::setPitch(float n)             { clampPitchRad(pitch += n); }
-void Moveable::setOrientation(const vec3& o) { orientation  = o;   }
-void Moveable::setPosition(const vec3& pos)  { position     = pos; }
-void Moveable::setUp(const vec3& up)         { this->up     = up;  }
+void Moveable::setSpeedDefault(float n)    { speedDefault = n;   }
+void Moveable::setSpeedMultiplier(float n) { speedMul     = n;   }
+void Moveable::setSensitivity(float n)     { sensitivity  = n;   }
+void Moveable::setYaw(float n)             { yaw          = n;   }
+void Moveable::setPitch(float n)           { clampPitchRad(pitch += n); }
+void Moveable::setOrientation(vec3 o)      { orientation  = o;   }
+void Moveable::setPosition(vec3 pos)       { position     = pos; }
+void Moveable::setUp(vec3 up)              { this->up     = up;  }
 
 void Moveable::setView(const Moveable* rhs) {
   up = rhs->up;

@@ -1,84 +1,62 @@
 #include "Terrain.hpp"
 
-#include "../engine/mesh/meshes.hpp"
-#include "GenerationManager.hpp"
-#include "Terrain.hpp"
-#include "glm/common.hpp"
+#include <cassert>
+
+#include "glm/ext/matrix_transform.hpp"
+#include "shared.hpp"
+#include "quadtree.hpp"
 
 namespace terrain {
 
-Terrain::Terrain(int bufferSize, int rings) : bufferSize(bufferSize), rings(rings) {
-  texManager = GenerationManager(bufferSize);
-  texManager.setHeightmapScale(5.f);
-  texManager.generateInit();
+Terrain::Terrain(float planetRadius) {
+  enablePostprocess = false;
+  terrain::planetRadius = planetRadius;
 
-  heightScale = 300.f;
-
-  meshCore = meshes::plane(128);
-  meshCore.setInstanceCount(16);
-
-  meshRing = meshes::plane(128);
-
-  std::vector<DrawElementsIndirectCommand> cmds(rings);
-  for (int i = 0; i < rings; i++) {
-    auto& cmd = cmds[i];
-    cmd.count = meshRing.getElementCount();
-    cmd.instanceCount = 12;
-    cmd.baseInstance = 12 * i;
-  }
-
-  ibo.cmd.storage(cmds.data(), cmds.size() * sizeof(DrawElementsIndirectCommand), 0);
+  Quadnode::gm = GenerationManager(160);
+  ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 }
 
 void Terrain::update(const Camera* cam) {
-  const vec3& camPos = cam->getPosition();
-  vec2 snap = glm::floor(vec2{camPos.x, camPos.z} / chunkSize) * chunkSize;
-  vec2 movementDelta = snap - gridAnchor;
+  heightScale = planetRadius * planetRadiusPercent;
+  leafs.clear();
 
-  using enum GenerationManager::Status;
-  texManager.checkStatus();
-
-  if (glm::length2(movementDelta) >= chunkSize * chunkSize) {
-    float totalWorldWidth = 4.f * glm::exp2(rings) * chunkSize;
-    globalOffsetUV -= movementDelta / totalWorldWidth;
-    gridAnchor = snap;
-
-    int pixelsPerChunk = bufferSize / 16;
-    ivec2 chunkDelta = ivec2(glm::round(movementDelta / chunkSize));
-    ivec2 pixelDelta = chunkDelta * pixelsPerChunk;
-
-    texManager.generate(pixelDelta, pending.globalOffsetUV);
+  for (Quadnode& quadtree : quadtrees) {
+    quadtree.insert(cam->getPosition());
+    quadtree.gatherLeafs(leafs);
   }
+
+  assert(leafs.size() <= TERRAIN_MAX_NODES);
+  ubo.nodesData.updateSubData(leafs.data(), leafs.size() * sizeof(NodeData));
+  chunkMesh.setInstanceCount(leafs.size());
 }
 
-void Terrain::drawCore(const Camera* cam, Shader& shader) const {
-  setTerrainUniforms(shader);
-  texManager.bindTextures();
+void Terrain::reload() {
+  Quadnode::gm.freeSlotAll();
+  Quadnode::gm.update();
 
-  meshCore.draw(cam, shader);
+  quadtrees[0] = {Quadnode::Right};
+  quadtrees[1] = {Quadnode::Left};
+  quadtrees[2] = {Quadnode::Top};
+  quadtrees[3] = {Quadnode::Bottom};
+  quadtrees[4] = {Quadnode::Front};
+  quadtrees[5] = {Quadnode::Back};
 }
 
-void Terrain::drawCoreShadow(const Camera* cam, Shader& shader) const {
-  setTerrainUniforms(shader);
-  texManager.bindTextures();
+void Terrain::draw(const Camera* cam, Shader& shader) const {
+  mat4 localView = cam->getLocalView(vec3(0.f));
+  mat4 localTranslation = glm::translate(mat4(1.f), terrain::planetPos - cam->getPosition());
 
-  meshCore.draw(cam, shader);
-}
+  shader.setUniform1f("u_planetRadius", planetRadius);
+  shader.setUniform1f("u_heightScale", heightScale);
+  shader.setUniform1f("u_seaThreshold", seaThreshold);
+  shader.setUniform1f("u_sandThreshold", sandThreshold);
+  shader.setUniform1f("u_mountainThreshold", mountainThreshold);
+  shader.setUniformMatrix4f("u_localView", localView);
+  shader.setUniformMatrix4f("u_localTranslation", localTranslation);
 
-void Terrain::drawRings(const Camera* cam, Shader& shader) const {
-  setTerrainUniforms(shader);
-  texManager.bindTextures();
-
-  ibo.cmd.bindBaseAs(GL_SHADER_STORAGE_BUFFER, 0);
-  meshRing.drawMultiIndirect(cam, shader, ibo.cmd, rings);
-}
-
-void Terrain::drawRingsShadow(const Camera* cam, Shader& shader) const {
-  setTerrainUniforms(shader);
-  texManager.bindTextures();
-
-  ibo.cmd.bindBaseAs(GL_SHADER_STORAGE_BUFFER, 0);
-  meshRing.drawMultiIndirect(cam, shader, ibo.cmd, rings);
+  Quadnode::gm.bindTexture();
+  ubo.nodesData.bindBase(0);
+  chunkMesh.draw(cam, shader);
 }
 
 void Terrain::drawPostprocess(const Camera* cam, Shader& shader) const {
@@ -97,26 +75,12 @@ void Terrain::drawPostprocess(const Camera* cam, Shader& shader) const {
   shader.setUniform1f("u_fogDensityFalloff", fogDensityFalloff);
   shader.setUniform1f("u_horizonThickness", horizonThickness);
   shader.setUniform1f("u_horizonFalloff", horizonFalloff);
+  shader.setUniform1f("u_planetRadius", planetRadius);
+  shader.setUniform1f("u_atmosphereScale", atmosphereScale);
+  shader.setUniform1i("u_enable", enablePostprocess);
   shader.setUniformMatrix4f("u_invPV", glm::inverse(camProj * localView));
 
   Mesh::drawScreen(cam, shader);
-}
-
-void Terrain::setTerrainUniforms(Shader& shader) const {
-  shader.setUniform1f("u_chunkSize", chunkSize);
-  shader.setUniform1f("u_heightScale", heightScale);
-  shader.setUniform1f("u_heightmapScale", texManager.getHeightmapScale());
-  shader.setUniform1i("u_rings", rings);
-  shader.setUniform1i("u_debugLOD", debugLOD);
-  shader.setUniform2f("u_globalOffsetUV", globalOffsetUV);
-  shader.setUniform2f("u_gridAnchor", gridAnchor);
-  shader.setUniform2f("u_cliffEdges", cliffEdges);
-  shader.setUniform2f("u_dirtEdges", dirtEdges);
-  shader.setUniform2f("u_snowEdges", snowEdges);
-  shader.setUniform2f("u_sandEdges", sandEdges);
-  shader.setUniform2f("u_grass0Edges", grass0Edges);
-  shader.setUniform2f("u_grass1Edges", grass1Edges);
-  shader.setUniform2f("u_grass2Edges", grass2Edges);
 }
 
 } // terrain
