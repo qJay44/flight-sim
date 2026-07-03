@@ -8,18 +8,24 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba32f, binding = 0) writeonly uniform image2DArray imageWrite;
 
 struct Config {
+  float continentFreq;
   float initAmplitude;
   float initFrequency;
   float gain;
   float lacunarity;
-  float amplitudeMult;
-  float frequencyMult;
+  float canyonSteps;
+  float fbmOffsetFreq0;
+  float fbmOffsetFreq1;
+  float fbmOffsetFreq2;
+  float fbmOffsetOffset1;
+  float fbmOffsetOffset2;
+  float fbmOffsetTwist;
+  float f1VoronoiFreq;
+  float f2VoronoiFreq;
   float detailInitAmplitude;
   float detailInitFrequency;
   float detailGain;
   float detailLacunarity;
-  float detailAmplitudeMult;
-  float detailFrequencyMult;
   int octaves;
   int detailOctaves;
 };
@@ -119,22 +125,22 @@ float fbm(vec3 p, int octaves) {
 float evaluateHeight(vec3 sphereDir) {
   // 1. Continent level (Very low frequency)
   // Determines where oceans (0.0) and landmasses (1.0) exist
-  float continentMap = noise(sphereDir * 1.2f); // Slow rolling waves
-  float landmask = smoothstep(0.4f, 0.6f, continentMap); // Sharpen the coastlines
+  float continentMap = noise(sphereDir * cfg.continentFreq); // Slow rolling waves
+  float landmask = smoothstep(0.42f, 0.55f, continentMap); // Sharpen the coastlines
 
   // 2. Mountain map level (2 octabes of F1 Voronoi + FBM displacement)
   // The FBM displacement acts as "domain warping" to twist and bend the mountain ranges
   vec3 fbmOffset = vec3(
-    fbm(sphereDir * 3.f, cfg.octaves),
-    fbm(sphereDir * 3.f + vec3(12.5f), cfg.octaves),
-    fbm(sphereDir * 3.f + vec3(45.1f), cfg.octaves)
-  ) * 0.25f; // Controls how much the mountain ranges twist and curve across continents
+    fbm(sphereDir * cfg.fbmOffsetFreq0, cfg.octaves),
+    fbm(sphereDir * cfg.fbmOffsetFreq1 + cfg.fbmOffsetOffset1, cfg.octaves),
+    fbm(sphereDir * cfg.fbmOffsetFreq2 + cfg.fbmOffsetOffset2, cfg.octaves)
+  ) * cfg.fbmOffsetTwist; // Controls how much the mountain ranges twist and curve across continents
 
   vec3 distortedSphereDir = sphereDir + fbmOffset;
 
   // 2 octaves of F1 Voronoi noise
-  float voronoiLayer1 = voronoi(distortedSphereDir * 5.f);
-  float voronoiLayer2 = voronoi(distortedSphereDir * 10.5f);
+  float voronoiLayer1 = voronoi(distortedSphereDir * cfg.f1VoronoiFreq);
+  float voronoiLayer2 = voronoi(distortedSphereDir * cfg.f2VoronoiFreq);
 
   // Combine octaves (0.7 weight on base, 0.3 on secondary detail)
   float mountainBase = (voronoiLayer1 * 0.7f) + (voronoiLayer2 * 0.3f);
@@ -156,14 +162,14 @@ float evaluateHeight(vec3 sphereDir) {
 
   // The Terraced Modifier: Truncates smooth vertical lines into staircase steps (Layers of stone)
   // Floor tricks the float into stepping every 0.1 units, creating canyon ledges
-  float steps = 15.f;
+  float steps = cfg.canyonSteps;
   float terracedErosion = floor(microErosion * steps) / steps;
   // Mix raw and terraced details so it looks like eroded stone rather than a clean staircase
   float finalDetail = mix(microErosion, terracedErosion, 0.4f);
 
   // 4. Combination and Ratio coupling
   // Mountain base handles macro mountains, detail layers handle rocky surface erosion
-  float terrainProfile = mountainBase * 0.85f + finalDetail * 0.15f;
+  float terrainProfile = mountainBase * 0.90f + finalDetail * 0.10f;
 
   // Appy landmask so mountains only grow inland on landmasses, leaving oceans flat
   float finalHeightFraction = terrainProfile * landmask;

@@ -45,7 +45,7 @@ void main() {
     float sandToGrass = smoothstep(u_seaThreshold, u_sandThreshold, height);
     surfaceColor = mix(COLOR_SAND, COLOR_GRASS, sandToGrass);
   } else {
-    float slopeWeight =  smoothstep(0.25f, 0.6f, slope);
+    float slopeWeight = smoothstep(0.25f, 0.6f, slope);
     surfaceColor = mix(COLOR_GRASS, COLOR_ROCK, slopeWeight);
 
     // Mountains

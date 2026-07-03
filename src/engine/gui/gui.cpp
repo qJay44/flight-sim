@@ -162,14 +162,24 @@ void gui::draw() {
       bool u = false;
 
       u |= ImGui::SliderFloat("Planet radius percent (height scale)", &terrainPtr->planetRadiusPercent, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 100.f);
       u |= ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 1.f);
       u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
-      u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 100.f);
       u |= ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 1.f, 10.f);
-      u |= ImGui::SliderFloat("Frequency multiplier", &cfg.frequencyMult, 1.f, 10.f);
-      u |= ImGui::SliderFloat("Amplitude multiplier", &cfg.amplitudeMult, 1.f, 100.f);
-      u |= ImGui::SliderFloat("Detail frequency multiplier", &cfg.detailFrequencyMult, 1.f, 10.f);
-      u |= ImGui::SliderFloat("Detail amplitude multiplier", &cfg.detailAmplitudeMult, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Canyon steps", &cfg.canyonSteps, 1.f, 10.f);
+      u |= ImGui::SliderFloat("Mountain displacement frequency (1)", &cfg.fbmOffsetFreq1, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Mountain displacement frequency (2)", &cfg.fbmOffsetFreq2, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Mountain displacement frequency (3)", &cfg.fbmOffsetFreq3, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Mountain displacement frequency offset (2)", &cfg.fbmOffsetOffset2, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Mountain displacement frequency offset (3)", &cfg.fbmOffsetOffset3, 1.f, 100.f);
+      u |= ImGui::SliderFloat("Mountain twist", &cfg.fbmOffsetTwist, 0.f, 1.f);
+      u |= ImGui::SliderFloat("F1 Voroni frequency (1)", &cfg.f1VoronoiFreq1, 0.f, 100.f);
+      u |= ImGui::SliderFloat("F1 Voroni frequency (2)", &cfg.f1VoronoiFreq2, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Detail start amplitude", &cfg.detailInitAmplitude, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Detail start frequency", &cfg.detailInitFrequency, 0.f, 10.f);
+      u |= ImGui::SliderFloat("Detail Amplitude gain", &cfg.detailGain, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Detail Lacunarity", &cfg.detailLacunarity, 1.f, 10.f);
       u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
       u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
 
