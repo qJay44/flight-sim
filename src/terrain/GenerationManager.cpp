@@ -1,6 +1,8 @@
 #include "GenerationManager.hpp"
 
 #include <cassert>
+#include <filesystem>
+#include <fstream>
 
 #include "../engine/Shader.hpp"
 #include "Terrain.hpp"
@@ -68,6 +70,36 @@ void GenerationManager::generate(const NodeData& node) {
 
 void GenerationManager::bindTexture(GLuint slot) const {
   texArray.bind(slot);
+}
+
+void GenerationManager::loadConfig(std::string_view name) {
+  fspath path = fspath("res/data/cfg") / name;
+
+  std::ifstream f(path);
+
+  if (f.is_open()) {
+    nlohmann::json j;
+    f >> j;
+    cfg = j.get<Config>();
+    f.close();
+  } else {
+    warning("[GenerationManager::loadConfig] Could not open the file [{}]", path.string());
+  }
+}
+
+void GenerationManager::saveConfig(std::string_view name) const {
+  fspath path = fspath("res/data/cfg") / name;
+  std::filesystem::create_directories(path.parent_path());
+
+  std::ofstream f(path);
+
+  if (f.is_open()) {
+    nlohmann::json j = cfg;
+    f << j.dump(2) << std::endl;
+    f.close();
+  } else {
+    error("[GenerationManager::saveConfig] Could not open the file [{}]", path.string());
+  }
 }
 
 } // terrain

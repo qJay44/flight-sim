@@ -59,14 +59,6 @@ private:
   float horizonFalloff = 10.f;
   float atmosphereScale = 1.2f;
 
-  vec2 cliffEdges  {0.40f , 0.52f};
-  vec2 dirtEdges   {0.60f , 0.00f}; // inversed
-  vec2 snowEdges   {0.72f , 0.81f};
-  vec2 sandEdges   {0.005f, 0.00f}; // inversed, WATER_HEIGHT offset
-  vec2 grass0Edges {0.75f , 1.00f};
-  vec2 grass1Edges {0.30f , 0.00f}; // inversed, GRASS_HEIGHT offset
-  vec2 grass2Edges {0.30f , 0.00f};
-
   bool enablePostprocess = true;
 };
 

@@ -162,6 +162,8 @@ void gui::draw() {
       bool u = false;
 
       u |= ImGui::SliderFloat("Planet radius percent (height scale)", &terrainPtr->planetRadiusPercent, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Land threshold start", &cfg.landThresholdA, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Land threshold end", &cfg.landThresholdB, 0.f, 1.f);
       u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 100.f);
       u |= ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 1.f);
       u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
@@ -171,11 +173,11 @@ void gui::draw() {
       u |= ImGui::SliderFloat("Mountain displacement frequency (1)", &cfg.fbmOffsetFreq1, 1.f, 100.f);
       u |= ImGui::SliderFloat("Mountain displacement frequency (2)", &cfg.fbmOffsetFreq2, 1.f, 100.f);
       u |= ImGui::SliderFloat("Mountain displacement frequency (3)", &cfg.fbmOffsetFreq3, 1.f, 100.f);
-      u |= ImGui::SliderFloat("Mountain displacement frequency offset (2)", &cfg.fbmOffsetOffset2, 1.f, 100.f);
-      u |= ImGui::SliderFloat("Mountain displacement frequency offset (3)", &cfg.fbmOffsetOffset3, 1.f, 100.f);
       u |= ImGui::SliderFloat("Mountain twist", &cfg.fbmOffsetTwist, 0.f, 1.f);
       u |= ImGui::SliderFloat("F1 Voroni frequency (1)", &cfg.f1VoronoiFreq1, 0.f, 100.f);
       u |= ImGui::SliderFloat("F1 Voroni frequency (2)", &cfg.f1VoronoiFreq2, 0.f, 100.f);
+      u |= ImGui::SliderFloat("F1F2 Voroni frequency (1)", &cfg.f1f2VoronoiFreq1, 0.f, 100.f);
+      u |= ImGui::SliderFloat("F1F2 Voroni frequency (2)", &cfg.f1f2VoronoiFreq2, 0.f, 100.f);
       u |= ImGui::SliderFloat("Detail start amplitude", &cfg.detailInitAmplitude, 0.f, 100.f);
       u |= ImGui::SliderFloat("Detail start frequency", &cfg.detailInitFrequency, 0.f, 10.f);
       u |= ImGui::SliderFloat("Detail Amplitude gain", &cfg.detailGain, 0.f, 100.f);
@@ -183,18 +185,24 @@ void gui::draw() {
       u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
       u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
 
+      static char bufLoad[128] = "heightmap0";
+      ImGui::InputText(".json", bufLoad, 128);
+      ImGui::SameLine();
+
+      if (ImGui::Button("Load")) {
+        terrain::Quadnode::gm.loadConfig(std::string(bufLoad) + ".json");
+        u = true;
+      }
+
+      static char bufSave[128] = "heightmap1";
+      ImGui::InputText(".json##2", bufSave, 128);
+      ImGui::SameLine();
+      if (ImGui::Button("Save"))
+        terrain::Quadnode::gm.saveConfig(std::string(bufSave) + ".json");
+
       if (u)
         terrainPtr->reload();
     }
-
-    ImGui::Separator();
-    ImGui::SliderFloat2("Cliff edges",                                 glm::value_ptr(terrainPtr->cliffEdges),  0.f, 1.f);
-    ImGui::SliderFloat2("Dirt edges (inversed)",                       glm::value_ptr(terrainPtr->dirtEdges),   0.f, 1.f);
-    ImGui::SliderFloat2("Snow edges",                                  glm::value_ptr(terrainPtr->snowEdges),   0.f, 1.f);
-    ImGui::SliderFloat2("Sand edges (inversed) water height offset",   glm::value_ptr(terrainPtr->sandEdges),   0.f, 1.f);
-    ImGui::SliderFloat2("Grass0 edges",                                glm::value_ptr(terrainPtr->grass0Edges), 0.f, 1.f);
-    ImGui::SliderFloat2("Grass1 edges (inversed) grass height offset", glm::value_ptr(terrainPtr->grass1Edges), 0.f, 1.f);
-    ImGui::SliderFloat2("Grass2 edges",                                glm::value_ptr(terrainPtr->grass2Edges), 0.f, 1.f);
   }
 
   if (ImGui::CollapsingHeader("Postprocess")) {

@@ -35,6 +35,7 @@ https://github.com/user-attachments/assets/632c67c2-2253-4ce2-be3e-ca5d21ea6790
 * https://www.youtube.com/watch?v=7vAHo2B1zLc
 * https://www.jakobmaier.at/posts/flight-simulation/
 * https://www.shadertoy.com/view/wXcfWn
+* https://gamedev.net/blogs/entry/2250847-bow-shock-a-summary-of-work-done-so-far
 
 ---
 

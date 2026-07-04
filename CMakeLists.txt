@@ -79,6 +79,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${TOL_PATH}/include
   ${PROFILER_PATH}/include
   ${PROJECT_SOURCE_DIR}/include
+  ${JSON_PATH}/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)

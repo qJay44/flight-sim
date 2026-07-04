@@ -1,13 +1,14 @@
 #version 460 core
 
-#define PI 3.141592265359f
-#define TAU (PI * 2.f)
+#include "common.glsl"
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) writeonly uniform image2DArray imageWrite;
 
 struct Config {
+  float landThresholdA;
+  float landThresholdB;
   float continentFreq;
   float initAmplitude;
   float initFrequency;
@@ -17,11 +18,11 @@ struct Config {
   float fbmOffsetFreq0;
   float fbmOffsetFreq1;
   float fbmOffsetFreq2;
-  float fbmOffsetOffset1;
-  float fbmOffsetOffset2;
   float fbmOffsetTwist;
-  float f1VoronoiFreq;
-  float f2VoronoiFreq;
+  float f1VoronoiFreq1;
+  float f1VoronoiFreq2;
+  float f1f2VoronoiFreq1;
+  float f1f2VoronoiFreq2;
   float detailInitAmplitude;
   float detailInitFrequency;
   float detailGain;
@@ -40,11 +41,6 @@ uniform int u_layer;
 layout(std140, binding = 0) uniform ConfigBlock {
   Config cfg;
 };
-
-// TODO:
-// 1. Continent Map Level
-// 2. Mountain Map Level (2 octaves of F1 Voronoi noise + FBM displacement)
-// 3. Mountain Detail Level (10 octaves of F1 Voronoi noise + Terraced modifier)
 
 vec3 cubeToSphere(vec2 pos, int faceIdx) {
   float u = pos.x;
@@ -81,10 +77,12 @@ float noise(vec3 x) {
                  mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
 }
 
-float voronoi(vec3 p) {
+vec2 voronoiF1F2(vec3 p) {
   vec3 baseCell = floor(p);
   vec3 localPos = fract(p);
-  float minDist = 1.f;
+
+  float f1 = 8.f;
+  float f2 = 8.f;
 
   for (int z = -1; z <= 1; z++) {
     for (int y = -1; y <= 1; y++) {
@@ -100,12 +98,17 @@ float voronoi(vec3 p) {
         vec3 diff = neighbour + featurePoint - localPos;
         float dist = dot(diff, diff);
 
-        minDist = min(minDist, dist);
+        if (dist < f1) {
+          f2 = f1;
+          f1 = dist;
+        } else if (dist < f2) {
+          f2 = dist;
+        }
       }
     }
   }
 
-  return sqrt(minDist);
+  return sqrt(vec2(f1, f2));
 }
 
 float fbm(vec3 p, int octaves) {
@@ -123,57 +126,76 @@ float fbm(vec3 p, int octaves) {
 }
 
 float evaluateHeight(vec3 sphereDir) {
-  // 1. Continent level (Very low frequency)
+  // ----- 1. Mountain map ----------------------------------------------------------------- //
+  //
+  // 2 octabes of F1 Voronoi + FBM displacement
+  //
+
   // Determines where oceans (0.0) and landmasses (1.0) exist
   float continentMap = noise(sphereDir * cfg.continentFreq); // Slow rolling waves
-  float landmask = smoothstep(0.42f, 0.55f, continentMap); // Sharpen the coastlines
+  float landMask = smoothstep(cfg.landThresholdA, cfg.landThresholdB, continentMap); // Sharpen the coastlines
 
-  // 2. Mountain map level (2 octabes of F1 Voronoi + FBM displacement)
   // The FBM displacement acts as "domain warping" to twist and bend the mountain ranges
   vec3 fbmOffset = vec3(
     fbm(sphereDir * cfg.fbmOffsetFreq0, cfg.octaves),
-    fbm(sphereDir * cfg.fbmOffsetFreq1 + cfg.fbmOffsetOffset1, cfg.octaves),
-    fbm(sphereDir * cfg.fbmOffsetFreq2 + cfg.fbmOffsetOffset2, cfg.octaves)
+    fbm(sphereDir * cfg.fbmOffsetFreq1 + vec3(11.5f), cfg.octaves),
+    fbm(sphereDir * cfg.fbmOffsetFreq2 + vec3(41.3f), cfg.octaves)
   ) * cfg.fbmOffsetTwist; // Controls how much the mountain ranges twist and curve across continents
+  vec3 warpedDir = sphereDir + fbmOffset;
 
-  vec3 distortedSphereDir = sphereDir + fbmOffset;
-
-  // 2 octaves of F1 Voronoi noise
-  float voronoiLayer1 = voronoi(distortedSphereDir * cfg.f1VoronoiFreq);
-  float voronoiLayer2 = voronoi(distortedSphereDir * cfg.f2VoronoiFreq);
+  // The 2 octaves of F1 Voronoi noise
+  float macroV1 = voronoiF1F2(warpedDir * cfg.f1VoronoiFreq1).x;
+  float macroV2 = voronoiF1F2(warpedDir * cfg.f1VoronoiFreq2).x;
 
   // Combine octaves (0.7 weight on base, 0.3 on secondary detail)
-  float mountainBase = (voronoiLayer1 * 0.7f) + (voronoiLayer2 * 0.3f);
+  float mountainMap = (macroV1 * 0.7f) + (macroV2 * 0.3f);
 
   // Invert the Voronoi to turn valleys into sharp ridges (Ridge Noise)
-  mountainBase = 1.f - mountainBase;
-  mountainBase = pow(max(0.f, mountainBase), 2.f); // Sharpen the crests, flatten the bases
+  mountainMap = 1.f - mountainMap;
+  // Modulate the mountain map by the continent map (leaks slightly past coasts)
+  mountainMap *= landMask + 0.15f;
 
-  // 3. Mountain detail level (10 octaves of F1 Voronoi + Terraced Modifier)
-  // 10 octaves of F1 Voronoi gives incredible micro-ridges, mimic-ing heavy rock erosion
+  // ----- 2. Mountain generation noise ------------------------------------------------- //
+  //
+  // 2 octaves of F2-F1 Voronoi
+  // multifractal of 10 octaves of F1 Voronoi
+  // 3 octaves of FBM
+  //
+
+  // The 2 octaves of F2-F1 Voronoi
+  vec2 v1 = voronoiF1F2(warpedDir * cfg.f1f2VoronoiFreq1);
+  vec2 v2 = voronoiF1F2(warpedDir * cfg.f1f2VoronoiFreq2);
+  float shape1 = v1.y - v1.x;
+  float shape2 = v2.y - v2.x;
+  float mountainShape = (shape1 * 70.f) * (shape2 * 0.30f);
+  mountainShape = pow(max(0.f, mountainShape), 2.f);
+
+  // The multifractal of 10 octaves of F1 Voronoi
   float microErosion = 0.f;
   float amp = cfg.detailInitAmplitude;
   float freq = cfg.detailInitFrequency;
   for (int i = 0; i < cfg.detailOctaves; i++) {
-    microErosion += (1.f - voronoi(sphereDir * freq)) * amp;
+    microErosion += (1.f - voronoiF1F2(sphereDir * freq).x) * amp;
     amp *= cfg.detailGain;
     freq *= cfg.detailLacunarity;
   }
 
+  // The 3 octaves of FBM
   // The Terraced Modifier: Truncates smooth vertical lines into staircase steps (Layers of stone)
-  // Floor tricks the float into stepping every 0.1 units, creating canyon ledges
-  float steps = cfg.canyonSteps;
-  float terracedErosion = floor(microErosion * steps) / steps;
-  // Mix raw and terraced details so it looks like eroded stone rather than a clean staircase
-  float finalDetail = mix(microErosion, terracedErosion, 0.4f);
+  // Floor tricks the float into stepping, creating canyon ledges
+  float terraceMask = fbm(sphereDir * 2.f, 3);
+  terraceMask = smoothstep(0.45f, 0.65f, terraceMask); // Only isolates certain mountains
+  float terracedErosion = floor(microErosion * cfg.canyonSteps) / cfg.canyonSteps;
+  // Apply terracing only where the terrace mask allows it
+  float processedDetail = mix(microErosion, terracedErosion, terraceMask * 0.65f);
 
-  // 4. Combination and Ratio coupling
-  // Mountain base handles macro mountains, detail layers handle rocky surface erosion
-  float terrainProfile = mountainBase * 0.90f + finalDetail * 0.10f;
+  // ----- 3. Composition --------------------------------------------------------------- //
 
-  // Appy landmask so mountains only grow inland on landmasses, leaving oceans flat
-  float finalHeightFraction = terrainProfile * landmask;
+  float finalMacro = mountainShape * mountainMap;
+  float finalDetail = processedDetail * finalMacro;
+  float finalHeightFraction = finalMacro + finalDetail;
 
+  // HACK: [finalHeightFraction] supposed to be satureaded
   return finalHeightFraction * u_heightScale;
 }
 
