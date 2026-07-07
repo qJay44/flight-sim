@@ -4,6 +4,7 @@
 #include <string_view>
 
 #include "../engine/texture/Texture2DArray.hpp"
+#include "../engine/texture/Texture2D.hpp"
 #include "../engine/mesh/BufferObject.hpp"
 #include "NodeData.hpp"
 #include "nlohmann/json.hpp"
@@ -31,20 +32,25 @@ public:
   void freeSlot(int slot);
   void freeSlotAll();
 
-  void generate(const NodeData& node);
-  void bindTexture(GLuint slot = 0) const;
+  void generateTerrain(const NodeData& node);
+  void generateWater();
+  void bindTextures(GLuint terrainTexSlot = 0, GLuint waterTexSlot = 1) const;
 
-  void loadConfig(std::string_view name);
-  void saveConfig(std::string_view name) const;
+  void loadTerrainConfig(std::string_view name);
+  void loadWaterConfig(std::string_view name);
+
+  void saveTerrainConfig(std::string_view name) const;
+  void saveWaterConfig(std::string_view name) const;
 
 private:
   friend ::gui;
 
-  Texture2DArray texArray;
+  Texture2DArray texArrayNodes;
+  Texture2D texWaterMap;
   GLuint numGroups = 0;
   std::stack<int> freeSlots;
 
-  struct Config {
+  struct TerrainConfig {
     float landThresholdA = 0.42f;
     float landThresholdB = 0.55f;
     float continentFreq = 1.2f;
@@ -68,10 +74,21 @@ private:
     int octaves = 2;
     int detailOctaves = 10;
     float _pad[2];
-  } cfg;
-  static_assert(sizeof(Config) % 16 == 0);
+  } cfgTerrain;
+  static_assert(sizeof(TerrainConfig) % 16 == 0);
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Config,
+  struct WaterConfig {
+    float initAmplitude = 1.f;
+    float initFrequency = 4.f;
+    float gain = 0.5f;
+    float lacunarity = 2.0f;
+    float speed = 1.f;
+    int octaves = 4;
+    float _pad[2];
+  } cfgWater;
+  static_assert(sizeof(WaterConfig) % 16 == 0);
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(TerrainConfig,
     landThresholdA,
     landThresholdB,
     continentFreq,
@@ -96,8 +113,18 @@ private:
     detailOctaves
   );
 
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaterConfig,
+    initAmplitude,
+    initFrequency,
+    gain,
+    lacunarity,
+    speed,
+    octaves
+  );
+
   struct {
-    BufferObject config{GL_UNIFORM_BUFFER, false};
+    BufferObject terrainConfig{GL_UNIFORM_BUFFER, false};
+    BufferObject waterConfig{GL_UNIFORM_BUFFER, false};
   } ubo;
 };
 

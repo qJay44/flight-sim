@@ -158,7 +158,7 @@ void gui::draw() {
 
     ImGui::SeparatorText("FBM");
     {
-      auto& cfg = terrain::Quadnode::gm.cfg;
+      auto& cfg = terrain::Quadnode::gm.cfgTerrain;
       bool u = false;
 
       u |= ImGui::SliderFloat("Planet radius percent (height scale)", &terrainPtr->planetRadiusPercent, 0.f, 1.f);
@@ -185,43 +185,57 @@ void gui::draw() {
       u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
       u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
 
-      static char bufLoad[128] = "heightmap0";
+      static char bufLoad[128] = "heightmap1";
       ImGui::InputText(".json", bufLoad, 128);
       ImGui::SameLine();
 
       if (ImGui::Button("Load")) {
-        terrain::Quadnode::gm.loadConfig(std::string(bufLoad) + ".json");
+        terrain::Quadnode::gm.loadTerrainConfig(std::string(bufLoad) + ".json");
         u = true;
       }
 
-      static char bufSave[128] = "heightmap1";
+      static char bufSave[128] = "heightmap2";
       ImGui::InputText(".json##2", bufSave, 128);
       ImGui::SameLine();
       if (ImGui::Button("Save"))
-        terrain::Quadnode::gm.saveConfig(std::string(bufSave) + ".json");
+        terrain::Quadnode::gm.saveTerrainConfig(std::string(bufSave) + ".json");
 
       if (u)
         terrainPtr->reload();
     }
   }
 
+  if (ImGui::CollapsingHeader("Water")) {
+    auto& cfg = terrain::Quadnode::gm.cfgWater;
+
+    ImGui::SliderFloat("Wave scale", &terrainPtr->waveScale, 0.f, 1.f);
+    ImGui::SliderFloat("Wave height", &terrainPtr->waveHeight, 0.f, 100.f);
+    ImGui::SliderFloat("Radius scale", &terrainPtr->waterRadiusScale, 0.f, 1.1f);
+
+    ImGui::SeparatorText("Wavemap");
+    ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 10.f);
+    ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
+    ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 100.f);
+    ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 0.f, 10.f);
+    ImGui::SliderFloat("Speed", &cfg.speed, 0.f, 10.f);
+    ImGui::SliderInt("Octaves", &cfg.octaves, 0, 10);
+
+    static char bufLoad[128] = "wavemap0";
+    ImGui::InputText(".json##3", bufLoad, 128);
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load##2"))
+      terrain::Quadnode::gm.loadWaterConfig(std::string(bufLoad) + ".json");
+
+    static char bufSave[128] = "wavemap1";
+    ImGui::InputText(".json##4", bufSave, 128);
+    ImGui::SameLine();
+    if (ImGui::Button("Save##2"))
+      terrain::Quadnode::gm.saveWaterConfig(std::string(bufSave) + ".json");
+  }
+
   if (ImGui::CollapsingHeader("Postprocess")) {
-    ImGui::SliderFloat("Atmosphere scale", &terrainPtr->atmosphereScale, 0.f, 20.f);
-
-    ImGui::SeparatorText("Water");
-    ImGui::SliderFloat("Shore scale", &terrainPtr->waterShoreScale, 0.f, 2.f);
-    ImGui::SliderFloat("Rerfraction scale", &terrainPtr->waterRefractionScale, 0.f, 2.f);
-    ImGui::SliderFloat("Rerfraction distort scale", &terrainPtr->waterRefractionDistortScale, 0.f, 2.f);
-    ImGui::SliderFloat("Normal UV scale", &terrainPtr->waterNormalScaleUV, 0.f, 20.f);
-    ImGui::SliderFloat("Noise scale", &terrainPtr->waterNoiseScale, 0.f, 20.f);
-    ImGui::SliderFloat("Foam edge0", &terrainPtr->foamEdge0, -10.f, 10.f);
-    ImGui::SliderFloat("Foam edge1", &terrainPtr->foamEdge1, -10.f, 10.f);
-
-    ImGui::SeparatorText("Fog");
-    ImGui::SliderFloat("Density", &terrainPtr->fogDensity, 0.f, 10.f);
-    ImGui::SliderFloat("Density falloff", &terrainPtr->fogDensityFalloff, 0.f, 0.001f);
-    ImGui::SliderFloat("Horizon thickness", &terrainPtr->horizonThickness, 0.f, 80.f);
-    ImGui::SliderFloat("Horizon falloff", &terrainPtr->horizonFalloff, 0.f, 20.f);
+    // ImGui::SliderFloat("Atmosphere scale", &terrainPtr->atmosphereScale, 0.f, 20.f);
   }
 
   // ===== Active camera ================================================================================= //

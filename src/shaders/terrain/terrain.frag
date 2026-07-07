@@ -1,5 +1,7 @@
 #version 460 core
 
+#include "common.glsl"
+
 out vec4 FragColor;
 
 in vec3 v_sphereDir;
@@ -14,13 +16,6 @@ uniform float u_seaThreshold;
 uniform float u_sandThreshold;
 uniform float u_mountainThreshold;
 uniform float u_heightScale;
-
-#define COLOR_DEEP_OCEAN vec3(0.05, 0.15, 0.3)
-#define COLOR_SHALLOW    vec3(0.1, 0.3, 0.5)
-#define COLOR_SAND       vec3(0.78, 0.72, 0.55)
-#define COLOR_GRASS      vec3(0.22, 0.45, 0.18)
-#define COLOR_ROCK       vec3(0.4, 0.38, 0.36)
-#define COLOR_SNOW       vec3(0.95, 0.95, 0.95)
 
 void main() {
   vec4 terrainData = texture(u_texArray, vec3(v_uv, v_layerIdx));

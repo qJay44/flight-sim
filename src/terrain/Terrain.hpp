@@ -19,8 +19,9 @@ public:
   void update(const Camera* cam);
   void reload();
 
-  void draw(const Camera* cam, Shader& shader) const;
-  void drawPostprocess(const Camera* cam, Shader& shader) const;
+  void drawTerrain(const Camera* cam, Shader& shader) const;
+  void drawWater(const Camera* cam, Shader& shader) const;
+  void drawPostprocess(const Camera* cam, Shader& shader) const; // TODO: Move out postprocess into separate file
 
 private:
   friend struct ::gui;
@@ -40,26 +41,21 @@ private:
 
   std::vector<NodeData> leafs;
   MeshElementsInstancing chunkMesh = meshes::plane(128);
+  MeshElementsInstancing waterMesh = meshes::plane(16);
 
   float planetRadiusPercent = 0.02f;
   float seaThreshold = 0.05f;     // Percentage of [heightScale]
   float sandThreshold = 0.08f;    // Percentage of [heightScale]
   float mountainThreshold = 0.6f; // Percentage of [heightScale]
 
-  float waterShoreScale = 0.06f;
-  float waterRefractionScale = 0.082;
-  float waterRefractionDistortScale = 0.05f;
-  float waterNormalScaleUV = 0.112f;
-  float waterNoiseScale = 0.15f;
-  float foamEdge0 = 2.f;
-  float foamEdge1 = -10.f;
-  float fogDensity = 10.f;
-  float fogDensityFalloff = 2e-4f;
-  float horizonThickness = 50.f;
-  float horizonFalloff = 10.f;
-  float atmosphereScale = 1.2f;
+  float waveScale = 1.f;
+  float waveHeight = 1.f;
+  float waterRadiusScale = 1.f;
 
   bool enablePostprocess = true;
+
+private:
+  void setCommonUniforms(const Camera* cam, Shader& shader) const;
 };
 
 } // terrain

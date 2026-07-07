@@ -6,30 +6,45 @@
 
 #include "../engine/Shader.hpp"
 #include "Terrain.hpp"
+#include "global.hpp"
 #include "shared.hpp"
 
 #define MAX_SLOTS TERRAIN_MAX_NODES
+#define WATERMAP_SIZE 512
 
 namespace terrain {
 
-static Shader generateTextureShader;
+static Shader terrainShader;
+static Shader waterShader;
 
 GenerationManager::GenerationManager(int textureSize) {
-  if (!generateTextureShader.initialized()) {
-    generateTextureShader = Shader("terrain/terrain.comp");
-    texArray = Texture2DArray(MAX_SLOTS, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
+  if (!terrainShader.initialized()) {
+    TextureDescriptor texWaterMapDesc{};
+    texWaterMapDesc.internalFormat = GL_RGBA16F;
+    texWaterMapDesc.format = GL_RGBA;
+    texWaterMapDesc.wrapS = GL_REPEAT;
+    texWaterMapDesc.wrapT = GL_REPEAT;
+
+    terrainShader = Shader("terrain/terrain.comp");
+    waterShader = Shader("terrain/water.comp");
+    texArrayNodes = Texture2DArray(MAX_SLOTS, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
+    texWaterMap = Texture2D(ivec2(WATERMAP_SIZE), texWaterMapDesc);
     numGroups = textureSize / 16;
   }
 
   for (int i = 0; i < MAX_SLOTS; i++)
     freeSlots.push(i);
 
-  ubo.config.gen();
-  ubo.config.storage(&cfg, sizeof(Config), GL_DYNAMIC_STORAGE_BIT);
+  ubo.terrainConfig.gen();
+  ubo.terrainConfig.storage(&cfgTerrain, sizeof(TerrainConfig), GL_DYNAMIC_STORAGE_BIT);
+
+  ubo.waterConfig.gen();
+  ubo.waterConfig.storage(&cfgWater, sizeof(WaterConfig), GL_DYNAMIC_STORAGE_BIT);
 }
 
 void GenerationManager::update() {
-  ubo.config.updateSubData(&cfg, sizeof(Config));
+  ubo.terrainConfig.updateSubData(&cfgTerrain, sizeof(TerrainConfig));
+  ubo.waterConfig.updateSubData(&cfgWater, sizeof(WaterConfig));
 }
 
 int GenerationManager::acquireSlot() {
@@ -53,26 +68,37 @@ void GenerationManager::freeSlotAll() {
     freeSlots.push(i);
 }
 
-void GenerationManager::generate(const NodeData& node) {
-  generateTextureShader.use();
-  generateTextureShader.setUniform2f("u_nodeCenter", node.center);
-  generateTextureShader.setUniform1f("u_nodeExtents", node.extents);
-  generateTextureShader.setUniform1f("u_planetRadius", planetRadius);
-  generateTextureShader.setUniform1f("u_heightScale", heightScale);
-  generateTextureShader.setUniform1i("u_nodeFaceIdx", node.faceIdx);
-  generateTextureShader.setUniform1i("u_layer", node.texLayerIdx);
+void GenerationManager::generateTerrain(const NodeData& node) {
+  terrainShader.use();
+  terrainShader.setUniform2f("u_nodeCenter", node.center);
+  terrainShader.setUniform1f("u_nodeExtents", node.extents);
+  terrainShader.setUniform1f("u_planetRadius", planetRadius);
+  terrainShader.setUniform1f("u_heightScale", heightScale);
+  terrainShader.setUniform1i("u_nodeFaceIdx", node.faceIdx);
+  terrainShader.setUniform1i("u_layer", node.texLayerIdx);
 
-  ubo.config.bindBase(0);
-  glBindImageTexture(0, texArray.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  ubo.terrainConfig.bindBase(0);
+  glBindImageTexture(0, texArrayNodes.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
   glDispatchCompute(numGroups, numGroups, 1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void GenerationManager::bindTexture(GLuint slot) const {
-  texArray.bind(slot);
+void GenerationManager::generateWater() {
+  waterShader.use();
+  waterShader.setUniform1f("u_time", global::time);
+
+  ubo.waterConfig.bindBase(0);
+  glBindImageTexture(0, texWaterMap.getId(), 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+  glDispatchCompute(WATERMAP_SIZE / 16, WATERMAP_SIZE / 16, 1);
+  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void GenerationManager::loadConfig(std::string_view name) {
+void GenerationManager::bindTextures(GLuint terrainTexSlot, GLuint waterTexSlot) const {
+  texArrayNodes.bind(terrainTexSlot);
+  texWaterMap.bind(waterTexSlot);
+}
+
+void GenerationManager::loadTerrainConfig(std::string_view name) {
   fspath path = fspath("res/data/cfg") / name;
 
   std::ifstream f(path);
@@ -80,21 +106,51 @@ void GenerationManager::loadConfig(std::string_view name) {
   if (f.is_open()) {
     nlohmann::json j;
     f >> j;
-    cfg = j.get<Config>();
+    cfgTerrain = j.get<TerrainConfig>();
     f.close();
   } else {
     warning("[GenerationManager::loadConfig] Could not open the file [{}]", path.string());
   }
 }
 
-void GenerationManager::saveConfig(std::string_view name) const {
+void GenerationManager::loadWaterConfig(std::string_view name) {
+  fspath path = fspath("res/data/cfg") / name;
+
+  std::ifstream f(path);
+
+  if (f.is_open()) {
+    nlohmann::json j;
+    f >> j;
+    cfgWater = j.get<WaterConfig>();
+    f.close();
+  } else {
+    warning("[GenerationManager::loadConfig] Could not open the file [{}]", path.string());
+  }
+}
+
+void GenerationManager::saveTerrainConfig(std::string_view name) const {
   fspath path = fspath("res/data/cfg") / name;
   std::filesystem::create_directories(path.parent_path());
 
   std::ofstream f(path);
 
   if (f.is_open()) {
-    nlohmann::json j = cfg;
+    nlohmann::json j = cfgTerrain;
+    f << j.dump(2) << std::endl;
+    f.close();
+  } else {
+    error("[GenerationManager::saveConfig] Could not open the file [{}]", path.string());
+  }
+}
+
+void GenerationManager::saveWaterConfig(std::string_view name) const {
+  fspath path = fspath("res/data/cfg") / name;
+  std::filesystem::create_directories(path.parent_path());
+
+  std::ofstream f(path);
+
+  if (f.is_open()) {
+    nlohmann::json j = cfgWater;
     f << j.dump(2) << std::endl;
     f.close();
   } else {

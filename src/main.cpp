@@ -14,6 +14,7 @@
 #include "other/markup.hpp"
 #include "pch.hpp"
 #include "terrain/Terrain.hpp"
+#include "terrain/quadtree.hpp"
 #include "utils/clrp.hpp"
 
 using global::window;
@@ -106,6 +107,7 @@ int main() {
   Shader axisShader("axis.vert", "axis.frag");
 
   Shader terrainShader("terrain/terrain.vert", "terrain/terrain.frag");
+  Shader waterShader("terrain/water.vert", "terrain/water.frag");
   Shader postprocessShader("postprocess.vert", "postprocess.frag");
 
   Shader airplaneShader("f15/f15.vert", "f15/f15.frag");
@@ -131,6 +133,7 @@ int main() {
   cameraSpectate.setNearPlane(0.1f);
   cameraSpectate.setFarPlane(initPlanetRadius * 20.f);
   cameraSpectate.setSpeedDefault(initPlanetRadius * 0.1f);
+  terrain::Quadnode::gm.loadTerrainConfig("heightmap1.json");
   terrain.update(&cameraSpectate);
 
   // ===== Jet ================================================== //
@@ -258,6 +261,7 @@ int main() {
     env.sun.setUniforms(environmentShader);
     env.sun.setUniforms(airplaneShader);
     env.sun.setUniforms(terrainShader);
+    env.sun.setUniforms(waterShader);
     env.sun.setUniforms(postprocessShader);
 
     // ===== Terrain Shadow buffer ================================ //
@@ -275,6 +279,7 @@ int main() {
     glViewport(0, 0, winSize.x, winSize.y);
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     glEnable(GL_CULL_FACE);
     glEnable(GL_FRAMEBUFFER_SRGB);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE + !global::wireframeMode);
@@ -283,9 +288,12 @@ int main() {
       grid.draw(activeCam, gridShader);
 
     texTerrainShadow.bind(2);
-    terrain.draw(activeCam, terrainShader);
+    terrain.drawTerrain(activeCam, terrainShader);
 
     f15.draw(activeCam, airplaneShader);
+
+    glDisable(GL_CULL_FACE);
+    terrain.drawWater(activeCam, waterShader);
 
     if (global::jetDrawDebugMass)
       f15.drawDebugMass(activeCam, massShader);

@@ -6,7 +6,7 @@
 
 namespace terrain {
 
-int Quadnode::maxDepth = 12;
+int Quadnode::maxDepth = 8;
 float Quadnode::splitThreshold = 0.5f;
 GenerationManager Quadnode::gm;
 
@@ -44,7 +44,7 @@ void Quadnode::gatherLeafs(std::vector<NodeData>& leafs) {
 
     if (texLayerIdx == -1) {
       texLayerIdx = data.texLayerIdx = gm.acquireSlot();
-      gm.generate(data);
+      gm.generateTerrain(data);
     }
     leafs.push_back(data);
 
