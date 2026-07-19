@@ -1,15 +1,17 @@
 #include "ProfilerManager.hpp"
 #include "global.hpp"
 
-using ScopedTask = ProfilerManager::ScopedTask;
+// ----- ScopedTaskCpu ----------------------------------------------------------------------------------------------------------- //
 
-ScopedTask::ScopedTask(size_t taskIdx) : taskIdx(taskIdx), start(std::chrono::steady_clock::now()) {}
+using ScopedTaskCpu = ProfilerManager::ScopedTaskCpu;
 
-ScopedTask::~ScopedTask() {
+ScopedTaskCpu::ScopedTaskCpu(size_t taskIdx) : taskIdx(taskIdx), start(std::chrono::steady_clock::now()) {}
+
+ScopedTaskCpu::~ScopedTaskCpu() {
   end();
 }
 
-void ScopedTask::end() {
+void ScopedTaskCpu::end() {
   if (std::exchange(ended, true))
     return;
 
@@ -17,35 +19,94 @@ void ScopedTask::end() {
 
   auto end = steady_clock::now();
   auto dur = end - start;
-  float durationSec = duration_cast<duration<float>>(dur).count();
+  auto durationSec = duration_cast<duration<double>>(dur).count();
 
   assert(global::profiler);
-  global::profiler->endTask(taskIdx, durationSec);
+  global::profiler.endTaskCpu(taskIdx, durationSec);
 }
 
-ProfilerManager::ProfilerManager(size_t framesCount) : graph(framesCount) {}
+// ----- ScopedTaskGpu ----------------------------------------------------------------------------------------------------------- //
+
+using ScopedTaskGpu = ProfilerManager::ScopedTaskGpu;
+
+ScopedTaskGpu::ScopedTaskGpu(size_t taskIdx, const Query& q) : taskIdx(taskIdx), q(q) {
+  glQueryCounter(q.q0, GL_TIMESTAMP);
+}
+
+ScopedTaskGpu::~ScopedTaskGpu() {
+  end();
+}
+
+void ScopedTaskGpu::end() {
+  if (std::exchange(ended, true))
+    return;
+
+  glQueryCounter(q.q1, GL_TIMESTAMP);
+
+  assert(global::profiler);
+  global::profiler.endTaskGpu(taskIdx, q.calcDuration());
+}
+
+// ----- Qurie ------------------------------------------------------------------------------------------------------------------- //
+
+ProfilerManager::Query::Query(const std::string& name) : name(name) {
+  glGenQueries(1, &q0);
+  glGenQueries(1, &q1);
+}
+
+double ProfilerManager::Query::calcDuration() const {
+  constexpr double toSecondsInv = 1.0 / 1e9;
+
+  GLuint64 t0;
+  GLuint64 t1;
+  glGetQueryObjectui64v(q0, GL_QUERY_RESULT, &t0);
+  glGetQueryObjectui64v(q1, GL_QUERY_RESULT, &t1);
+
+  return static_cast<double>(t1 - t0) * toSecondsInv;
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------- //
+
+ProfilerManager::ProfilerManager(size_t framesCount) : window(1.f / framesCount) {}
 
 // NOTE: Call this every frame
 void ProfilerManager::clearTasks() {
-  tasks.clear();
+  cpuTasks.clear();
+  gpuTasks.clear();
 }
 
-ProfilerManager::ScopedTask ProfilerManager::startScopedTask(const std::string& name, u32 color) {
-  assert(tasks.size() < 20);
-  size_t taskIdx = tasks.size();
+ProfilerManager::ScopedTaskCpu ProfilerManager::startScopedTaskCpu(const std::string& name, u32 color) {
+  assert(cpuTasks.size() < 32);
+  size_t taskIdx = cpuTasks.size();
 
   legit::ProfilerTask task;
   task.name = name;
-  task.color = color ? RGBA_LE(color): getColorBright(tasks.size());
-  task.startTime = 0.f;
-  tasks.push_back(task);
+  task.color = color ? RGBA_LE(color): getColorBright(cpuTasks.size());
+  task.startTime = 0.0;
+
+  cpuTasks.push_back(task);
 
   return taskIdx;
 }
 
+ProfilerManager::ScopedTaskGpu ProfilerManager::startScopedTaskGpu(const Query& q, u32 color) {
+  assert(gpuTasks.size() < 32);
+  size_t taskIdx = gpuTasks.size();
+
+  legit::ProfilerTask task;
+  task.name = q.name;
+  task.color = color ? RGBA_LE(color): getColorBright(gpuTasks.size());
+  task.startTime = 0.0;
+
+  gpuTasks.push_back(task);
+
+  return {taskIdx, q};
+}
+
 void ProfilerManager::renderTasks(int graphWidth, int legendWidth, int height, int frameIndexOffset) {
-  graph.LoadFrameData(tasks.data(), tasks.size());
-  graph.RenderTimings(graphWidth, legendWidth, height, frameIndexOffset, 1.f / 60.f);
+  window.cpuGraph.LoadFrameData(cpuTasks.data(), cpuTasks.size());
+  window.gpuGraph.LoadFrameData(gpuTasks.data(), gpuTasks.size());
+  window.Render();
 }
 
 const u32& ProfilerManager::getColorBright(size_t i) {
@@ -68,8 +129,13 @@ const u32& ProfilerManager::getColorDim(size_t i) {
   return colors[i % 8];
 }
 
-void ProfilerManager::endTask(size_t i, float durationMs) {
-  assert(i < tasks.size());
-  tasks[i].endTime = durationMs;
+void ProfilerManager::endTaskCpu(size_t i, double durationMs) {
+  assert(i < cpuTasks.size());
+  cpuTasks[i].endTime = durationMs;
+}
+
+void ProfilerManager::endTaskGpu(size_t i, double durationMs) {
+  assert(i < gpuTasks.size());
+  gpuTasks[i].endTime = durationMs;
 }
 

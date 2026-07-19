@@ -28,17 +28,18 @@ void Terrain::update(const Camera* cam) {
   Quadnode::gm.update();
   Quadnode::gm.generateWater();
 
-  auto taskQt = global::profiler->startScopedTask("Quadtree pass");
+  auto taskQt = global::profiler.startScopedTaskCpu("Quadtree pass");
   for (Quadnode& quadtree : quadtrees) {
     quadtree.insert(cam->getPosition());
     quadtree.gatherLeafs(leafs);
   }
   taskQt.end();
 
-  assert(leafs.size() <= TERRAIN_MAX_NODES);
-  ubo.nodesData.updateSubData(leafs.data(), leafs.size() * sizeof(NodeData));
-  chunkMesh.setInstanceCount(leafs.size());
-  waterMesh.setInstanceCount(leafs.size());
+  size_t n = leafs.size();
+  assert(n <= TERRAIN_MAX_NODES);
+  ubo.nodesData.updateSubData(leafs.data(), n * sizeof(NodeData));
+  chunkMesh.setInstanceCount(n);
+  waterMesh.setInstanceCount(n);
 }
 
 void Terrain::reload() {
@@ -58,6 +59,7 @@ void Terrain::drawTerrain(const Camera* cam, Shader& shader) const {
   Quadnode::gm.bindTextures();
   ubo.nodesData.bindBase(0);
 
+  global::profiler.startScopedTaskGpu(queryDrawTerrain);
   chunkMesh.draw(cam, shader);
 }
 
@@ -76,6 +78,7 @@ void Terrain::drawWater(const Camera* cam, Shader& shader) const {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  global::profiler.startScopedTaskGpu(queryDrawWater);
   waterMesh.draw(cam, shader);
 
   glDepthMask(GL_TRUE);

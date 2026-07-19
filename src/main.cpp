@@ -67,7 +67,6 @@ int main() {
 
   // Window init
   window = glfwCreateWindow(1600, 900, "MyProgram", NULL, NULL);
-  global::profiler = new ProfilerManager(300);
   ivec2 winSize = global::getWinSize();
   dvec2 winCenter = dvec2(winSize) / 2.;
 
@@ -251,7 +250,7 @@ int main() {
       titleTimer = currTime;
     }
 
-    global::profiler->clearTasks();
+    global::profiler.clearTasks();
 
     // env.sun.updateDir();
     env.sun.updateLightSpace(activeCam, shadowResolution);

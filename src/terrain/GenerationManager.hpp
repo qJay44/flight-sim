@@ -6,7 +6,9 @@
 #include "../engine/texture/Texture2DArray.hpp"
 #include "../engine/texture/Texture2D.hpp"
 #include "../engine/mesh/BufferObject.hpp"
+#include "../engine/Shader.hpp"
 #include "NodeData.hpp"
+#include "ProfilerManager.hpp"
 #include "nlohmann/json.hpp"
 
 struct gui;
@@ -24,7 +26,7 @@ public:
   GenerationManager(const GenerationManager&) = delete;
   GenerationManager& operator=(const GenerationManager&) = delete;
 
-  ~GenerationManager() = default;
+  ~GenerationManager();
 
   void update();
 
@@ -45,10 +47,18 @@ public:
 private:
   friend ::gui;
 
+  static bool isInitialized;
+
   Texture2DArray texArrayNodes;
   Texture2D texWaterMap;
   GLuint numGroups = 0;
   std::stack<int> freeSlots;
+
+  Shader terrainShader;
+  Shader waterShader;
+
+  ProfilerManager::Query queryGenerateTerrain;
+  ProfilerManager::Query queryGenerateWater;
 
   struct TerrainConfig {
     float landThresholdA = 0.42f;

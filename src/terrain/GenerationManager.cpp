@@ -3,8 +3,8 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <utility>
 
-#include "../engine/Shader.hpp"
 #include "Terrain.hpp"
 #include "global.hpp"
 #include "shared.hpp"
@@ -14,23 +14,26 @@
 
 namespace terrain {
 
-static Shader terrainShader;
-static Shader waterShader;
+bool GenerationManager::isInitialized = false;
 
 GenerationManager::GenerationManager(int textureSize) {
-  if (!terrainShader.initialized()) {
-    TextureDescriptor texWaterMapDesc{};
-    texWaterMapDesc.internalFormat = GL_RGBA16F;
-    texWaterMapDesc.format = GL_RGBA;
-    texWaterMapDesc.wrapS = GL_REPEAT;
-    texWaterMapDesc.wrapT = GL_REPEAT;
+  if (std::exchange(isInitialized, true))
+    error("[GenerationManager::GenerationManager] Already initialized");
 
-    terrainShader = Shader("terrain/terrain.comp");
-    waterShader = Shader("terrain/water.comp");
-    texArrayNodes = Texture2DArray(MAX_SLOTS, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
-    texWaterMap = Texture2D(ivec2(WATERMAP_SIZE), texWaterMapDesc);
-    numGroups = textureSize / 16;
-  }
+  TextureDescriptor texWaterMapDesc{};
+  texWaterMapDesc.internalFormat = GL_RGBA16F;
+  texWaterMapDesc.format = GL_RGBA;
+  texWaterMapDesc.wrapS = GL_REPEAT;
+  texWaterMapDesc.wrapT = GL_REPEAT;
+
+  terrainShader = Shader("terrain/terrain.comp");
+  waterShader = Shader("terrain/water.comp");
+  texArrayNodes = Texture2DArray(MAX_SLOTS, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
+  texWaterMap = Texture2D(ivec2(WATERMAP_SIZE), texWaterMapDesc);
+  numGroups = textureSize / 16;
+
+  queryGenerateTerrain = ProfilerManager::Query{"Terrain generate"};
+  queryGenerateWater = ProfilerManager::Query{"Water generate"};
 
   for (int i = 0; i < MAX_SLOTS; i++)
     freeSlots.push(i);
@@ -40,6 +43,10 @@ GenerationManager::GenerationManager(int textureSize) {
 
   ubo.waterConfig.gen();
   ubo.waterConfig.storage(&cfgWater, sizeof(WaterConfig), GL_DYNAMIC_STORAGE_BIT);
+}
+
+GenerationManager::~GenerationManager() {
+  isInitialized = false;
 }
 
 void GenerationManager::update() {
@@ -69,6 +76,8 @@ void GenerationManager::freeSlotAll() {
 }
 
 void GenerationManager::generateTerrain(const NodeData& node) {
+  global::profiler.startScopedTaskGpu(queryGenerateTerrain);
+
   terrainShader.use();
   terrainShader.setUniform2f("u_nodeCenter", node.center);
   terrainShader.setUniform1f("u_nodeExtents", node.extents);
@@ -84,6 +93,8 @@ void GenerationManager::generateTerrain(const NodeData& node) {
 }
 
 void GenerationManager::generateWater() {
+  global::profiler.startScopedTaskGpu(queryGenerateWater);
+
   waterShader.use();
   waterShader.setUniform1f("u_time", global::time);
 

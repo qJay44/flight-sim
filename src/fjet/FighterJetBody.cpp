@@ -122,7 +122,7 @@ const glm::quat& FighterJetBody::getOrientation() const { return rigidbody.orien
 float FighterJetBody::getSpeed() const { return glm::max(0.f, localVelocity.z); }
 
 void FighterJetBody::update(float dt) {
-  global::profiler->startScopedTask("FighterJetBodyUpdatePass");
+  global::profiler.startScopedTaskCpu("FighterJetBodyUpdatePass");
 
   calcState(dt);
   calcAngleOfAttack();

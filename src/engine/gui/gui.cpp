@@ -87,7 +87,7 @@ void gui::draw() {
   ImGui::SetNextWindowPos({0, 0}, ImGuiCond_FirstUseEver);
   ImGui::SetNextWindowCollapsed(configCollapsed);
 
-  auto _task = global::profiler->startScopedTask("gui::draw");
+  auto _task = global::profiler.startScopedTaskCpu("gui::draw");
 
   ImGui::Begin("Config");
 
@@ -283,22 +283,10 @@ void gui::draw() {
 
   _task.end();
 
-  // ::::: Info window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
+  // ::::: Profiler window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
-  const ImGuiViewport* viewport = ImGui::GetMainViewport();
-  ImVec2 posBR = viewport->WorkPos + viewport->WorkSize;
-
-  ImGui::SetNextWindowPos(posBR, ImGuiCond_Always, {1.f, 1.f});
   ImGui::SetNextWindowCollapsed(infoCollapsed);
-
-  ImGui::Begin("Info");
-
-  ImGui::Text("FPS: %d / %f.5 ms", fps, global::dt);
-
-  assert(global::profiler);
-  global::profiler->renderTasks(400, 200, 200, 0);
-
-  ImGui::End();
+  global::profiler.renderTasks(400, 200, 200, 0);
 
   // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 

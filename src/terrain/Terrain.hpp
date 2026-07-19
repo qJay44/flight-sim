@@ -4,6 +4,7 @@
 #include "../engine/mesh/meshes.hpp"
 #include "../engine/mesh/MeshElementsInstancing.hpp"
 #include "GenerationManager.hpp"
+#include "ProfilerManager.hpp"
 #include "quadtree.hpp"
 
 #define TERRAIN_MAX_NODES 512
@@ -51,6 +52,9 @@ private:
   float waveScale = 1.f;
   float waveHeight = 1.f;
   float waterRadiusScale = 1.f;
+
+  ProfilerManager::Query queryDrawTerrain{"Terrain draw"};
+  ProfilerManager::Query queryDrawWater{"Water draw"};
 
   bool enablePostprocess = true;
 
