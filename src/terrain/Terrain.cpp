@@ -15,18 +15,21 @@ Terrain::Terrain(float planetRadius) {
   terrain::planetRadius = planetRadius;
   float planetRadiusInv = 1.f / planetRadius;
 
-  waveScale = planetRadiusInv * 10.f;
   waterRadiusScale = 1.f + planetRadiusInv * 120.f;
 
   Quadnode::gm = GenerationManager(160);
   ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
+
+  global::json::loadPreset(water, "tessendorf0.json");
+  water.markForRebuild();
 }
 
 void Terrain::update(const Camera* cam) {
+  water.update();
+
   heightScale = planetRadius * planetRadiusPercent;
   leafs.clear();
   Quadnode::gm.update();
-  Quadnode::gm.generateWater();
 
   auto taskQt = global::profiler.startScopedTaskCpu("Quadtree pass");
   for (Quadnode& quadtree : quadtrees) {
@@ -68,10 +71,11 @@ void Terrain::drawWater(const Camera* cam, Shader& shader) const {
 
   shader.setUniformMatrix4f("u_camProjInv", glm::inverse(cam->getProj()));
   shader.setUniform1f("u_waveScale", waveScale);
-  shader.setUniform1f("u_waveHeight", waveHeight);
   shader.setUniform1f("u_radiusScale", waterRadiusScale);
+  shader.setUniform1f("u_foamSharpness", foamSharpness);
 
   Quadnode::gm.bindTextures();
+  water.bindTextures(1, 2, 3);
   ubo.nodesData.bindBase(0);
 
   glDepthMask(GL_FALSE);

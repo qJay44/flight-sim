@@ -132,7 +132,6 @@ int main() {
   cameraSpectate.setNearPlane(0.1f);
   cameraSpectate.setFarPlane(initPlanetRadius * 20.f);
   cameraSpectate.setSpeedDefault(initPlanetRadius * 0.1f);
-  terrain::Quadnode::gm.loadTerrainConfig("heightmap1.json");
   terrain.update(&cameraSpectate);
 
   // ===== Jet ================================================== //
@@ -183,7 +182,7 @@ int main() {
   fboTexDesc.magFilter = GL_LINEAR;
   Texture2D texTerrainShadow(shadowResolution, fboTexDesc);
 
-  texTerrainShadow.bind();
+  texTerrainShadow.bind(0);
   float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);

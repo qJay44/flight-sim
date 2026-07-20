@@ -26,6 +26,22 @@ struct Ray {
   vec3 dir;
 };
 
+vec2 complexMultiply(vec2 n1, vec2 n2) {
+  // (a + bi) * (c + di) = ac + adi + bci + bdi^2
+  // Since i^2 = -1:
+  // Real part:      ac - bd
+  // Imaginary part: ad + bc
+  return vec2(
+    n1.x * n2.x - n1.y * n2.y,
+    n1.x * n2.y + n1.y * n2.x
+  );
+}
+
+vec2 complexExp(vec2 a) {
+  return vec2(cos(a.y), sin(a.y)) * exp(a.x);
+}
+
+
 vec3 cubeToSphere(vec2 pos, int faceIdx) {
   float u = pos.x;
   float v = pos.y;

@@ -48,6 +48,7 @@ using glm::mat4;
 #include <format>
 #include <functional>
 #include <future>
+#include <fstream>
 #include <list>
 #include <map>
 #include <span>

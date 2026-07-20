@@ -1,0 +1,16 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rg32f, binding = 0) readonly uniform image2D imgH0K;
+layout(rgba32f, binding = 1) writeonly uniform image2D imgH0;
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(imgH0);
+
+  vec2 h0k = imageLoad(imgH0K, id).rg;
+  vec2 h0_minus_k = imageLoad(imgH0K, (size - id) % size).rg;
+  imageStore(imgH0, id, vec4(h0k, h0_minus_k.x, -h0_minus_k.y));
+}
+

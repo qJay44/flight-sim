@@ -25,6 +25,33 @@ namespace {
 
 ImFont* fontMain = nullptr;
 
+struct LoaderWidget {
+  std::string bufLoad;
+  std::string bufSave;
+
+  LoaderWidget(const std::string& name) {
+    bufLoad.reserve(256);
+    bufSave.reserve(256);
+    bufLoad = bufSave =  name;
+  }
+
+  bool render(auto& cfg) {
+    bool u = false;
+
+    ImGui::InputText(".json##0", bufLoad.data(), 256 * sizeof(char)); ImGui::SameLine();
+    if (ImGui::Button("Load") && bufLoad[0]) {
+      global::json::loadPreset(cfg, std::format("{}.json", bufLoad));
+      u = true;
+    }
+
+    ImGui::InputText(".json##1", bufSave.data(), 256 * sizeof(char)); ImGui::SameLine();
+    if (ImGui::Button("Save") && bufSave[0])
+      global::json::savePreset(cfg, std::format("{}.json", bufSave));
+
+    return u;
+  }
+};
+
 void TextVec3(const char* label, const vec3& v) {
   ImGui::Text("%s: [%.2f, %.2f, %.2f]", label, v.x, v.y, v.z);
 }
@@ -40,6 +67,25 @@ void CreateMyTooltip(const char* text) {
     ImGui::PopTextWrapPos();
     ImGui::EndTooltip();
   }
+}
+
+[[maybe_unused]]
+void ApplySwizzle(const Texture& tex, const std::array<GLint, 4>& swizzle) {
+  tex.bind(0);
+  glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle.data());
+  tex.unbind();
+}
+
+void RenderTexture(ImTextureRef tex, ImVec2 size = ImVec2(0, 0)) {
+  bool useCustomSize = size.x || size.y;
+
+  vec2 winSize = global::getWinSize();
+  float winLongestPart = glm::max(winSize.x, winSize.y);
+  ImVec2 imgSize = useCustomSize ? size : ImVec2(vec2(winLongestPart * 0.125f));
+  ImVec2 imgUV0 = vec2(0.f, 1.f);
+  ImVec2 imgUV1 = vec2(1.f, 0.f);
+
+  ImGui::Image(tex, imgSize, imgUV0, imgUV1);
 }
 
 } // namespace
@@ -185,20 +231,10 @@ void gui::draw() {
       u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
       u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
 
-      static char bufLoad[128] = "heightmap1";
-      ImGui::InputText(".json", bufLoad, 128);
-      ImGui::SameLine();
-
-      if (ImGui::Button("Load")) {
-        terrain::Quadnode::gm.loadTerrainConfig(std::string(bufLoad) + ".json");
+      ImGui::SeparatorText("Load/Save");
+      static LoaderWidget lw("heightmap1");
+      if (lw.render(terrain::Quadnode::gm.cfgTerrain))
         u = true;
-      }
-
-      static char bufSave[128] = "heightmap2";
-      ImGui::InputText(".json##2", bufSave, 128);
-      ImGui::SameLine();
-      if (ImGui::Button("Save"))
-        terrain::Quadnode::gm.saveTerrainConfig(std::string(bufSave) + ".json");
 
       if (u)
         terrainPtr->reload();
@@ -206,32 +242,88 @@ void gui::draw() {
   }
 
   if (ImGui::CollapsingHeader("Water")) {
-    auto& cfg = terrain::Quadnode::gm.cfgWater;
-
-    ImGui::SliderFloat("Wave scale", &terrainPtr->waveScale, 0.f, 1.f);
-    ImGui::SliderFloat("Wave height", &terrainPtr->waveHeight, 0.f, 100.f);
     ImGui::SliderFloat("Radius scale", &terrainPtr->waterRadiusScale, 0.f, 1.1f);
+    ImGui::SliderFloat("Foam strength", &terrainPtr->foamSharpness, 0.f, 3.f);
+    ImGui::SliderFloat("Wave scale", &terrainPtr->waveScale, 0.f, 10.f);
+    auto& water = terrainPtr->water;
 
-    ImGui::SeparatorText("Wavemap");
-    ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 10.f);
-    ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
-    ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 100.f);
-    ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 0.f, 10.f);
-    ImGui::SliderFloat("Speed", &cfg.speed, 0.f, 10.f);
-    ImGui::SliderInt("Octaves", &cfg.octaves, 0, 10);
+    ImGui::SeparatorText("Noise settings");
+    {
+      bool u = false;
+      u |= ImGui::DragFloat("Seed XIr", &water.seed1);
+      u |= ImGui::DragFloat("Seed XIi", &water.seed2);
 
-    static char bufLoad[128] = "wavemap0";
-    ImGui::InputText(".json##3", bufLoad, 128);
-    ImGui::SameLine();
+      if (u) {
+        water.generateNoise();
+        water.generateInitialSpectrum();
+      }
+    }
+    ImGui::SeparatorText("Gaussian noise / Butterfly");
+    RenderTexture(water.texNoise.getId()); ImGui::SameLine();
+    {
+      // ugh....
+      vec2 winSize = global::getWinSize();
+      float winLongestPart = glm::max(winSize.x, winSize.y);
+      ImVec2 texSize{(float)water.logSize, std::min((float)water.size, winLongestPart * 0.125f)};
+      RenderTexture(water.texButterfly.getId(), texSize);
+    }
 
-    if (ImGui::Button("Load##2"))
-      terrain::Quadnode::gm.loadWaterConfig(std::string(bufLoad) + ".json");
+    ImGui::SeparatorText("General spectrum settings");
+    {
+      bool u = false;
 
-    static char bufSave[128] = "wavemap1";
-    ImGui::InputText(".json##4", bufSave, 128);
-    ImGui::SameLine();
-    if (ImGui::Button("Save##2"))
-      terrain::Quadnode::gm.saveWaterConfig(std::string(bufSave) + ".json");
+      u |= ImGui::SliderFloat("G", &water.g, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Depth", &water.depth, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Lambda", &water.lambda, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Length scale", &water.lengthScale, 0.f, 1000.f);
+
+      if (ImGui::TreeNode("Local spectrum settings")) {
+        auto& settings = water.local;
+        u |= ImGui::SliderFloat("Scale", &settings.scale, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Wind speed", &settings.windSpeed, 0.f, 100.f);
+        u |= ImGui::SliderAngle("Wind direction", &settings.windDir, 0.f);
+        u |= ImGui::SliderFloat("Fetch", &settings.fetch, 0.f, 1e6f);
+        u |= ImGui::SliderFloat("Spread blend", &settings.spreadBlend, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Swell", &settings.swell, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Peak enhancement", &settings.peakEnhancemnt, 0.f, 100.f);
+        u |= ImGui::SliderFloat("Short waves fade", &settings.shortWavesFade, 0.f, 2.f);
+
+        ImGui::TreePop();
+      }
+
+      if (ImGui::TreeNode("Swell spectrum settings")) {
+        auto& settings = water.swell;
+        u |= ImGui::SliderFloat("Scale##2", &settings.scale, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Wind speed##2", &settings.windSpeed, 0.f, 100.f);
+        u |= ImGui::SliderAngle("Wind direction##2", &settings.windDir, 0.f);
+        u |= ImGui::SliderFloat("Fetch##2", &settings.fetch, 0.f, 1e6f);
+        u |= ImGui::SliderFloat("Spread blend##2", &settings.spreadBlend, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Swell##2", &settings.swell, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Peak enhancement##2", &settings.peakEnhancemnt, 0.f, 100.f);
+        u |= ImGui::SliderFloat("Short waves fade##2", &settings.shortWavesFade, 0.f, 2.f);
+
+        ImGui::TreePop();
+      }
+
+      if (u)
+        water.generateInitialSpectrum();
+    }
+
+    ImGui::SeparatorText("Precomputed Data / Conjugated Spectrum");
+    RenderTexture(water.texPrecomputedData.getId()); ImGui::SameLine();
+    RenderTexture(water.texInitialSpectrum.getId());
+
+    ImGui::SeparatorText("Displacement / Derivatives / Turbulence");
+    RenderTexture(water.texDisplacement.getId()); ImGui::SameLine();
+    RenderTexture(water.texDerivatives.getId()); ImGui::SameLine();
+
+    ApplySwizzle(water.texTurbulence, {GL_RED, GL_RED, GL_RED, GL_ONE});
+    RenderTexture(water.texTurbulence.getId());
+
+    ImGui::SeparatorText("Load/Save");
+    static LoaderWidget lw("tessendorf0");
+    if (lw.render(water))
+      water.markForRebuild();
   }
 
   if (ImGui::CollapsingHeader("Postprocess")) {

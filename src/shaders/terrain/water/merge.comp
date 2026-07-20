@@ -1,0 +1,35 @@
+#version 460 core
+
+#include "../common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rg32f, binding = 0) readonly uniform image2D imgDxDz;
+layout(rg32f, binding = 1) readonly uniform image2D imgDyDxz;
+layout(rg32f, binding = 2) readonly uniform image2D imgDyxDyz;
+layout(rg32f, binding = 3) readonly uniform image2D imgDxxDzz;
+layout(rgba32f, binding = 4) writeonly uniform image2D imgDisplacement;
+layout(rgba32f, binding = 5) writeonly uniform image2D imgDerivates;
+layout(r32f, binding = 6) uniform image2D imgTurbulence;
+
+uniform float u_lambda;
+uniform float u_dt;
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+
+  vec2 DxDz = imageLoad(imgDxDz, id).rg;
+  vec2 DyDxz = imageLoad(imgDyDxz, id).rg;
+  vec2 DyxDyz = imageLoad(imgDyxDyz, id).rg;
+  vec2 DxxDzz = imageLoad(imgDxxDzz, id).rg;
+
+  imageStore(imgDisplacement, id, vec4(u_lambda * DxDz.x, DyDxz.x, u_lambda * DxDz.y, 1.f));
+  imageStore(imgDerivates, id, vec4(DyxDyz, DxxDzz * u_lambda));
+
+  float jacobian = (1.f + u_lambda * DxxDzz.x) * (1.f + u_lambda * DxxDzz.y) - u_lambda * u_lambda * DyDxz.y * DyDxz.y;
+  float oldTurbulence = imageLoad(imgTurbulence, id).r;
+  float nextTurbulence = min(jacobian, oldTurbulence + u_dt * 0.5f / max(jacobian, 0.5f));
+
+  imageStore(imgTurbulence, id, vec4(nextTurbulence, 0.f, 0.f, 1.f));
+}
+

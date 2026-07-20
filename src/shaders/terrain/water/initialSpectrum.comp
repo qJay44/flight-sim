@@ -1,0 +1,132 @@
+#version 460 core
+
+#include "../common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rg32f, binding = 0) readonly uniform image2D imgNoise;
+layout(rg32f, binding = 1) writeonly uniform image2D imgH0K;
+layout(rgba32f, binding = 2) writeonly uniform image2D imgWavesData;
+
+struct SpectrumSettings {
+  float scale;
+  float angle;
+  float spreadBlend;
+  float swell;
+  float alpha;
+  float peakOmega;
+  float gamma;
+  float shortWavesFade;
+};
+
+uniform float u_g;
+uniform float u_depth;
+uniform float u_lengthScale;
+
+layout(std140, binding = 0) uniform SpectrumsBlock {
+  SpectrumSettings spectrums[2];
+};
+
+float Frequency(float k, float g, float depth) {
+  return sqrt(g * k * tanh(min(k * depth, 20.f)));
+}
+
+float FrequencyDerivative(float k, float g, float depth) {
+  float th = tanh(min(k * depth, 20.f));
+  float ch = cosh(k * depth);
+
+  return g * (depth * k / ch / ch + th) / Frequency(k, g, depth) / 2.f;
+}
+
+float NormalizationFactor(float s) {
+	float s2 = s * s;
+	float s3 = s2 * s;
+	float s4 = s3 * s;
+
+	if (s < 5.f)
+		return -0.000564f * s4 + 0.00776f * s3 - 0.044f * s2 + 0.192f * s + 0.163f;
+	else
+		return -4.80e-08f * s4 + 1.07e-05f * s3 - 9.53e-04f * s2 + 5.90e-02f * s + 3.93e-01f;
+}
+
+float Cosine2s(float theta, float s) {
+  return NormalizationFactor(s) * pow(abs(cos(0.5f * theta)), 2.f * s);
+}
+
+float SpreadPower(float omega, float peakOmega) {
+  if (omega > peakOmega)
+    return 9.77f * pow(abs(omega / peakOmega), -2.5f);
+
+  return 6.97f * pow(abs(omega / peakOmega), 5.f);
+}
+
+float DirectionSpectrum(float theta, float omega, SpectrumSettings settings) {
+  float s = SpreadPower(omega, settings.peakOmega)
+    + 16.f * tanh(min(omega / settings.peakOmega, 20.f)) * settings.swell * settings.swell;
+
+  return mix(2.f / PI * cos(theta) * cos(theta), Cosine2s(theta - settings.angle, s), settings.spreadBlend);
+}
+
+float CorrectionTMA(float omega, float g, float depth) {
+  float omegaH = omega * sqrt(depth / g);
+  if (omegaH <= 1.f)
+    return 0.5f * omegaH * omegaH;
+
+  if (omegaH < 2.f)
+    return 1.f - 0.5f * (2.f - omegaH) * (2.f - omegaH);
+
+  return 1.f;
+}
+
+float Jonswap(float omega, float g, float depth, SpectrumSettings settings) {
+  float sigma = omega <= settings.peakOmega ? 0.07f : 0.09f;
+  float r = exp(-(omega - settings.peakOmega) * (omega - settings.peakOmega)
+      / 2.f / sigma / sigma / settings.peakOmega / settings.peakOmega);
+
+  float oneOverOmega = 1.f / omega;
+  float peakOmegaOverOmega = settings.peakOmega / omega;
+
+  return settings.scale * CorrectionTMA(omega, g, depth) * settings.alpha * g * g
+    * oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega * oneOverOmega
+    * exp(-1.25f * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega * peakOmegaOverOmega)
+    * pow(abs(settings.gamma), r);
+}
+
+float ShortWavesFade(float kLength, SpectrumSettings settings) {
+  return exp(-settings.shortWavesFade * settings.shortWavesFade * kLength * kLength);
+}
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+  int size = imageSize(imgWavesData).x;
+
+  float deltaK = TAU / u_lengthScale;
+  int nx = id.x - size / 2;
+  int nz = id.y - size / 2;
+  vec2 k = vec2(nx, nz) * deltaK;
+  float kLength = length(k);
+
+  if (kLength > 1e-4f) {
+    float kAngle = atan(k.y, k.x); // HLSL atan2(a, b) == GLSL atan(b, a) ?
+    float omega = Frequency(kLength, u_g, u_depth);
+    imageStore(imgWavesData, id, vec4(k.x, 1.f / kLength, k.y, omega));
+    float dOmegadk = FrequencyDerivative(kLength, u_g, u_depth);
+
+    float spectrum = Jonswap(omega, u_g, u_depth, spectrums[0])
+      * DirectionSpectrum(kAngle, omega, spectrums[0])
+      * ShortWavesFade(kLength, spectrums[0]);
+
+    if (spectrums[1].scale > 0.f)
+      spectrum += Jonswap(omega, u_g, u_depth, spectrums[1])
+        * DirectionSpectrum(kAngle, omega, spectrums[1])
+        * ShortWavesFade(kLength, spectrums[1]);
+
+    vec2 noise = imageLoad(imgNoise, id).rg;
+    vec2 h0k = noise * sqrt(2.f * spectrum * abs(dOmegadk) / kLength * deltaK * deltaK);
+    imageStore(imgH0K, id, vec4(h0k, 0.f, 1.f));
+  } else {
+    imageStore(imgWavesData, id, vec4(k.x, 1.f, k.y, 0.f));
+    imageStore(imgH0K, id, vec4(0.f, 0.f, 0.f, 1.f));
+  }
+}
+

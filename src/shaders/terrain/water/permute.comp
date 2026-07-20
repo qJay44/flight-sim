@@ -1,0 +1,15 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rg32f, binding = 0) uniform image2D imgReadWrite;
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+  vec2 data = imageLoad(imgReadWrite, id).rg;
+
+  data *= 1.f - 2.f * ((id.x + id.y) % 2);
+
+  imageStore(imgReadWrite, id, vec4(data, 0.f, 1.f));
+}
+

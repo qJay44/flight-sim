@@ -1,0 +1,42 @@
+#version 460 core
+
+#include "../common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(rgba32f, binding = 0) readonly uniform image2D imgH0;
+layout(rgba32f, binding = 1) readonly uniform image2D imgWavesData;
+layout(rg32f, binding = 2) writeonly uniform image2D imgDxDz;
+layout(rg32f, binding = 3) writeonly uniform image2D imgDyDxz;
+layout(rg32f, binding = 4) writeonly uniform image2D imgDyxDyz;
+layout(rg32f, binding = 5) writeonly uniform image2D imgDxxDzz;
+
+uniform float u_time;
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+
+  vec4 wave = imageLoad(imgWavesData, id);
+  vec4 spectrum = imageLoad(imgH0, id);
+  float phase = wave.w * u_time;
+  vec2 exponent = vec2(cos(phase), sin(phase));
+  vec2 h = complexMultiply(spectrum.rg, exponent) + complexMultiply(spectrum.ba, vec2(exponent.x, -exponent.y));
+  vec2 ih = vec2(-h.y, h.x);
+
+  vec2 displacementX = ih * wave.x * wave.y;
+  vec2 displacementY = h;
+  vec2 displacementZ = ih * wave.z * wave.y;
+
+  vec2 displacementX_dx = -h * wave.x * wave.x * wave.y;
+  vec2 displacementY_dx = ih * wave.x;
+  vec2 displacementZ_dx = -h * wave.x * wave.z * wave.y;
+
+  vec2 displacementY_dz = ih * wave.z;
+  vec2 displacementZ_dz = -h * wave.z * wave.z * wave.y;
+
+  imageStore(imgDxDz,   id, vec4(displacementX.x    - displacementZ.y   , displacementX.y    + displacementZ.x   , 0.f, 1.f));
+  imageStore(imgDyDxz,  id, vec4(displacementY.x    - displacementZ_dx.y, displacementY.y    + displacementZ_dx.x, 0.f, 1.f));
+  imageStore(imgDyxDyz, id, vec4(displacementY_dx.x - displacementY_dz.y, displacementY_dx.y + displacementY_dz.x, 0.f, 1.f));
+  imageStore(imgDxxDzz, id, vec4(displacementX_dx.x - displacementZ_dz.y, displacementX_dx.y + displacementZ_dz.x, 0.f, 1.f));
+}
+

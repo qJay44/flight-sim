@@ -1,10 +1,8 @@
 #pragma once
 
 #include <stack>
-#include <string_view>
 
 #include "../engine/texture/Texture2DArray.hpp"
-#include "../engine/texture/Texture2D.hpp"
 #include "../engine/mesh/BufferObject.hpp"
 #include "../engine/Shader.hpp"
 #include "NodeData.hpp"
@@ -35,30 +33,19 @@ public:
   void freeSlotAll();
 
   void generateTerrain(const NodeData& node);
-  void generateWater();
-  void bindTextures(GLuint terrainTexSlot = 0, GLuint waterTexSlot = 1) const;
-
-  void loadTerrainConfig(std::string_view name);
-  void loadWaterConfig(std::string_view name);
-
-  void saveTerrainConfig(std::string_view name) const;
-  void saveWaterConfig(std::string_view name) const;
-
+  void bindTextures(GLuint terrainTexSlot = 0) const;
 private:
   friend ::gui;
 
   static bool isInitialized;
 
   Texture2DArray texArrayNodes;
-  Texture2D texWaterMap;
   GLuint numGroups = 0;
   std::stack<int> freeSlots;
 
   Shader terrainShader;
-  Shader waterShader;
 
   ProfilerManager::Query queryGenerateTerrain;
-  ProfilerManager::Query queryGenerateWater;
 
   struct TerrainConfig {
     float landThresholdA = 0.42f;
@@ -87,17 +74,6 @@ private:
   } cfgTerrain;
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
-  struct WaterConfig {
-    float initAmplitude = 1.f;
-    float initFrequency = 4.f;
-    float gain = 0.5f;
-    float lacunarity = 2.0f;
-    float speed = 1.f;
-    int octaves = 4;
-    float _pad[2];
-  } cfgWater;
-  static_assert(sizeof(WaterConfig) % 16 == 0);
-
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(TerrainConfig,
     landThresholdA,
     landThresholdB,
@@ -123,18 +99,8 @@ private:
     detailOctaves
   );
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(WaterConfig,
-    initAmplitude,
-    initFrequency,
-    gain,
-    lacunarity,
-    speed,
-    octaves
-  );
-
   struct {
     BufferObject terrainConfig{GL_UNIFORM_BUFFER, false};
-    BufferObject waterConfig{GL_UNIFORM_BUFFER, false};
   } ubo;
 };
 

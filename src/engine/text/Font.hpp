@@ -58,7 +58,7 @@ private:
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     TextureDescriptor texDesc{};
-    texDesc.internalFormat = GL_RED;
+    texDesc.internalFormat = GL_R8;
     texDesc.format = GL_RED;
 
     u32 atlasSize = 512;
@@ -68,7 +68,7 @@ private:
     int atlasX = 0;
     int atlasY = 0;
     u32 maxRowHeight = 0;
-    atlas.bind();
+    atlas.bind(0);
 
     for (u8 c = 0; c < 128; c++) {
       if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {

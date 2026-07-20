@@ -178,7 +178,7 @@ float evaluateHeight(vec3 sphereDir) {
   float finalDetail = processedDetail * finalMacro;
   float finalHeightFraction = finalMacro + finalDetail;
 
-  // HACK: [finalHeightFraction] supposed to be satureaded
+  // HACK: [finalHeightFraction] supposed to be saturated;
   return finalHeightFraction * u_heightScale;
 }
 

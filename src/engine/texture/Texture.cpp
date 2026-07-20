@@ -1,8 +1,10 @@
 #include "Texture.hpp"
+#include <cassert>
+#include <utility>
 
 Texture::Texture(Texture&& other)
-  : id(other.id),
-    target(other.target)
+  : target(other.target),
+    id(other.id)
 {
   other.id = 0;
 }
@@ -10,9 +12,8 @@ Texture::Texture(Texture&& other)
 Texture& Texture::operator=(Texture&& other) {
   if (this != &other) {
     clear();
-    id = other.id;
-    target = other.target;
-    other.id = 0;
+    std::swap(id, other.id);
+    std::swap(target, other.target);
   }
 
   return *this;
@@ -33,15 +34,12 @@ void Texture::unbind() const {
 
 void Texture::clear() {
   if (id) glDeleteTextures(1, &id);
+  target = 0;
   id = 0;
 }
 
 const GLuint& Texture::getId() const { return id; }
 const GLenum& Texture::getTarget() const { return target; }
-
-bool Texture::isGenerated() const {
-  return id != 0;
-}
 
 ivec2 Texture::getSize(GLint mipLevel) const {
   ivec2 res;

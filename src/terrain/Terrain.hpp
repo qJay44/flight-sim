@@ -6,6 +6,7 @@
 #include "GenerationManager.hpp"
 #include "ProfilerManager.hpp"
 #include "quadtree.hpp"
+#include "water/Tessendorf.hpp"
 
 #define TERRAIN_MAX_NODES 512
 
@@ -44,14 +45,16 @@ private:
   MeshElementsInstancing chunkMesh = meshes::plane(128);
   MeshElementsInstancing waterMesh = meshes::plane(16);
 
+  water::Tessendorf water;
+
   float planetRadiusPercent = 0.02f;
   float seaThreshold = 0.05f;     // Percentage of [heightScale]
   float sandThreshold = 0.08f;    // Percentage of [heightScale]
   float mountainThreshold = 0.6f; // Percentage of [heightScale]
 
   float waveScale = 1.f;
-  float waveHeight = 1.f;
   float waterRadiusScale = 1.f;
+  float foamSharpness = 1.f;
 
   ProfilerManager::Query queryDrawTerrain{"Terrain draw"};
   ProfilerManager::Query queryDrawWater{"Water draw"};

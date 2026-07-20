@@ -5,7 +5,7 @@
 
 HUD::HUD(Font* font, Shader* shaderText) : shaderText(shaderText) {
   TextureDescriptor desc{};
-  desc.internalFormat = GL_RGBA;
+  desc.internalFormat = GL_RGBA8;
   desc.format = GL_RGBA;
 
   indicatorTex = Texture2D("res/tex/hud/indicator.png", desc);
@@ -67,7 +67,7 @@ void HUD::draw(const Camera* camera, Shader& shader) const {
   shader.setUniform3f("u_color", {0.f, 1.f, 0.f});
   shader.setUniformMatrix4f("u_proj", global::getScreenProjection());
 
-  indicatorTex.bind();
+  indicatorTex.bind(0);
   speedImg.draw(camera, shader);
   altitudeImg.draw(camera, shader);
 

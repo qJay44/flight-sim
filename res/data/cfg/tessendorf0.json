@@ -1,0 +1,30 @@
+{
+  "depth": 500.0,
+  "g": 9.8100004196167,
+  "lambda": 1.0,
+  "lengthScale": 705.8820190429688,
+  "local": {
+    "fetch": 569411.75,
+    "peakEnhancemnt": 3.299999952316284,
+    "scale": 1.0,
+    "shortWavesFade": 0.07100000232458115,
+    "spreadBlend": 1.0,
+    "swell": 0.1979999989271164,
+    "windDir": 2.181661605834961,
+    "windSpeed": 53.88199996948242
+  },
+  "seed1": 13.369999885559082,
+  "seed2": 42.0,
+  "swell": {
+    "fetch": 300000.0,
+    "peakEnhancemnt": 3.299999952316284,
+    "scale": 0.0,
+    "shortWavesFade": 0.009999999776482582,
+    "spreadBlend": 1.0,
+    "swell": 1.0,
+    "windDir": 0.0,
+    "windSpeed": 1.0
+  },
+  "worldSize": 953.7509765625,
+  "foamSharpness": 1.3
+}

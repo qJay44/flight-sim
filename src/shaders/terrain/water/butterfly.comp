@@ -1,0 +1,22 @@
+#version 460 core
+
+#include "../common.glsl"
+
+layout(local_size_x = 1, local_size_y = 8) in;
+
+layout(rgba32f, binding = 0) writeonly uniform image2D imgWrite;
+
+uniform int u_size;
+
+void main() {
+  ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+
+  int b = u_size >> (id.x + 1);
+  vec2 mult = TAU * vec2(0.f, 1.f) / u_size;
+  int i = (2 * b * (id.y / b) + id.y % b) % u_size;
+  vec2 twiddle = complexExp(-mult * ((id.y / b) * b));
+
+  imageStore(imgWrite, id, vec4(twiddle, i, i + b));
+  imageStore(imgWrite, ivec2(id.x, id.y + u_size / 2), vec4(-twiddle, i, i + b));
+}
+
