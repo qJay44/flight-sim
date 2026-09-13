@@ -286,12 +286,12 @@ int main() {
       grid.draw(activeCam, gridShader);
 
     texTerrainShadow.bind(2);
-    terrain.drawTerrain(activeCam, terrainShader);
+    // terrain.drawTerrain(activeCam, terrainShader);
+
+    // glDisable(GL_CULL_FACE);
+    terrain.drawWater(activeCam, waterShader);
 
     f15.draw(activeCam, airplaneShader);
-
-    glDisable(GL_CULL_FACE);
-    terrain.drawWater(activeCam, waterShader);
 
     if (global::jetDrawDebugMass)
       f15.drawDebugMass(activeCam, massShader);
@@ -304,6 +304,7 @@ int main() {
     FBO::unbind();
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
+
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

@@ -58,7 +58,7 @@ namespace json {
       j.get_to(cfg);
       f.close();
     } else {
-      warning("[Water::loadPreset] Could not open the file [{}]", path.string());
+      warning("[global::json::loadPreset] Could not open the file [{}]", path.string());
     }
   }
 
@@ -73,7 +73,7 @@ namespace json {
       f << j.dump(2);
       f.close();
     } else {
-      error("[Water::savePreset] Could not open the file [{}]", path.string());
+      error("[global::json::savePreset] Could not open the file [{}]", path.string());
     }
   }
 

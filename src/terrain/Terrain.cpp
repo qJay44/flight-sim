@@ -13,15 +13,15 @@ namespace terrain {
 Terrain::Terrain(float planetRadius) {
   enablePostprocess = false;
   terrain::planetRadius = planetRadius;
-  float planetRadiusInv = 1.f / planetRadius;
 
-  waterRadiusScale = 1.f + planetRadiusInv * 120.f;
+  waterRadiusScale = 1.005f;
 
   Quadnode::gm = GenerationManager(160);
   ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 
   global::json::loadPreset(water, "tessendorf0.json");
   water.markForRebuild();
+  waterMesh.setInstanceCount(6);
 }
 
 void Terrain::update(const Camera* cam) {
@@ -42,7 +42,6 @@ void Terrain::update(const Camera* cam) {
   assert(n <= TERRAIN_MAX_NODES);
   ubo.nodesData.updateSubData(leafs.data(), n * sizeof(NodeData));
   chunkMesh.setInstanceCount(n);
-  waterMesh.setInstanceCount(n);
 }
 
 void Terrain::reload() {
@@ -80,7 +79,7 @@ void Terrain::drawWater(const Camera* cam, Shader& shader) const {
 
   glDepthMask(GL_FALSE);
   glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendFunc(GL_SRC_ALPHA, GL_SRC_ALPHA);
 
   global::profiler.startScopedTaskGpu(queryDrawWater);
   waterMesh.draw(cam, shader);

@@ -24,16 +24,12 @@ layout(binding = 1) uniform sampler2D u_texDisplacement;
 layout(binding = 2) uniform sampler2D u_texDerivatives;
 layout(binding = 3) uniform sampler2D u_texTurbulence;
 
-layout(std140, binding = 0) uniform NodesDataBlock {
-  NodeData nodesData[MAX_NODES];
-};
-
 vec3 getNormal(vec2 uv) {
   vec4 derivatives = texture(u_texDerivatives, uv);
   vec2 slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
-  vec3 normal = normalize(vec3(-slope.x, 1.f, -slope.y));
+  vec3 waveNormal = normalize(vec3(-slope.x, 1.f, -slope.y));
 
-  return normal;
+  return waveNormal * v_sphereDir;
 }
 
 vec3 getTriplanarNormal(vec3 pos, vec3 normal, float scale) {
@@ -67,14 +63,13 @@ vec3 getSkyColor(vec3 rayDir) {
 }
 
 void main() {
-  NodeData node = nodesData[v_id];
-
   vec3 viewVec = u_camPos - v_worldPos;
   float height = u_planetRadius / u_heightScale;
   float camHeight = length(viewVec);
 
   vec3 geometricNormal = normalize(v_sphereDir);
-  vec3 waveNormal = getTriplanarNormal(v_worldPos, geometricNormal, 1.f / node.extents);
+  vec3 waveNormal = getNormal(v_uv);
+  // vec3 waveNormal = getTriplanarNormal(v_worldPos, geometricNormal, 1.f);
   vec3 finalNormal = normalize(geometricNormal + waveNormal * 0.5f); // Perturbed Normal, 0.5 is wave strength
 
   vec3 viewDir = viewVec / camHeight;
@@ -90,7 +85,7 @@ void main() {
 
   // 0.02 - Water is 98% transparent looking down
   // 0.95 - Water is 95% opaque at the horison
-  fresnel = clamp(fresnel + 0.02f, 0.f, 0.95f);
+  fresnel = clamp(fresnel + 0.92f, 0.f, 0.95f);
 
   vec4 surfaceColor = vec4(COLOR_SHALLOW, fresnel);
 
@@ -102,6 +97,6 @@ void main() {
 
   vec3 finalColor = surfaceColor.rgb + u_lightColor * spec * u_sunIntensiy;
 
-  FragColor = vec4(finalColor, surfaceColor.a + spec);
+  FragColor = vec4(finalColor, fresnel);
 }
 

@@ -31,12 +31,8 @@ void main() {
 
   vec3 surfaceColor = COLOR_GRASS;
 
-  // Sea level thresholds
-  if (height < u_seaThreshold) {
-    float waterDeepness = smoothstep(0.f, u_seaThreshold, height);
-    surfaceColor = mix(COLOR_DEEP_OCEAN, COLOR_SHALLOW, waterDeepness);
   // Beaches / Sand
-  } else if (height < u_sandThreshold) {
+  if (height < u_sandThreshold) {
     float sandToGrass = smoothstep(u_seaThreshold, u_sandThreshold, height);
     surfaceColor = mix(COLOR_SAND, COLOR_GRASS, sandToGrass);
   } else {
@@ -57,6 +53,6 @@ void main() {
 
   vec3 color = surfaceColor * (diffuse + ambient);
 
-  FragColor = vec4(color, 1.f);
+  FragColor = vec4(color, 0.9f);
 }
 

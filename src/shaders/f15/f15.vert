@@ -23,5 +23,9 @@ void main() {
   v_normal = mat3(u_model) * a_normal;
 
 	gl_Position = u_camProj * u_modelView * ndc;
+
+  float C = 0.001;
+  float distNorm = log(C * gl_Position.w + 1.0) / log(C * u_camFar + 1.0);
+  gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
 }
 
