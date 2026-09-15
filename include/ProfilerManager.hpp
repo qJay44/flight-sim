@@ -1,8 +1,5 @@
 #pragma once
 
-#undef IM_NEW
-#undef IM_FREE
-
 #include "ImGuiProfilerRenderer.h"
 #include "ProfilerTask.h"
 
@@ -10,12 +7,13 @@ class ProfilerManager {
 public:
   class ScopedTaskCpu {
   public:
-    ScopedTaskCpu(size_t taskIdx);
+    ScopedTaskCpu(ProfilerManager* profiler, size_t taskIdx);
     ~ScopedTaskCpu();
 
     void end();
 
   private:
+    ProfilerManager* profiler{};
     size_t taskIdx;
     std::chrono::steady_clock::time_point start;
     bool ended = false;
@@ -25,7 +23,6 @@ public:
     GLuint q0, q1;
     std::string name{};
 
-    Query() = default;
     Query(const std::string& name);
 
     double calcDuration() const;
@@ -33,14 +30,13 @@ public:
 
   class ScopedTaskGpu {
   public:
-    ScopedTaskGpu(size_t taskIdx, const Query& q);
+    ScopedTaskGpu(ProfilerManager* profiler, size_t taskIdx, const Query& q);
     ~ScopedTaskGpu();
 
     void end();
 
   private:
-    GLuint64 t0;
-
+    ProfilerManager* profiler{};
     size_t taskIdx;
     const Query& q;
     bool ended = false;

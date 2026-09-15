@@ -19,20 +19,13 @@ using glm::dvec2;
 using glm::dvec3;
 using glm::dvec4;
 
-using glm::mat3;
 using glm::mat4;
 
-#ifdef _WIN32
-  #include <direct.h>
-  #include "glad/glad.h"
-  #define CHDIR(p) _chdir(p);
-#else
-  #include <unistd.h>
-  #include "glad/gl.h"
-  #define CHDIR(p) chdir(p);
-#endif
 
+// #include "glad/glad.h" // Windows version?
+#include "glad/gl.h"
 #include "GLFW/glfw3.h"
+#include "entt/entt.hpp"
 #include "defines.hpp"
 
 #define UTILS_ENABLE_GLM
@@ -45,27 +38,19 @@ using glm::mat4;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <functional>
 #include <future>
-#include <fstream>
 #include <list>
-#include <map>
+#include <print>
 #include <span>
+#include <stack>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
-
-#include "glm/gtx/norm.hpp"
-
-template<typename T>
-inline T normalizeSafe(const T& v) {
-  float lenSq = glm::length2(v);
-  if (lenSq > 1e-6f)
-    return v * glm::inversesqrt(lenSq);
-
-  return T(0.f);
-}
 
