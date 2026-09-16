@@ -22,6 +22,10 @@ GenerationManager::GenerationManager(gfx::AssetManager& assetManager, int textur
   global::json::loadPreset(cfgTerrain, "heightmap1.json");
 }
 
+GenerationManager::TerrainConfig& GenerationManager::getConfig() {
+  return cfgTerrain;
+}
+
 void GenerationManager::update() {
   ubo.terrainConfig.updateSubData(&cfgTerrain, sizeof(TerrainConfig));
 }

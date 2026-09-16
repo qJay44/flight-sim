@@ -10,30 +10,6 @@ namespace gfx::terrain {
 
 class GenerationManager {
 public:
-  GenerationManager(gfx::AssetManager& assetManager, int textureSize, int maxSlots);
-
-  GenerationManager(GenerationManager&&) = default;
-  GenerationManager& operator=(GenerationManager&&) = default;
-
-  GenerationManager(const GenerationManager&) = delete;
-  GenerationManager& operator=(const GenerationManager&) = delete;
-
-  void update();
-
-  [[nodiscard]] int acquireSlot();
-  void freeSlot(int slot);
-  void freeSlotAll();
-  void generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale);
-
-private:
-  int maxSlots;
-
-  gfx::Texture* texArrayNodes;
-  gfx::Shader* terrainShader{};
-
-  GLuint numGroups = 0;
-  std::stack<int> freeSlots;
-
   struct TerrainConfig {
     float landThresholdA = 0.42f;
     float landThresholdB = 0.55f;
@@ -58,8 +34,36 @@ private:
     int octaves = 2;
     int detailOctaves = 10;
     float _pad[2];
-  } cfgTerrain;
+  };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
+
+  GenerationManager(gfx::AssetManager& assetManager, int textureSize, int maxSlots);
+
+  GenerationManager(GenerationManager&&) = default;
+  GenerationManager& operator=(GenerationManager&&) = default;
+
+  GenerationManager(const GenerationManager&) = delete;
+  GenerationManager& operator=(const GenerationManager&) = delete;
+
+  TerrainConfig& getConfig();
+
+  void update();
+
+  [[nodiscard]] int acquireSlot();
+  void freeSlot(int slot);
+  void freeSlotAll();
+  void generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale);
+
+private:
+  int maxSlots;
+
+  gfx::Texture* texArrayNodes;
+  gfx::Shader* terrainShader{};
+
+  GLuint numGroups = 0;
+  std::stack<int> freeSlots;
+
+  TerrainConfig cfgTerrain;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(TerrainConfig,
     landThresholdA,
