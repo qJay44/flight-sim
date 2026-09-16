@@ -1,14 +1,16 @@
 #include "GenerationManager.hpp"
 
+#include "../texture/Texture2DArray.hpp"
 #include "global.hpp"
 
 namespace gfx::terrain {
 
 GenerationManager::GenerationManager(gfx::AssetManager& assetManager, int textureSize, int maxSlots) : maxSlots(maxSlots) {
   assetManager.addShader("TerrainCompute", gfx::Shader("terrain/terrain.comp"));
+  assetManager.addTexture("TerrainNodes", Texture2DArray(maxSlots, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA}));
 
   terrainShader = assetManager.getShader("TerrainCompute");
-  texArrayNodes = gfx::Texture2DArray(maxSlots, ivec2{textureSize}, {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA32F, .format = GL_RGBA});
+  texArrayNodes = assetManager.getTexture("TerrainNodes");
   numGroups = textureSize / 16;
 
   for (int i = 0; i < maxSlots; i++)
@@ -33,7 +35,7 @@ int GenerationManager::acquireSlot() {
 }
 
 void GenerationManager::freeSlot(int slot) {
-  assert(freeSlots.size() < maxSlots);
+  assert((int)freeSlots.size() < maxSlots);
   freeSlots.push(slot);
 }
 
@@ -45,10 +47,7 @@ void GenerationManager::freeSlotAll() {
     freeSlots.push(i);
 }
 
-void GenerationManager::generateTerrain(core::math::terrain::NodeData& node, float planetRadius, float heightScale) {
-  if (node.texLayerIdx == -1)
-      node.texLayerIdx = acquireSlot();
-
+void GenerationManager::generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale) {
   terrainShader->use();
   terrainShader->setUniform2f("u_nodeCenter", node.center);
   terrainShader->setUniform1f("u_nodeExtents", node.extents);
@@ -58,13 +57,9 @@ void GenerationManager::generateTerrain(core::math::terrain::NodeData& node, flo
   terrainShader->setUniform1i("u_layer", node.texLayerIdx);
 
   ubo.terrainConfig.bindBase(0);
-  glBindImageTexture(0, texArrayNodes.getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+  glBindImageTexture(0, texArrayNodes->getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
   glDispatchCompute(numGroups, numGroups, 1);
   glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-}
-
-gfx::Texture* GenerationManager::getTexture() {
-  return &texArrayNodes;
 }
 
 } // terrain

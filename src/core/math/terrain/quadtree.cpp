@@ -2,9 +2,6 @@
 
 namespace core::math::terrain {
 
-int Quadnode::maxDepth = 8;
-float Quadnode::splitThreshold = 0.5f;
-
 Quadnode::Quadnode(Face face) : face(face) {}
 
 Quadnode::~Quadnode() {
@@ -13,24 +10,33 @@ Quadnode::~Quadnode() {
       delete child;
 }
 
-void Quadnode::insert(vec3 camPos, float planetRadius, std::stack<int>& freedSlots) {
-  float score = calculateSplitPriority(camPos, planetRadius);
+void Quadnode::newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos) {
+  this->maxDepth = maxDepth;
+  this->splitThreshold = splitThreshold;
+  this->planetRadius = planetRadius;
+  this->camPos = camPos;
+  assert(freedTexLayerIdxs.empty());
+}
+
+void Quadnode::insert() {
+  float score = calculateSplitPriority();
 
   if (score > splitThreshold && depth < maxDepth) {
     if (isLeaf())
       split();
 
     for (auto* child : children)
-      child->insert(camPos, planetRadius, freedSlots);
+      child->insert();
+
   } else {
     if (!isLeaf())
-      merge(freedSlots);
+      merge();
   }
 }
 
-void Quadnode::gatherLeafs(std::vector<NodeData>& leafs) {
+void Quadnode::gatherLeafs(std::stack<Quadnode*>& leafs) {
   if (isLeaf())
-    leafs.push_back(NodeData{center, extents, face, texLayerIdx});
+    leafs.push(this);
   else
     for (auto* child : children)
       child->gatherLeafs(leafs);
@@ -56,12 +62,12 @@ void Quadnode::split() {
   children[3] = new Quadnode(face, br, ext, depth + 1);
 }
 
-void Quadnode::merge(std::stack<int>& freedSlots) {
+void Quadnode::merge() {
   assert(children[0]);
 
   for (auto*& child : children) {
     if (child->texLayerIdx != -1)
-      freedSlots.push(child->texLayerIdx);
+      freedTexLayerIdxs.push(child->texLayerIdx);
 
     delete child;
     child = nullptr;
@@ -86,7 +92,7 @@ vec3 Quadnode::cubeToSphere() const {
   return p;
 }
 
-float Quadnode::calculateSplitPriority(vec3 camPos, float planetRadius) const {
+float Quadnode::calculateSplitPriority() const {
   vec3 sphereDir = glm::normalize(cubeToSphere());
   vec3 elevatedCenter = sphereDir * planetRadius;
 

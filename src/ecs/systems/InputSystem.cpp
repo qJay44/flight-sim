@@ -122,6 +122,9 @@ void update(entt::registry& registry) {
   if (ctx.keyboardKeys[GLFW_KEY_ESCAPE])
     glfwSetWindowShouldClose(ctx.window, GLFW_TRUE);
 
+  if (ctx.guiFocused)
+    return;
+
   float forwardMask = ctx.keyboardKeys[GLFW_KEY_W];
   float leftMask    = ctx.keyboardKeys[GLFW_KEY_A];
   float backMask    = ctx.keyboardKeys[GLFW_KEY_S];

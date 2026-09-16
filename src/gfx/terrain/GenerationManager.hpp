@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../texture/Texture2DArray.hpp"
 #include "../BufferObject.hpp"
 #include "../Shader.hpp"
 #include "../AssetManager.hpp"
@@ -24,14 +23,12 @@ public:
   [[nodiscard]] int acquireSlot();
   void freeSlot(int slot);
   void freeSlotAll();
-  void generateTerrain(core::math::terrain::NodeData& node, float planetRadius, float heightScale);
-
-  gfx::Texture* getTexture();
+  void generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale);
 
 private:
   int maxSlots;
 
-  gfx::Texture2DArray texArrayNodes;
+  gfx::Texture* texArrayNodes;
   gfx::Shader* terrainShader{};
 
   GLuint numGroups = 0;

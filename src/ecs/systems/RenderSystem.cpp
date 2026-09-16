@@ -39,7 +39,7 @@ void render(entt::registry& registry) {
   assert(activeCam);
   assert(globalLight);
 
-  TerrainSystem::render(registry, activeCam, activeCamPos);
+  TerrainSystem::prerender(registry, activeCam, activeCamPos);
 
   auto meshView = registry.view<MeshComponent, TransformComponent>();
 
@@ -62,10 +62,8 @@ void render(entt::registry& registry) {
       .cam  = activeCam,
       .camPos = activeCamPos,
       .model = TransformSystem::getModel(transComponent),
+      .textures = textureComponentPtr ? textureComponentPtr->textures : std::vector<gfx::Texture*>{}
     };
-
-    if (textureComponentPtr)
-      renderCmd.textures = textureComponentPtr->textures;
 
     renderer.submit(std::move(renderCmd));
   }

@@ -1,16 +1,14 @@
 #include "gui.hpp"
 
-#include "ProfilerManager.hpp"
-#include "glm/gtc/type_ptr.hpp"
 #include "imgui.h"
 // #include "implot.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-#include "../core/EngineContext.hpp"
+#include "ProfilerManager.hpp"
+#include "components-ui.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #include "../gfx/AssetManager.hpp"
-#include "../ecs/components/CameraComponent.hpp"
-#include "../ecs/components/TransformComponent.hpp"
 
 namespace gui {
 
@@ -52,7 +50,6 @@ void render(entt::registry& registry) {
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
 
-  auto& ctx = registry.ctx().get<core::EngineContext>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler = registry.ctx().get<ProfilerManager>();
 
@@ -72,36 +69,8 @@ void render(entt::registry& registry) {
     ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
   }
 
-  if (ImGui::CollapsingHeader("Active camera")) {
-    using namespace ecs::component;
-
-    core::Camera* cam{};
-    vec3* camPos{};
-    {
-      auto camView = registry.view<CameraComponent, TransformComponent>();
-
-      for (auto entity : camView) {
-        auto& camComponent = registry.get<CameraComponent>(entity);
-        if (camComponent.isActive) {
-          auto& transComponent = registry.get<TransformComponent>(entity);
-          cam = camComponent.cam;
-          camPos = &transComponent.pos;
-          break;
-        }
-      }
-    }
-
-    ImGui::Text("Up: [%.2f, %.2f, %2.f]", cam->up.x, cam->up.y, cam->up.z);
-    ImGui::Text("Orientation: [%.2f, %.2f, %2.f]", cam->orientation.x, cam->orientation.y, cam->orientation.z);
-
-    ImGui::SliderFloat("Near", &cam->nearPlane, 0.01f, 1.f);
-    ImGui::SliderFloat("Far", &cam->nearPlane, 0.f, 1e4f);
-    ImGui::SliderAngle("Fov", &cam->fov);
-    ImGui::SliderAngle("Yaw", &cam->yaw);
-    ImGui::SliderAngle("Pitch", &cam->pitch);
-    ImGui::SliderFloat("Sensitivity", &cam->sensitivity, 0.1f, 10.f);
-    ImGui::DragFloat3("Position", (float*)camPos);
-  }
+  drawCameraUi(registry);
+  drawTerrainUi(registry);
 
   ImGui::End();
 

@@ -9,7 +9,6 @@ namespace ecs::component::terrain {
 using namespace core::math::terrain;
 
 struct TerrainComponent {
-  vec3 planetPos = vec3(0.f);
   float planetRadius = 1.f;
   float heightScale = 1.f;
 
@@ -22,7 +21,10 @@ struct TerrainComponent {
   float waterRadiusScale = 1.f;
   float foamSharpness = 1.f;
 
-  std::vector<NodeData> leafs;
+  int qtMaxDepth = 8;
+  float qtSplitThreshold = 0.5f;
+
+  std::array<NodeData, TERRAIN_MAX_NODES> leafs;
   std::array<Quadnode, 6> quadtrees{
     Quadnode::Right,
     Quadnode::Left,
@@ -31,6 +33,8 @@ struct TerrainComponent {
     Quadnode::Front,
     Quadnode::Back,
   };
+
+  size_t activeLeafs = 0;
 
   struct {
     gfx::BufferObject nodesData;

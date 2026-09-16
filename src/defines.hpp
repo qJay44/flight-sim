@@ -23,3 +23,5 @@
   constexpr ImVec4(const vec3& f, const float& w) : x(f.x), y(f.y), z(f.z), w(w) {} \
   operator vec4() const { return vec4(x,y,z,w); }
 
+
+#define TERRAIN_MAX_NODES 512

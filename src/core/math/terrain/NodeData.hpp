@@ -2,7 +2,7 @@
 
 namespace core::math::terrain {
 
-struct NodeData {
+struct NodeData{
   vec2 center;
   float extents;
   int faceIdx;

@@ -15,9 +15,9 @@ public:
     Shader* shader;
     const Mesh* mesh;
     const core::Camera* cam;
-    const vec3& camPos;
-    const mat4& model;
-    std::vector<Texture*> textures;
+    const vec3 camPos;
+    const mat4 model;
+    const std::vector<Texture*> textures;
   };
 
   Renderer() = default;

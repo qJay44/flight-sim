@@ -7,6 +7,7 @@
 #include "../components/TextureComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
+#include <ratio>
 
 namespace ecs::TerrainSystem {
 
@@ -33,7 +34,7 @@ void init(entt::registry& registry, float planetRadius) {
   terrainComponent.ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 
   TextureComponent textureComponent{};
-  // textureComponent.textures.push_back(gm.getTexture());
+  textureComponent.textures.push_back(assetManager.getTexture("TerrainNodes"));
 
   registry.emplace<MeshComponent>(entity, meshComponent);
   registry.emplace<TerrainComponent>(entity, std::move(terrainComponent));
@@ -44,11 +45,11 @@ void init(entt::registry& registry, float planetRadius) {
 
 void update(entt::registry& registry) {
   auto& gm = registry.ctx().get<GenerationManager>();
-  auto camView = registry.view<CameraComponent, TransformComponent>();
+  gm.update();
 
   [[maybe_unused]] core::Camera* activeCam = nullptr;
   vec3 activeCamPos{};
-  for (auto entity : camView) {
+  for (auto entity : registry.view<CameraComponent, TransformComponent>()) {
     const auto& camComponent = registry.get<CameraComponent>(entity);
     if (camComponent.isActive) {
       const auto& transComponent = registry.get<TransformComponent>(entity);
@@ -59,40 +60,51 @@ void update(entt::registry& registry) {
     }
   }
 
-  auto terrainView = registry.view<TerrainComponent, MeshComponent>();
-  for (auto entity : terrainView) {
-    auto& terrainComponent = registry.get<TerrainComponent>(entity);
-    std::stack<int> freedSlots;
+  for (auto entity : registry.view<TerrainComponent, MeshComponent>()) {
+    auto& terrain = registry.get<TerrainComponent>(entity);
+    std::stack<Quadnode*> activeNodes;
 
-    terrainComponent.leafs.clear();
-    gm.update();
+    for (Quadnode& quadtree : terrain.quadtrees) {
+      quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrain.planetRadius, activeCamPos);
+      quadtree.insert();
+      quadtree.gatherLeafs(activeNodes);
 
-    for (Quadnode& quadtree : terrainComponent.quadtrees) {
-      quadtree.insert(activeCamPos, terrainComponent.planetRadius, freedSlots);
-      quadtree.gatherLeafs(terrainComponent.leafs);
+      while (!quadtree.freedTexLayerIdxs.empty()) {
+        gm.freeSlot(quadtree.freedTexLayerIdxs.top());
+        quadtree.freedTexLayerIdxs.pop();
+      }
     }
 
-    while (!freedSlots.empty()) {
-      int slot = freedSlots.top(); freedSlots.pop();
-      gm.freeSlot(slot);
-    }
+    terrain.activeLeafs = 0;
+    while (!activeNodes.empty()) {
+      auto* node = activeNodes.top(); activeNodes.pop();
 
-    for (auto& node : terrainComponent.leafs)
-      gm.generateTerrain(node, terrainComponent.planetRadius, terrainComponent.heightScale);
+      auto& currLeaf = terrain.leafs[terrain.activeLeafs++];
+      currLeaf = NodeData{
+        .center = node->center,
+        .extents = node->extents,
+        .faceIdx = node->face,
+        .texLayerIdx = node->texLayerIdx
+      };
+
+      if (node->texLayerIdx == -1) {
+        currLeaf.texLayerIdx = node->texLayerIdx = gm.acquireSlot();
+        gm.generateTerrain(currLeaf, terrain.planetRadius, terrain.heightScale);
+      }
+    }
   }
 }
 
-void render(entt::registry& registry, core::Camera* activeCam, vec3 activeCamPos) {
+void prerender(entt::registry& registry, core::Camera* activeCam, vec3 activeCamPos) {
   auto terrainView = registry.view<TerrainComponent, MeshComponent, TransformComponent>();
   for (auto entity : terrainView) {
     const auto& terrainComponent = registry.get<TerrainComponent>(entity);
     const auto& meshComponent = registry.get<MeshComponent>(entity);
     const auto& transComponent = registry.get<TransformComponent>(entity);
 
-    size_t n = terrainComponent.leafs.size();
-    assert(n <= TERRAIN_MAX_NODES);
-    terrainComponent.ubo.nodesData.updateSubData(terrainComponent.leafs.data(), n * sizeof(NodeData));
-    meshComponent.mesh->setInstanceCount(n);
+    terrainComponent.ubo.nodesData.updateSubData(terrainComponent.leafs.data(), terrainComponent.activeLeafs * sizeof(NodeData));
+    terrainComponent.ubo.nodesData.bindBase(0);
+    meshComponent.mesh->setInstanceCount(terrainComponent.activeLeafs);
 
     vec3 planetCameraOffset = transComponent.pos - activeCamPos;
     mat4 localView = activeCam->getLocalView(vec3(0.f));

@@ -5,7 +5,6 @@
 #include "ecs/components/MeshComponent.hpp"
 #include "ecs/components/TransformComponent.hpp"
 #include "ecs/components/VelocityComponent.hpp"
-#include "ecs/components/TextureComponent.hpp"
 #include "ecs/systems/CameraSystem.hpp"
 #include "ecs/systems/MovementSystem.hpp"
 #include "ecs/systems/RenderSystem.hpp"
@@ -95,32 +94,17 @@ int main() {
 
   gui::init(window);
   ecs::InputSystem::init(registry);
-  ecs::TerrainSystem::init(registry, 100.f);
+  ecs::TerrainSystem::init(registry, 1e5f);
 
   // ----- Entities ---------------------------------------------------------------------------------------------------------------- //
 
   {
     using namespace ecs::component;
 
-    entt::entity entCube = registry.create();
-    {
-      MeshComponent meshComponent{
-        .mesh = assetManager.getMesh("Cube.obj"),
-        .shader = assetManager.getShader("DefaultCube")
-      };
-
-      TextureComponent textureComponent;
-      textureComponent.textures.push_back(assetManager.getTexture("DebugTexture0"));
-
-      registry.emplace<MeshComponent>(entCube, meshComponent);
-      registry.emplace<TransformComponent>(entCube, TransformComponent{});
-      registry.emplace<TextureComponent>(entCube, textureComponent);
-    }
-
     entt::entity entCamera = registry.create();
     {
       TransformComponent transComponent{
-        .pos = {0.f, 0.f, 25.f}
+        .pos = {0.f, 0.f, 1e5f + 25.f}
       };
 
       CameraComponent mainCamComponent{
@@ -145,7 +129,7 @@ int main() {
       };
 
       registry.emplace<MeshComponent>(entGlobalAxis, meshComponent);
-      registry.emplace<TransformComponent>(entGlobalAxis, TransformComponent{});
+      registry.emplace<TransformComponent>(entGlobalAxis, TransformComponent{.scale = vec3(1e6f)});
     }
   }
 

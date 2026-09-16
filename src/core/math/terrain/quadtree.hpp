@@ -1,13 +1,8 @@
 #pragma once
 
-#include "NodeData.hpp"
-
 namespace core::math::terrain {
 
 struct Quadnode {
-  static int maxDepth;
-  static float splitThreshold;
-
   enum Face {
     Right = 0,
     Left = 1,
@@ -16,6 +11,12 @@ struct Quadnode {
     Front = 4,
     Back = 5,
   };
+
+  int maxDepth;
+  float splitThreshold;
+  float planetRadius;
+  vec3 camPos;
+  std::stack<int> freedTexLayerIdxs;
 
   Face face;
   vec2 center{0.f};
@@ -27,19 +28,20 @@ struct Quadnode {
   Quadnode(Face face); // Root node
   ~Quadnode();
 
-  void insert(vec3 camPos, float planetRadius, std::stack<int>& freedSlots);
-  void gatherLeafs(std::vector<NodeData>& leafs);
+  void newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos);
+  void insert();
+  void gatherLeafs(std::stack<Quadnode*>& leafs);
 
 private:
   Quadnode(Face face, vec2 center, float extents, int depth);
 
   bool isLeaf() const;
   void split();
-  void merge(std::stack<int>& freedSlots);
+  void merge();
 
   vec3 cubeToSphere() const;
 
-  float calculateSplitPriority(vec3 camPos, float planetRadius) const;
+  float calculateSplitPriority() const;
 };
 
 } // namespace terrain
