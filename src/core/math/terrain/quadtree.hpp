@@ -12,11 +12,7 @@ struct Quadnode {
     Back = 5,
   };
 
-  int maxDepth;
-  float splitThreshold;
-  float planetRadius;
-  vec3 camPos;
-  std::stack<int> freedTexLayerIdxs;
+  static std::stack<int> freedTexLayerIdxs;
 
   Face face;
   vec2 center{0.f};
@@ -31,6 +27,12 @@ struct Quadnode {
   void newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos);
   void insert();
   void gatherLeafs(std::stack<Quadnode*>& leafs);
+
+private:
+  static int maxDepth;
+  static float splitThreshold;
+  static float planetRadius;
+  static vec3 camPos;
 
 private:
   Quadnode(Face face, vec2 center, float extents, int depth);

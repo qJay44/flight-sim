@@ -7,7 +7,6 @@
 #include "../components/TextureComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
-#include <ratio>
 
 namespace ecs::TerrainSystem {
 

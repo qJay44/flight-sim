@@ -73,12 +73,16 @@ int main() {
         .wrapT = GL_REPEAT,
     });
 
+    core::Camera cam{
+      .farPlane = 1e5f
+    };
+
     gfx::AssetManager assetManager;
     assetManager.loadFromObj("res/obj/Cube.obj");
     assetManager.addShader("DefaultCube", gfx::Shader("PTNC.vert", "test.frag"));
     assetManager.addShader("Axis", gfx::Shader("axis.vert", "axis.frag"));
     assetManager.addTexture("DebugTexture0", std::move(debugTex0));
-    assetManager.addCamera("DefaultCamera", {});
+    assetManager.addCamera("DefaultCamera", std::move(cam));
     assetManager.addLight("GlobalLight", std::move(globalLight));
 
     ProfilerManager profiler(60);
@@ -113,7 +117,7 @@ int main() {
       };
 
       VelocityComponent velComponent{
-        .scale = 10.f
+        .scale = 1000.f
       };
 
       registry.emplace<CameraComponent>(entCamera, mainCamComponent);
@@ -125,7 +129,7 @@ int main() {
     {
       MeshComponent meshComponent{
         .mesh = assetManager.getMesh("Axis"),
-        .shader = assetManager.getShader("Axis")
+        .shader = assetManager.getShader("Axis"),
       };
 
       registry.emplace<MeshComponent>(entGlobalAxis, meshComponent);

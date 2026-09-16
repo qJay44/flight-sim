@@ -5,6 +5,7 @@
 #include "../ecs/components/CameraComponent.hpp"
 #include "../ecs/components/TransformComponent.hpp"
 #include "../ecs/components/TerrainComponent.hpp"
+#include "../ecs/components/VelocityComponent.hpp"
 
 namespace gui {
 
@@ -17,6 +18,7 @@ void drawCameraUi(entt::registry& registry) {
     for (auto entity : camView) {
       auto* camComponent = &registry.get<CameraComponent>(entity);
       auto* camPos = &registry.get<TransformComponent>(entity).pos;
+      auto& velComponent = registry.get<VelocityComponent>(entity);
 
       if (ImGui::TreeNode(&entity, "#%zu%s", (size_t)entity, camComponent->isActive ? " (Active)" : "")) {
         auto* cam = camComponent->cam;
@@ -31,6 +33,7 @@ void drawCameraUi(entt::registry& registry) {
         ImGui::SliderAngle("Pitch", &cam->pitch);
         ImGui::SliderFloat("Sensitivity", &cam->sensitivity, 0.1f, 10.f);
         ImGui::DragFloat3("Position", (float*)camPos);
+        ImGui::SliderFloat("Velocity scale", &velComponent.scale, 0.1f, 1e4f);
 
         if (ImGui::Checkbox("Is active", &camComponent->isActive)) {
           for (auto otherEntity : camView) {

@@ -2,6 +2,12 @@
 
 namespace core::math::terrain {
 
+int Quadnode::maxDepth;
+float Quadnode::splitThreshold;
+float Quadnode::planetRadius;
+vec3 Quadnode::camPos;
+std::stack<int> Quadnode::freedTexLayerIdxs;
+
 Quadnode::Quadnode(Face face) : face(face) {}
 
 Quadnode::~Quadnode() {
@@ -11,10 +17,10 @@ Quadnode::~Quadnode() {
 }
 
 void Quadnode::newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos) {
-  this->maxDepth = maxDepth;
-  this->splitThreshold = splitThreshold;
-  this->planetRadius = planetRadius;
-  this->camPos = camPos;
+  Quadnode::maxDepth = maxDepth;
+  Quadnode::splitThreshold = splitThreshold;
+  Quadnode::planetRadius = planetRadius;
+  Quadnode::camPos = camPos;
   assert(freedTexLayerIdxs.empty());
 }
 

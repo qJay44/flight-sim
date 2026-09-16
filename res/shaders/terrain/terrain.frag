@@ -53,7 +53,6 @@ void main() {
 
   vec3 color = surfaceColor * (diffuse + ambient);
 
-  // FragColor = vec4(color, 0.9f);
-  FragColor = vec4(1.f);
+  FragColor = vec4(color, 0.9f);
 }
 
