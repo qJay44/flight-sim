@@ -6,6 +6,7 @@
 #include "../components/VelocityComponent.hpp"
 #include "../components/MeshComponent.hpp"
 #include "../components/CameraComponent.hpp"
+#include "../components/InputComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gui/gui.hpp"
 
@@ -18,7 +19,7 @@ namespace {
 entt::registry* getRegistryFromGLFW(GLFWwindow* window) {
   entt::registry* registry = static_cast<entt::registry*>(glfwGetWindowUserPointer(window));
   if (!registry)
-    error("[InputSystem::keyCallback] registry is nullptr");
+    error("[InputSystem::getRegistryFromGLFW] registry is nullptr");
 
   return registry;
 }
@@ -93,10 +94,10 @@ void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
   entt::registry* registry = getRegistryFromGLFW(window);
   auto& ctx = registry->ctx().get<core::EngineContext>();
 
-  if (!ctx.guiFocused)
-    CameraSystem::onMouseMove(*registry, dvec2(xpos, ypos));
-  else
+  if (ctx.guiFocused)
     gui::cursorPosCallback(window, xpos, ypos);
+  else
+    CameraSystem::onMouseMove(*registry, dvec2(xpos, ypos));
 }
 
 } // namespace
@@ -131,22 +132,25 @@ void update(entt::registry& registry) {
   float rightMask   = ctx.keyboardKeys[GLFW_KEY_D];
   float upMask      = ctx.keyboardKeys[GLFW_KEY_SPACE];
   float downMask    = ctx.keyboardKeys[GLFW_KEY_LEFT_CONTROL];
+  float shitfMask   = ctx.keyboardKeys[GLFW_KEY_LEFT_SHIFT];
 
-  auto velView = registry.view<CameraComponent, VelocityComponent>();
-  for (auto entity : velView) {
+  // TODO: Create and use OrientationComponent instead of CameraComponent?
+  for (auto entity : registry.view<CameraComponent, VelocityComponent, InputComponent>()) {
     const auto& camComponent = registry.get<CameraComponent>(entity);
     auto& velComponent = registry.get<VelocityComponent>(entity);
+    auto& inputComponent = registry.get<InputComponent>(entity);
 
     const vec3& orientation = camComponent.cam->orientation;
     const vec3& up = camComponent.cam->up;
     const vec3 right = glm::normalize(glm::cross(orientation, up));
+    float mult = inputComponent.shiftMultiplier * shitfMask + 1.f * (1.f - shitfMask);
 
-    velComponent.velocity +=  orientation * forwardMask;
-    velComponent.velocity += -right       * leftMask;
-    velComponent.velocity += -orientation * backMask;
-    velComponent.velocity +=  right       * rightMask;
-    velComponent.velocity +=  up          * upMask;
-    velComponent.velocity += -up          * downMask;
+    velComponent.velocity +=  orientation * mult * forwardMask;
+    velComponent.velocity += -right       * mult * leftMask;
+    velComponent.velocity += -orientation * mult * backMask;
+    velComponent.velocity +=  right       * mult * rightMask;
+    velComponent.velocity +=  up          * mult * upMask;
+    velComponent.velocity += -up          * mult * downMask;
   }
 }
 

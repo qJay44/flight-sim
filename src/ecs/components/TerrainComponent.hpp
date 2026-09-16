@@ -11,6 +11,7 @@ using namespace core::math::terrain;
 struct TerrainComponent {
   float planetRadius = 1.f;
   float heightScale = 1.f;
+  float heightScaleMesh = 1.f;
 
   float planetRadiusPercent = 0.02f;
   float seaThreshold = 0.05f;     // Percentage of [heightScale]

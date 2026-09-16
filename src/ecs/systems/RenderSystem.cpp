@@ -34,7 +34,7 @@ void render(entt::registry& registry) {
     }
   }
 
-  core::Light* globalLight = assetManager.getLight("GlobalLight");
+  gfx::Light* globalLight = assetManager.getLight("GlobalLight");
 
   assert(activeCam);
   assert(globalLight);

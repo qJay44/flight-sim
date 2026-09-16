@@ -1,6 +1,6 @@
 #define PI 3.14159265358979f
 #define TAU (2.f * PI)
-#define MAX_NODES 512
+#define TERRAIN_MAX_NODES 512
 
 #define COLOR_DEEP_OCEAN vec3(0.05, 0.15, 0.3)
 #define COLOR_SHALLOW    vec3(0.1, 0.3, 0.5)

@@ -1,19 +1,19 @@
 #include "ProfilerManager.hpp"
 #include "core/EngineContext.hpp"
-#include "core/Light.hpp"
 #include "ecs/components/CameraComponent.hpp"
+#include "ecs/components/InputComponent.hpp"
 #include "ecs/components/MeshComponent.hpp"
 #include "ecs/components/TransformComponent.hpp"
 #include "ecs/components/VelocityComponent.hpp"
 #include "ecs/systems/CameraSystem.hpp"
+#include "ecs/systems/InputSystem.hpp"
 #include "ecs/systems/MovementSystem.hpp"
 #include "ecs/systems/RenderSystem.hpp"
-#include "ecs/systems/InputSystem.hpp"
-#include "ecs/systems/RenderSystem.hpp"
-#include "ecs/systems/TimeSystem.hpp"
 #include "ecs/systems/TerrainSystem.hpp"
+#include "ecs/systems/TimeSystem.hpp"
 #include "entt/entity/fwd.hpp"
 #include "gfx/AssetManager.hpp"
+#include "gfx/Light.hpp"
 #include "gfx/Renderer.hpp"
 #include "gfx/Shader.hpp"
 #include "gfx/texture/Texture2D.hpp"
@@ -52,7 +52,7 @@ int main() {
     core::EngineContext ctx;
     ctx.window = window;
 
-    core::Light globalLight{
+    gfx::Light globalLight{
       .color = vec3(1.f),
       .direction = glm::normalize(vec3(0.45f, 0.45f, 0.f)),
       .ambient = 0.1f,
@@ -74,7 +74,7 @@ int main() {
     });
 
     core::Camera cam{
-      .farPlane = 1e5f
+      .farPlane = 1e6f
     };
 
     gfx::AssetManager assetManager;
@@ -117,12 +117,17 @@ int main() {
       };
 
       VelocityComponent velComponent{
-        .scale = 1000.f
+        .scale = 1e4f
+      };
+
+      InputComponent inputComponent{
+        .shiftMultiplier = 10.f
       };
 
       registry.emplace<CameraComponent>(entCamera, mainCamComponent);
       registry.emplace<TransformComponent>(entCamera, transComponent);
       registry.emplace<VelocityComponent>(entCamera, velComponent);
+      registry.emplace<InputComponent>(entCamera, inputComponent);
     }
 
     entt::entity entGlobalAxis = registry.create();
@@ -130,10 +135,15 @@ int main() {
       MeshComponent meshComponent{
         .mesh = assetManager.getMesh("Axis"),
         .shader = assetManager.getShader("Axis"),
+        .disabled = true
+      };
+
+      TransformComponent transComponent{
+        .scale = vec3(1e6f)
       };
 
       registry.emplace<MeshComponent>(entGlobalAxis, meshComponent);
-      registry.emplace<TransformComponent>(entGlobalAxis, TransformComponent{.scale = vec3(1e6f)});
+      registry.emplace<TransformComponent>(entGlobalAxis, transComponent);
     }
   }
 

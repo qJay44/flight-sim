@@ -64,9 +64,9 @@ void Renderer::beginFrame(ivec2 viewPort) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Renderer::setProjectionMat(const mat4& proj)       { renderProj  = proj; }
-void Renderer::setViewMat(const mat4& view)             { renderView  = view; }
-void Renderer::setGlobalLight(const core::Light* light) { globalLight = light; }
+void Renderer::setProjectionMat(const mat4& proj) { renderProj  = proj; }
+void Renderer::setViewMat(const mat4& view)       { renderView  = view; }
+void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
 
 void Renderer::submit(const RenderCommand&& cmd) {
   renderQueue.push_back(std::move(cmd));
@@ -100,9 +100,9 @@ void Renderer::endFrame(const core::EngineContext& ctx) {
     if (command.mesh != currBoundMesh) {
       currBoundMesh = command.mesh;
       currBoundMesh->vao.bind();
-      glPolygonMode(GL_FRONT_AND_BACK, currBoundMesh->polygonMode); // Always use GL_FILL for fullscreen quads
-      glEnable(GL_CULL_FACE);  // Disable for flat meshes, enable for volumetric meshes
-      glEnable(GL_DEPTH_TEST); // Disable to ignore depth (draw one object over another one without discarding the farthest)
+      glPolygonMode(GL_FRONT_AND_BACK, currBoundMesh->polygonMode);
+      glEnable(GL_CULL_FACE);
+      glEnable(GL_DEPTH_TEST);
     }
 
     if (command.cam != currBoundCamera) {

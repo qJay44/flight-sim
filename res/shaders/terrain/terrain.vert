@@ -20,12 +20,12 @@ uniform mat4 u_localView;
 uniform mat4 u_localTranslation;
 uniform float u_camFar;
 uniform float u_planetRadius;
-uniform float u_heightScale;
+uniform float u_heightScaleMesh;
 
 layout(binding = 0) uniform sampler2DArray u_texArray;
 
 layout(std140, binding = 0) uniform NodesDataBlock {
-  NodeData nodesData[MAX_NODES];
+  NodeData nodesData[TERRAIN_MAX_NODES];
 };
 
 void main() {
@@ -36,7 +36,7 @@ void main() {
   vec3 sphereDir = normalize(cubeToSphere(nodePos, node.faceIdx));
 
   vec4 terrainData = texture(u_texArray, vec3(uv, node.texLayerIdx));
-  float height = terrainData.r;
+  float height = terrainData.r * u_heightScaleMesh;
   vec3 normal = terrainData.gba;
 
   vec3 localSpherePos = sphereDir * (u_planetRadius + height);

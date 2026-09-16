@@ -4,7 +4,7 @@
 #include "Shader.hpp"
 #include "texture/Texture.hpp"
 #include "../core/Camera.hpp"
-#include "../core/Light.hpp"
+#include "../gfx/Light.hpp"
 
 namespace gfx {
 
@@ -27,7 +27,7 @@ public:
   void addShader(const std::string& name, Shader&& shader);
   void addTexture(const std::string& name, Texture&& texture);
   void addCamera(const std::string& name, core::Camera&& camera);
-  void addLight(const std::string& name, core::Light&& light);
+  void addLight(const std::string& name, Light&& light);
 
   void checkShaders();
 
@@ -35,14 +35,14 @@ public:
   Shader* getShader(const std::string& name) const;
   Texture* getTexture(const std::string& name) const;
   core::Camera* getCamera(const std::string& name) const;
-  core::Light* getLight(const std::string& name) const;
+  Light* getLight(const std::string& name) const;
 
 private:
   std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
   std::unordered_map<std::string, std::unique_ptr<Shader>> shaders;
   std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
   std::unordered_map<std::string, std::unique_ptr<core::Camera>> cameras;
-  std::unordered_map<std::string, std::unique_ptr<core::Light>> lights;
+  std::unordered_map<std::string, std::unique_ptr<Light>> lights;
 
 private:
   static bool contains(const auto& map, const std::string& name);

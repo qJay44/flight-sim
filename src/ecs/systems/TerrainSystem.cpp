@@ -62,6 +62,7 @@ void update(entt::registry& registry) {
   for (auto entity : registry.view<TerrainComponent, MeshComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
     std::stack<Quadnode*> activeNodes;
+    terrain.heightScale = terrain.planetRadius * terrain.planetRadiusPercent;
 
     for (Quadnode& quadtree : terrain.quadtrees) {
       quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrain.planetRadius, activeCamPos);
@@ -112,6 +113,7 @@ void prerender(entt::registry& registry, core::Camera* activeCam, vec3 activeCam
     meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainComponent.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainComponent.heightScale);
+    meshComponent.shader->setUniform1f("u_heightScaleMesh", terrainComponent.heightScaleMesh);
     meshComponent.shader->setUniform1f("u_seaThreshold", terrainComponent.seaThreshold);
     meshComponent.shader->setUniform1f("u_sandThreshold", terrainComponent.sandThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);

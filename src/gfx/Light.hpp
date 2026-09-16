@@ -1,6 +1,6 @@
 #pragma once
 
-namespace core {
+namespace gfx {
 
 struct Light{
   vec3 color;

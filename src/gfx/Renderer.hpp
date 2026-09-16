@@ -2,10 +2,10 @@
 
 #include "mesh/Mesh.hpp"
 #include "Shader.hpp"
+#include "Light.hpp"
 #include "texture/Texture.hpp"
 #include "../core/EngineContext.hpp"
 #include "../core/Camera.hpp"
-#include "../core/Light.hpp"
 
 namespace gfx {
 
@@ -36,7 +36,7 @@ public:
 
   void setProjectionMat(const mat4& proj);
   void setViewMat(const mat4& view);
-  void setGlobalLight(const core::Light* light);
+  void setGlobalLight(const Light* light);
 
   void submit(const RenderCommand&& cmd);
   void endFrame(const core::EngineContext& ctx);
@@ -45,7 +45,7 @@ private:
   std::list<RenderCommand> renderQueue;
   mat4 renderProj;
   mat4 renderView;
-  const core::Light* globalLight{};
+  const Light* globalLight{};
 };
 
 } // namespace gfx

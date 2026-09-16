@@ -212,3 +212,4 @@ void main() {
 
   imageStore(imageWrite, ivec3(texCoord, u_layer), vec4(centerHeight, normal));
 }
+

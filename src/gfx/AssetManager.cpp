@@ -267,13 +267,13 @@ void AssetManager::addCamera(const std::string& name, core::Camera&& camera) {
   cameras.emplace(name, std::make_unique<core::Camera>(std::move(camera)));
 }
 
-void AssetManager::addLight(const std::string& name, core::Light&& light) {
+void AssetManager::addLight(const std::string& name, Light&& light) {
   if (lights.contains(name)) {
     warning("[AssetManager::addLight] Light ({}) already created", name);
     return;
   }
 
-  lights.emplace(name, std::make_unique<core::Light>(std::move(light)));
+  lights.emplace(name, std::make_unique<Light>(std::move(light)));
 }
 
 void AssetManager::checkShaders() {
@@ -302,7 +302,7 @@ core::Camera* AssetManager::getCamera(const std::string& name) const {
   return cameras.at(name).get();
 }
 
-core::Light* AssetManager::getLight(const std::string& name) const {
+Light* AssetManager::getLight(const std::string& name) const {
   assert(contains(lights, name));
   return lights.at(name).get();
 }

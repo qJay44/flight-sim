@@ -59,8 +59,8 @@ void drawTerrainUi(entt::registry& registry) {
     for (auto entity : registry.view<terrain::TerrainComponent>()) {
       auto& terrain = registry.get<terrain::TerrainComponent>(entity);
       ImGui::DragFloat("Planet raidus", &terrain.planetRadius);
-      ImGui::DragFloat("Height scale", &terrain.heightScale);
-      ImGui::DragFloat("Planet raidus percent", &terrain.planetRadiusPercent);
+      ImGui::DragFloat("Planet raidus percent", &terrain.planetRadiusPercent, 0.1f);
+      ImGui::DragFloat("Height scale mesh", &terrain.heightScaleMesh);
       ImGui::DragFloat("Sea threshold", &terrain.seaThreshold);
       ImGui::DragFloat("Sand threshold", &terrain.sandThreshold);
       ImGui::DragFloat("Moutain threshold", &terrain.mountainThreshold);
@@ -70,6 +70,7 @@ void drawTerrainUi(entt::registry& registry) {
       ImGui::SliderInt("Quadtree max depth", &terrain.qtMaxDepth, 1, 20);
       ImGui::SliderFloat("Quadtree split threshold", &terrain.qtSplitThreshold, 0.f, 1.f);
       ImGui::Text("Active leafs: [%zu]", terrain.activeLeafs);
+      ImGui::Text("Height scale: [%.2f]", terrain.heightScale);
     }
   }
 }
