@@ -17,7 +17,7 @@ using namespace terrain;
 void init(entt::registry& registry, float planetRadius) {
   entt::entity entity = registry.create();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto gm = GenerationManager(assetManager, 256, TERRAIN_MAX_NODES);
+  auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.createMeshPlane_Triangles(128, true);
