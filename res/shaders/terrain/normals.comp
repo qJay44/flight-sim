@@ -7,6 +7,10 @@ layout(rgba32f, binding = 1) writeonly uniform image2DArray imgWrite;
 
 uniform int u_layer;
 
+vec3 get(int x, int y) {
+  return imageLoad(imgLoad, ivec3(x, y, u_layer)).rgb;
+}
+
 void main() {
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imgLoad).xy;
@@ -14,18 +18,12 @@ void main() {
   if (texCoord.x >= size.x || texCoord.y >= size.y)
     return;
 
-  if (texCoord.x == 0 || texCoord.y == 0) {
-    vec4 load = imageLoad(imgLoad, ivec3(texCoord, u_layer));
-    imageStore(imgWrite, ivec3(texCoord, u_layer), load);
-    return;
-  }
-
   float h = imageLoad(imgLoad, ivec3(texCoord, u_layer)).a;
 
-  vec3 left  = imageLoad(imgLoad, ivec3(texCoord.x - 1, texCoord.y, u_layer)).rgb;
-  vec3 right = imageLoad(imgLoad, ivec3(texCoord.x + 1, texCoord.y, u_layer)).rgb;
-  vec3 down  = imageLoad(imgLoad, ivec3(texCoord.x, texCoord.y - 1, u_layer)).rgb;
-  vec3 up    = imageLoad(imgLoad, ivec3(texCoord.x, texCoord.y + 1, u_layer)).rgb;
+  vec3 left  = texCoord.x == 0          ? get(texCoord.x, texCoord.y) : get(texCoord.x - 1, texCoord.y);
+  vec3 right = texCoord.x == size.x - 1 ? get(texCoord.x, texCoord.y) : get(texCoord.x + 1, texCoord.y);
+  vec3 down  = texCoord.y == 0          ? get(texCoord.x, texCoord.y) : get(texCoord.x, texCoord.y - 1);
+  vec3 up    = texCoord.y == size.y - 1 ? get(texCoord.x, texCoord.y) : get(texCoord.x, texCoord.y + 1);
 
   vec3 tangentX = right - left;
   vec3 tangentY = up - down;

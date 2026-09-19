@@ -63,7 +63,7 @@ private:
   gfx::Shader* normalsShader{};
   gfx::Shader* swapShader{};
 
-  GLuint numGroups = 0;
+  ivec2 numGroups;
   std::stack<int> freeSlots;
 
   TerrainConfig cfgTerrain;

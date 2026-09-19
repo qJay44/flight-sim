@@ -74,7 +74,7 @@ void drawTerrainUi(entt::registry& registry) {
       ImGui::DragFloat("Foam sharpness", &terrain.foamSharpness);
       ImGui::SliderInt("Quadtree max depth", &terrain.qtMaxDepth, 1, 20);
       ImGui::SliderFloat("Quadtree split threshold", &terrain.qtSplitThreshold, 0.f, 1.f);
-      ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%zu]", terrain.activeLeafs, TERRAIN_MAX_NODES);
+      ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%d]", terrain.activeLeafs, TERRAIN_MAX_NODES);
       ImGui::Text("Height scale: [%.2f]", terrain.heightScale);
 
       if (ImGui::TreeNode("FBM")) {

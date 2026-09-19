@@ -19,10 +19,10 @@ uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
 void main() {
-  vec2 texSize = textureSize(u_texArray, 0).xy;
-  vec2 texelSize = 1.f / texSize;
-  // vec2 uv = clamp(v_uv, texelSize, texSize - texelSize);
-  vec2 uv = v_uv;
+  ivec2 texSize = textureSize(u_texArray, 0).xy;
+  ivec2 actualTexSize = texSize - 2;
+  vec2 innerTexelCoord = 1.f + v_uv * (actualTexSize);
+  vec2 uv = innerTexelCoord / texSize;
 
   vec4 terrainData = texture(u_texArray, vec3(uv, v_layerIdx));
   float height = terrainData.a / u_heightScale;
@@ -60,6 +60,5 @@ void main() {
   vec3 color = surfaceColor * (diffuse + ambient);
 
   FragColor = vec4(color, 1.f);
-  // FragColor = vec4(uv, 0.f, 1.f);
 }
 

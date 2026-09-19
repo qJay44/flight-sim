@@ -178,8 +178,7 @@ float evaluateHeight(vec3 sphereDir) {
   float finalDetail = processedDetail * finalMacro;
   float finalHeightFraction = finalMacro + finalDetail;
 
-  // HACK: [finalHeightFraction] supposed to be saturated;
-  return finalHeightFraction * u_heightScale;
+  return finalHeightFraction;
 }
 
 void main() {
@@ -194,7 +193,7 @@ void main() {
 
   vec2 nodeUV = pixelUV * u_nodeExtents + u_nodeCenter;
   vec3 sphereDir = normalize(cubeToSphere(nodeUV, u_nodeFaceIdx));
-  float height = evaluateHeight(sphereDir);
+  float height = evaluateHeight(sphereDir) * u_heightScale;
 
   vec3 worldPos = sphereDir * (u_planetRadius + height);
 

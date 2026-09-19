@@ -23,7 +23,7 @@ struct TerrainComponent {
   float foamSharpness = 1.f;
 
   int qtMaxDepth = 8;
-  float qtSplitThreshold = 0.8f;
+  float qtSplitThreshold = 0.5f;
 
   std::array<NodeData, TERRAIN_MAX_NODES> leafs;
   std::array<Quadnode, 6> quadtrees{
