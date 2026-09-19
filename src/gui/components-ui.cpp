@@ -61,18 +61,20 @@ void drawTerrainUi(entt::registry& registry) {
   if (ImGui::CollapsingHeader("Terrain")) {
     for (auto entity : registry.view<terrain::TerrainComponent>()) {
       auto& terrain = registry.get<terrain::TerrainComponent>(entity);
+      float nodesUsed = static_cast<float>(terrain.activeLeafs) / TERRAIN_MAX_NODES;
+      vec4 nodesColor = nodesUsed > 0.8f ? vec4(1.f, 0.f, 0.f, 1.f) : nodesUsed > 0.5f ? vec4(1.f, 1.f, 0.f, 1.f) : vec4(1.f);
 
       ImGui::DragFloat("Planet raidus", &terrain.planetRadius);
       ImGui::DragFloat("Height scale mesh", &terrain.heightScaleMesh);
-      ImGui::DragFloat("Sea threshold", &terrain.seaThreshold);
-      ImGui::DragFloat("Sand threshold", &terrain.sandThreshold);
-      ImGui::DragFloat("Moutain threshold", &terrain.mountainThreshold);
+      ImGui::SliderFloat("Sea threshold", &terrain.seaThreshold, 0.f, 1.f);
+      ImGui::SliderFloat("Sand threshold", &terrain.sandThreshold, 0.f, 1.f);
+      ImGui::SliderFloat("Moutain threshold", &terrain.mountainThreshold, 0.f, 1.f);
       ImGui::DragFloat("Wave scale", &terrain.waveScale);
       ImGui::DragFloat("Wave raidus", &terrain.waterRadiusScale);
       ImGui::DragFloat("Foam sharpness", &terrain.foamSharpness);
       ImGui::SliderInt("Quadtree max depth", &terrain.qtMaxDepth, 1, 20);
       ImGui::SliderFloat("Quadtree split threshold", &terrain.qtSplitThreshold, 0.f, 1.f);
-      ImGui::Text("Active leafs: [%zu]", terrain.activeLeafs);
+      ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%zu]", terrain.activeLeafs, TERRAIN_MAX_NODES);
       ImGui::Text("Height scale: [%.2f]", terrain.heightScale);
 
       if (ImGui::TreeNode("FBM")) {

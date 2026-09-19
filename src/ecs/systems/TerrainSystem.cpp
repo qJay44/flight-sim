@@ -59,7 +59,7 @@ void update(entt::registry& registry) {
     }
   }
 
-  for (auto entity : registry.view<TerrainComponent, MeshComponent>()) {
+  for (auto entity : registry.view<TerrainComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
     std::stack<Quadnode*> activeNodes;
     terrain.heightScale = terrain.planetRadius * terrain.planetRadiusPercent;

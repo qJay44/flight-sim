@@ -129,6 +129,8 @@ Shader::Shader(const fspath& compPath) {
   glAttachShader(program, shader);
   link(program);
   glDeleteShader(shader);
+
+  updateTimestamps();
 }
 
 Shader::Shader(Shader&& other) {

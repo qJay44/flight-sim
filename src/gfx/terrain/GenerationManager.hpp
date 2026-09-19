@@ -58,7 +58,10 @@ private:
   int maxSlots;
 
   gfx::Texture* texArrayNodes;
-  gfx::Shader* terrainShader{};
+  gfx::Texture* texArrayNodesDummy;
+  gfx::Shader* heightShader{};
+  gfx::Shader* normalsShader{};
+  gfx::Shader* swapShader{};
 
   GLuint numGroups = 0;
   std::stack<int> freeSlots;

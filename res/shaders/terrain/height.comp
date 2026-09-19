@@ -182,8 +182,6 @@ float evaluateHeight(vec3 sphereDir) {
   return finalHeightFraction * u_heightScale;
 }
 
-const float eps = 0.001f;
-
 void main() {
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imageWrite).xy;
@@ -196,20 +194,10 @@ void main() {
 
   vec2 nodeUV = pixelUV * u_nodeExtents + u_nodeCenter;
   vec3 sphereDir = normalize(cubeToSphere(nodeUV, u_nodeFaceIdx));
-  float centerHeight = evaluateHeight(sphereDir);
+  float height = evaluateHeight(sphereDir);
 
-  vec3 sphereDirX = normalize(cubeToSphere(nodeUV + vec2(eps, 0.f), u_nodeFaceIdx));
-  vec3 sphereDirY = normalize(cubeToSphere(nodeUV + vec2(0.f, eps), u_nodeFaceIdx));
+  vec3 worldPos = sphereDir * (u_planetRadius + height);
 
-  float heightX = evaluateHeight(sphereDirX);
-  float heightY = evaluateHeight(sphereDirY);
-
-  vec3 posCenter = sphereDir  * (u_planetRadius + centerHeight);
-  vec3 posX      = sphereDirX * (u_planetRadius + heightX);
-  vec3 posY      = sphereDirY * (u_planetRadius + heightY);
-
-  vec3 normal = normalize(cross(posY - posCenter, posX - posCenter));
-
-  imageStore(imageWrite, ivec3(texCoord, u_layer), vec4(centerHeight, normal));
+  imageStore(imageWrite, ivec3(texCoord, u_layer), vec4(worldPos, height));
 }
 

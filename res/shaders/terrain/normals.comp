@@ -1,0 +1,36 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(rgba32f, binding = 0) readonly  uniform image2DArray imgLoad;
+layout(rgba32f, binding = 1) writeonly uniform image2DArray imgWrite;
+
+uniform int u_layer;
+
+void main() {
+  ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(imgLoad).xy;
+
+  if (texCoord.x >= size.x || texCoord.y >= size.y)
+    return;
+
+  if (texCoord.x == 0 || texCoord.y == 0) {
+    vec4 load = imageLoad(imgLoad, ivec3(texCoord, u_layer));
+    imageStore(imgWrite, ivec3(texCoord, u_layer), load);
+    return;
+  }
+
+  float h = imageLoad(imgLoad, ivec3(texCoord, u_layer)).a;
+
+  vec3 left  = imageLoad(imgLoad, ivec3(texCoord.x - 1, texCoord.y, u_layer)).rgb;
+  vec3 right = imageLoad(imgLoad, ivec3(texCoord.x + 1, texCoord.y, u_layer)).rgb;
+  vec3 down  = imageLoad(imgLoad, ivec3(texCoord.x, texCoord.y - 1, u_layer)).rgb;
+  vec3 up    = imageLoad(imgLoad, ivec3(texCoord.x, texCoord.y + 1, u_layer)).rgb;
+
+  vec3 tangentX = right - left;
+  vec3 tangentY = up - down;
+  vec3 objectNormal = normalize(cross(tangentY, tangentX));
+
+  imageStore(imgWrite, ivec3(texCoord, u_layer), vec4(objectNormal, h));
+}
+
