@@ -150,7 +150,7 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     // ----- Updates ----------------------------------------------------------------------------------------------------------------- //
 
-    profiler.clearTasks();
+    profiler.newFrame();
     assetManager.checkShaders();
 
     auto taskUpdatesPass = profiler.startScopedTaskCpu("UpdatesPass");
@@ -163,12 +163,14 @@ int main() {
     ecs::CameraSystem::update(registry);
     ecs::TerrainSystem::update(registry);
 
+    taskUpdatesPass.end();
+
     // ----- Render ------------------------------------------------------------------------------------------------------------------ //
 
     ecs::RenderSystem::render(registry);
     gui::render(registry);
 
-    taskUpdatesPass.end();
+    profiler.endFrame();
 
     // ----- Loop end ---------------------------------------------------------------------------------------------------------------- //
 

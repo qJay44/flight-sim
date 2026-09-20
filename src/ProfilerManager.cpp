@@ -1,5 +1,8 @@
 #include "ProfilerManager.hpp"
 
+using namespace std::chrono;
+using hrc = std::chrono::high_resolution_clock;
+
 // ----- ScopedTaskCpu ----------------------------------------------------------------------------------------------------------- //
 
 using ScopedTaskCpu = ProfilerManager::ScopedTaskCpu;
@@ -18,14 +21,8 @@ void ScopedTaskCpu::end() {
   if (std::exchange(ended, true))
     return;
 
-  using namespace std::chrono;
-
-  auto end = steady_clock::now();
-  auto dur = end - start;
-  auto durationSec = duration_cast<duration<double>>(dur).count();
-
   assert(profiler);
-  profiler->endTaskCpu(taskIdx, durationSec);
+  profiler->endTaskCpu(taskIdx);
 }
 
 // ----- ScopedTaskGpu ----------------------------------------------------------------------------------------------------------- //
@@ -59,7 +56,7 @@ ProfilerManager::Query::Query(const std::string& name) : name(name) {
 }
 
 double ProfilerManager::Query::calcDuration() const {
-  constexpr double toSecondsInv = 1.0 / 1e9;
+  constexpr double toSecondsInv = 1.0 / 1e6;
 
   GLuint64 t0;
   GLuint64 t1;
@@ -74,9 +71,10 @@ double ProfilerManager::Query::calcDuration() const {
 ProfilerManager::ProfilerManager(size_t framesCount) : window(1.f / framesCount) {}
 
 // NOTE: Call this every frame
-void ProfilerManager::clearTasks() {
+void ProfilerManager::newFrame() {
   cpuTasks.clear();
   gpuTasks.clear();
+  frameStartTime = hrc::now();
 }
 
 ProfilerManager::ScopedTaskCpu ProfilerManager::startScopedTaskCpu(const std::string& name, u32 color) {
@@ -86,7 +84,7 @@ ProfilerManager::ScopedTaskCpu ProfilerManager::startScopedTaskCpu(const std::st
   legit::ProfilerTask task;
   task.name = name;
   task.color = color ? RGBA_LE(color): getColorBright(cpuTasks.size());
-  task.startTime = 0.0;
+  task.startTime = getCurrFrameTimeDuration();
 
   cpuTasks.push_back(task);
 
@@ -107,10 +105,14 @@ ProfilerManager::ScopedTaskGpu ProfilerManager::startScopedTaskGpu(const Query& 
   return ProfilerManager::ScopedTaskGpu(this, taskIdx, q);
 }
 
-void ProfilerManager::renderTasks(int graphWidth, int legendWidth, int height, int frameIndexOffset) {
+void ProfilerManager::renderTasks() {
   window.cpuGraph.LoadFrameData(cpuTasks.data(), cpuTasks.size());
   window.gpuGraph.LoadFrameData(gpuTasks.data(), gpuTasks.size());
   window.Render();
+}
+
+void ProfilerManager::endFrame() {
+  frameIdx++;
 }
 
 const u32& ProfilerManager::getColorBright(size_t i) {
@@ -133,9 +135,13 @@ const u32& ProfilerManager::getColorDim(size_t i) {
   return colors[i % 8];
 }
 
-void ProfilerManager::endTaskCpu(size_t i, double durationMs) {
+double ProfilerManager::getCurrFrameTimeDuration() const {
+  return double(duration_cast<microseconds>(hrc::now() - frameStartTime).count()) * 1.0 / 1e6;
+}
+
+void ProfilerManager::endTaskCpu(size_t i) {
   assert(i < cpuTasks.size());
-  cpuTasks[i].endTime = durationMs;
+  cpuTasks[i].endTime = getCurrFrameTimeDuration();
 }
 
 void ProfilerManager::endTaskGpu(size_t i, double durationMs) {

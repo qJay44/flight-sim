@@ -21,8 +21,8 @@ uniform float u_heightScale;
 void main() {
   ivec2 texSize = textureSize(u_texArray, 0).xy;
   ivec2 actualTexSize = texSize - 2;
-  vec2 innerTexelCoord = 1.f + v_uv * (actualTexSize);
-  vec2 uv = innerTexelCoord / texSize;
+  ivec2 innerTexelCoord = 1 + ivec2(v_uv * (actualTexSize));
+  vec2 uv = vec2(innerTexelCoord) / actualTexSize;
 
   vec4 terrainData = texture(u_texArray, vec3(uv, v_layerIdx));
   float height = terrainData.a / u_heightScale;

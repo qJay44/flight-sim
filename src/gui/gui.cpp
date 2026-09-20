@@ -84,7 +84,7 @@ void render(entt::registry& registry) {
   ImGui::SetNextWindowPos(posBR, ImGuiCond_Always, {1.f, 1.f});
   ImGui::SetNextWindowCollapsed(infoCollapsed);
 
-  profiler.renderTasks(400, 200, 200, 0);
+  profiler.renderTasks();
 
   // ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 

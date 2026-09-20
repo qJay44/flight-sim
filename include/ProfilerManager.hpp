@@ -44,24 +44,29 @@ public:
 
   ProfilerManager(size_t framesCount);
 
-  // NOTE: Call this every frame
-  void clearTasks();
+  void newFrame();
 
   ProfilerManager::ScopedTaskCpu startScopedTaskCpu(const std::string& name, u32 color = 0);
   ProfilerManager::ScopedTaskGpu startScopedTaskGpu(const Query& q, u32 color = 0);
 
-  void renderTasks(int graphWidth, int legendWidth, int height, int frameIndexOffset = 0);
+  void renderTasks();
+
+  void endFrame();
 
 private:
   std::vector<legit::ProfilerTask> cpuTasks;
   std::vector<legit::ProfilerTask> gpuTasks;
   ImGuiUtils::ProfilersWindow window;
+  std::chrono::high_resolution_clock::time_point frameStartTime;
+  size_t frameIdx = 0;
 
 private:
   static const u32& getColorBright(size_t i);
   static const u32& getColorDim(size_t i);
 
-  void endTaskCpu(size_t i, double durationMs);
+  double getCurrFrameTimeDuration() const;
+
+  void endTaskCpu(size_t i);
   void endTaskGpu(size_t i, double durationMs);
 };
 

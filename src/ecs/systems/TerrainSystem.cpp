@@ -7,6 +7,7 @@
 #include "../components/TextureComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
+#include "ProfilerManager.hpp"
 
 namespace ecs::TerrainSystem {
 
@@ -17,7 +18,7 @@ using namespace terrain;
 void init(entt::registry& registry, float planetRadius) {
   entt::entity entity = registry.create();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
+  auto gm = GenerationManager(assetManager, 254, TERRAIN_MAX_NODES);
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.createMeshPlane_Triangles(128, true);
@@ -44,6 +45,7 @@ void init(entt::registry& registry, float planetRadius) {
 
 void update(entt::registry& registry) {
   auto& gm = registry.ctx().get<GenerationManager>();
+  auto& profiler =  registry.ctx().get<ProfilerManager>();
   gm.update();
 
   [[maybe_unused]] core::Camera* activeCam = nullptr;
@@ -64,6 +66,9 @@ void update(entt::registry& registry) {
     std::stack<Quadnode*> activeNodes;
     terrain.heightScale = terrain.planetRadius * terrain.planetRadiusPercent;
 
+    static ProfilerManager::Query queryQt("QuatreeComputePass");
+    auto taskQt = profiler.startScopedTaskCpu("QuadtreePass");
+
     for (Quadnode& quadtree : terrain.quadtrees) {
       quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrain.planetRadius, activeCamPos);
       quadtree.insert();
@@ -74,6 +79,9 @@ void update(entt::registry& registry) {
         quadtree.freedTexLayerIdxs.pop();
       }
     }
+
+    taskQt.end();
+    profiler.startScopedTaskGpu(queryQt);
 
     terrain.activeLeafs = 0;
     while (!activeNodes.empty()) {
