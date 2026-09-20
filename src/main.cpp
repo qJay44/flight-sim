@@ -1,5 +1,7 @@
 #include "ProfilerManager.hpp"
+#include "core/ActiveCamera.hpp"
 #include "core/EngineContext.hpp"
+#include "ecs/components/AuxiliaryComponent.hpp"
 #include "ecs/components/CameraComponent.hpp"
 #include "ecs/components/InputComponent.hpp"
 #include "ecs/components/MeshComponent.hpp"
@@ -74,7 +76,8 @@ int main() {
     });
 
     core::Camera cam{
-      .farPlane = 1e6f
+      .farPlane = 1e6f,
+      .position = {0.f, 0.f, 1e5f + 25.f},
     };
 
     gfx::AssetManager assetManager;
@@ -87,7 +90,12 @@ int main() {
 
     ProfilerManager profiler(60);
 
+    core::ActiveCamera activeCam{
+      .cam = assetManager.getCamera("DefaultCamera"),
+    };
+
     registry.ctx().emplace<core::EngineContext>(std::move(ctx));
+    registry.ctx().emplace<core::ActiveCamera>(std::move(activeCam));
     registry.ctx().emplace<gfx::Renderer>(std::move(renderer));
     registry.ctx().emplace<gfx::AssetManager>(std::move(assetManager));
     registry.ctx().emplace<ProfilerManager>(std::move(profiler));
@@ -111,9 +119,9 @@ int main() {
         .pos = {0.f, 0.f, 1e5f + 25.f}
       };
 
-      CameraComponent mainCamComponent{
+      CameraComponent camComponent{
         .cam = assetManager.getCamera("DefaultCamera"),
-        .isActive = true
+        .isDetached = true,
       };
 
       VelocityComponent velComponent{
@@ -124,7 +132,7 @@ int main() {
         .shiftMultiplier = 10.f
       };
 
-      registry.emplace<CameraComponent>(entCamera, mainCamComponent);
+      registry.emplace<CameraComponent>(entCamera, camComponent);
       registry.emplace<TransformComponent>(entCamera, transComponent);
       registry.emplace<VelocityComponent>(entCamera, velComponent);
       registry.emplace<InputComponent>(entCamera, inputComponent);
@@ -144,6 +152,7 @@ int main() {
 
       registry.emplace<MeshComponent>(entGlobalAxis, meshComponent);
       registry.emplace<TransformComponent>(entGlobalAxis, transComponent);
+      registry.emplace<AuxiliaryComponent>(entGlobalAxis, AuxiliaryComponent{});
     }
   }
 

@@ -1,74 +1,51 @@
 #include "RenderSystem.hpp"
 
-#include "../components/MeshComponent.hpp"
-#include "../components/CameraComponent.hpp"
-#include "../components/TransformComponent.hpp"
-#include "../components/TextureComponent.hpp"
 #include "../../core/EngineContext.hpp"
+#include "../../core/ActiveCamera.hpp"
 #include "../../gfx/Renderer.hpp"
 #include "../../gfx/AssetManager.hpp"
+#include "../../ecs/components/MeshComponent.hpp"
+#include "../../ecs/components/AuxiliaryComponent.hpp"
 #include "TransformSystem.hpp"
 #include "TerrainSystem.hpp"
 
 namespace ecs::RenderSystem {
 
-using namespace ecs::component;
+using namespace component;
 
 void render(entt::registry& registry) {
   auto& ctx = registry.ctx().get<core::EngineContext>();
   auto& renderer = registry.ctx().get<gfx::Renderer>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-
-  auto camView = registry.view<CameraComponent, TransformComponent>();
-
-  [[maybe_unused]] core::Camera* activeCam = nullptr;
-  vec3 activeCamPos{};
-  for (auto entity : camView) {
-    const auto& camComponent = registry.get<CameraComponent>(entity);
-    if (camComponent.isActive) {
-      const auto& transComponent = registry.get<TransformComponent>(entity);
-
-      activeCam = camComponent.cam;
-      activeCamPos = transComponent.pos;
-      break;
-    }
-  }
+  const auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   gfx::Light* globalLight = assetManager.getLight("GlobalLight");
-
-  assert(activeCam);
   assert(globalLight);
 
-  TerrainSystem::prerender(registry, activeCam, activeCamPos);
+  renderer.newFrame(ctx.getWinSize());
 
-  auto meshView = registry.view<MeshComponent, TransformComponent>();
-
-  renderer.beginFrame(ctx.getWinSize());
-  renderer.setProjectionMat(activeCam->cachedProj);
-  renderer.setViewMat(activeCam->cachedView);
   renderer.setGlobalLight(globalLight);
 
-  for (auto& entity : meshView) {
-    const auto& meshComponent = registry.get<MeshComponent>(entity);
-    const auto& transComponent = registry.get<TransformComponent>(entity);
-    const auto* textureComponentPtr = registry.try_get<TextureComponent>(entity);
+  TerrainSystem::render(registry, renderer);
 
-    if (meshComponent.disabled)
-      continue;
+  // Other stuff
+  for (auto entity : registry.view<MeshComponent, TransformComponent, AuxiliaryComponent>()) {
+    auto& meshComponent = registry.get<MeshComponent>(entity);
+    auto& transComponent = registry.get<TransformComponent>(entity);
 
     gfx::Renderer::RenderCommand renderCmd{
       .shader = meshComponent.shader,
       .mesh = meshComponent.mesh,
-      .cam  = activeCam,
-      .camPos = activeCamPos,
-      .model = TransformSystem::getModel(transComponent),
-      .textures = textureComponentPtr ? textureComponentPtr->textures : std::vector<gfx::Texture*>{}
     };
+
+    meshComponent.shader->setUniformMatrix4f("u_model", TransformSystem::getModel(transComponent));
+    meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
+    meshComponent.shader->setUniformMatrix4f("u_view", activeCam.cam->cachedView);
 
     renderer.submit(std::move(renderCmd));
   }
 
-  renderer.endFrame(ctx);
+  renderer.renderFrame();
 }
 
 }; // namespace RenderSystem

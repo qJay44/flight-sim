@@ -7,6 +7,8 @@
 #include "../components/MeshComponent.hpp"
 #include "../components/CameraComponent.hpp"
 #include "../components/InputComponent.hpp"
+#include "../components/TransformComponent.hpp"
+#include "../components/AuxiliaryComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gui/gui.hpp"
 
@@ -70,10 +72,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       }
       break;
     case GLFW_KEY_2:
+      // Toggling global axis
       if (action == GLFW_PRESS) {
         static gfx::Mesh* globalAxisPtr = registry->ctx().get<gfx::AssetManager>().getMesh("Axis");
 
-        auto meshView = registry->view<MeshComponent>();
+        auto meshView = registry->view<MeshComponent, TransformComponent, AuxiliaryComponent>();
         for (auto entity : meshView) {
           auto& meshComponent = registry->get<MeshComponent>(entity);
           if (globalAxisPtr == meshComponent.mesh) {

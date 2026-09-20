@@ -57,22 +57,20 @@ void Renderer::init(const core::EngineContext* ctx) const {
   glFrontFace(GL_CCW);
 }
 
-void Renderer::beginFrame(ivec2 viewPort) {
+void Renderer::newFrame(ivec2 viewPort) {
   renderQueue.clear();
   glViewport(0, 0, viewPort.x, viewPort.y);
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void Renderer::setProjectionMat(const mat4& proj) { renderProj  = proj; }
-void Renderer::setViewMat(const mat4& view)       { renderView  = view; }
 void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
 
 void Renderer::submit(const RenderCommand&& cmd) {
   renderQueue.push_back(std::move(cmd));
 }
 
-void Renderer::endFrame(const core::EngineContext& ctx) {
+void Renderer::renderFrame() {
   renderQueue.sort([](const RenderCommand& a, const RenderCommand& b) {
     return a.shader < b.shader;
   });
@@ -81,18 +79,14 @@ void Renderer::endFrame(const core::EngineContext& ctx) {
 
   Shader* currBoundShader = nullptr;
   const Mesh* currBoundMesh = nullptr;
-  const core::Camera* currBoundCamera = nullptr;
   const Texture* currBoundTextures[MAX_TEXTURES]{};
 
   for (const auto& command : renderQueue) {
     if (command.shader != currBoundShader) {
       currBoundShader = command.shader;
       currBoundShader->use();
-      currBoundShader->setUniformMatrix4f("u_proj", renderProj);
-      currBoundShader->setUniformMatrix4f("u_view", renderView);
       currBoundShader->setUniform3f("u_lightColor", globalLight->color);
       currBoundShader->setUniform3f("u_lightDir", globalLight->direction);
-      currBoundShader->setUniform1f("u_time", ctx.time);
       currBoundShader->setUniform1f("u_lightAmbient", globalLight->ambient);
       currBoundShader->setUniform1f("u_lightSpecular", globalLight->specular);
     }
@@ -105,16 +99,6 @@ void Renderer::endFrame(const core::EngineContext& ctx) {
       glEnable(GL_DEPTH_TEST);
     }
 
-    if (command.cam != currBoundCamera) {
-      currBoundCamera = command.cam;
-      currBoundShader->setUniform1f("u_camNear", currBoundCamera->nearPlane);
-      currBoundShader->setUniform1f("u_camFar", currBoundCamera->farPlane);
-      currBoundShader->setUniform1f("u_camFov", currBoundCamera->fov);
-      currBoundShader->setUniform3f("u_camUp", currBoundCamera->up);
-      currBoundShader->setUniform3f("u_camForward", currBoundCamera->orientation);
-      currBoundShader->setUniform3f("u_camPos", command.camPos);
-    }
-
     for (size_t i = 0; i < command.textures.size() && i < MAX_TEXTURES; i++) {
       const Texture*& currTex = currBoundTextures[i];
       const Texture* cmdTex = command.textures[i];
@@ -124,8 +108,6 @@ void Renderer::endFrame(const core::EngineContext& ctx) {
         currTex->bind(i);
       }
     }
-
-    currBoundShader->setUniformMatrix4f("u_model", command.model);
 
     std::visit([](auto&& arg) {
       using T = std::decay_t<decltype(arg)>;
@@ -138,6 +120,8 @@ void Renderer::endFrame(const core::EngineContext& ctx) {
       }
     }, currBoundMesh->drawCmd);
   }
+
+  renderQueue.clear();
 }
 
 } // namespace gfx
