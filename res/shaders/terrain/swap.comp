@@ -1,21 +1,28 @@
 #version 460 core
 
-layout(local_size_x = 16, local_size_y = 16) in;
+#include "../common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) readonly  uniform image2DArray imgLoad;
 layout(rgba32f, binding = 1) writeonly uniform image2DArray imgWrite;
 
-uniform int u_layer;
+uniform uint u_offset;
+
+layout(std140, binding = 1) uniform NodesDataBlock {
+  NodeData nodesData[TERRAIN_MAX_NODES];
+};
 
 void main() {
+  int layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imgLoad).xy;
 
   if (texCoord.x >= size.x || texCoord.y >= size.y)
     return;
 
-  vec4 load = imageLoad(imgLoad, ivec3(texCoord, u_layer));
+  vec4 load = imageLoad(imgLoad, ivec3(texCoord, layer));
 
-  imageStore(imgWrite, ivec3(texCoord, u_layer), load);
+  imageStore(imgWrite, ivec3(texCoord, layer), load);
 }
 

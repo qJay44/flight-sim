@@ -3,6 +3,7 @@
 #include "../BufferObject.hpp"
 #include "../Shader.hpp"
 #include "../AssetManager.hpp"
+#include "../../gfx/Renderer.hpp"
 #include "../../core/math/terrain/NodeData.hpp"
 #include "nlohmann/json.hpp"
 
@@ -37,7 +38,7 @@ public:
   };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
-  GenerationManager(gfx::AssetManager& assetManager, int textureSize, int maxSlots);
+  GenerationManager(gfx::AssetManager& assetManager, u16 textureSize, int maxSlots);
 
   GenerationManager(GenerationManager&&) = default;
   GenerationManager& operator=(GenerationManager&&) = default;
@@ -52,7 +53,8 @@ public:
   [[nodiscard]] int acquireSlot();
   void freeSlot(int slot);
   void freeSlotAll();
-  void generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale);
+
+  void generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes, float planetRadius, float heightScale);
 
 private:
   int maxSlots;
@@ -63,8 +65,11 @@ private:
   gfx::Shader* normalsShader{};
   gfx::Shader* swapShader{};
 
-  ivec2 numGroups;
+  uvec2 numGroups;
   std::stack<int> freeSlots;
+  gfx::Renderer::ComputeCommand computeCommandHeight;
+  gfx::Renderer::ComputeCommand computeCommandNormal;
+  gfx::Renderer::ComputeCommand computeCommandSwap;
 
   TerrainConfig cfgTerrain;
 
@@ -94,7 +99,7 @@ private:
   );
 
   struct {
-    gfx::BufferObject terrainConfig{GL_UNIFORM_BUFFER, false};
+    gfx::BufferObject terrainConfig;
   } ubo;
 };
 

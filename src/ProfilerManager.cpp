@@ -83,7 +83,7 @@ ProfilerManager::ScopedTaskCpu ProfilerManager::startScopedTaskCpu(const std::st
 
   legit::ProfilerTask task;
   task.name = name;
-  task.color = color ? RGBA_LE(color): getColorBright(cpuTasks.size());
+  task.color = color ? RGBA_LE(color) : getColorBright(cpuTasks.size());
   task.startTime = getCurrFrameTimeDuration();
 
   cpuTasks.push_back(task);
@@ -97,7 +97,7 @@ ProfilerManager::ScopedTaskGpu ProfilerManager::startScopedTaskGpu(const Query& 
 
   legit::ProfilerTask task;
   task.name = q.name;
-  task.color = color ? RGBA_LE(color): getColorBright(gpuTasks.size());
+  task.color = color ? RGBA_LE(color) : getColorBright(gpuTasks.size());
   task.startTime = 0.0;
 
   gpuTasks.push_back(task);

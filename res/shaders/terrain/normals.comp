@@ -1,24 +1,33 @@
 #version 460 core
 
-layout(local_size_x = 16, local_size_y = 16) in;
+#include "../common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
 layout(rgba32f, binding = 0) readonly  uniform image2DArray imgLoad;
 layout(rgba32f, binding = 1) writeonly uniform image2DArray imgWrite;
 
-uniform int u_layer;
+uniform uint u_offset;
+
+layout(std140, binding = 1) uniform NodesDataBlock {
+  NodeData nodesData[TERRAIN_MAX_NODES];
+};
+
+int layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
 
 vec3 get(int x, int y) {
-  return imageLoad(imgLoad, ivec3(x, y, u_layer)).rgb;
+  return imageLoad(imgLoad, ivec3(x, y, layer)).rgb;
 }
 
 void main() {
+  // NodeData node = nodesData[gl_GlobalInvocationID.z + u_offset];
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imgLoad).xy;
 
   if (texCoord.x >= size.x || texCoord.y >= size.y)
     return;
 
-  float h = imageLoad(imgLoad, ivec3(texCoord, u_layer)).a;
+  float h = imageLoad(imgLoad, ivec3(texCoord, layer)).a;
 
   vec3 left  = texCoord.x == 0          ? get(texCoord.x, texCoord.y) : get(texCoord.x - 1, texCoord.y);
   vec3 right = texCoord.x == size.x - 1 ? get(texCoord.x, texCoord.y) : get(texCoord.x + 1, texCoord.y);
@@ -29,6 +38,6 @@ void main() {
   vec3 tangentY = up - down;
   vec3 objectNormal = normalize(cross(tangentY, tangentX));
 
-  imageStore(imgWrite, ivec3(texCoord, u_layer), vec4(objectNormal, h));
+  imageStore(imgWrite, ivec3(texCoord, layer), vec4(objectNormal, h));
 }
 

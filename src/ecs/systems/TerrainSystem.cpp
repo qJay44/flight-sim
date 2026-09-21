@@ -44,6 +44,7 @@ void init(entt::registry& registry, float planetRadius) {
 void update(entt::registry& registry) {
   auto& gm = registry.ctx().get<GenerationManager>();
   auto& profiler =  registry.ctx().get<ProfilerManager>();
+  auto& renderer =  registry.ctx().get<gfx::Renderer>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
   gm.update();
 
@@ -52,7 +53,6 @@ void update(entt::registry& registry) {
     std::stack<Quadnode*> activeNodes;
     terrain.heightScale = terrain.planetRadius * terrain.planetRadiusPercent;
 
-    static ProfilerManager::Query queryQt("QuatreeComputePass");
     auto taskQt = profiler.startScopedTaskCpu("QuadtreePass");
 
     for (Quadnode& quadtree : terrain.quadtrees) {
@@ -67,11 +67,18 @@ void update(entt::registry& registry) {
     }
 
     taskQt.end();
-    profiler.startScopedTaskGpu(queryQt);
 
     terrain.activeLeafs = 0;
+    std::stack<Quadnode*> nodesToGenerate;
+
     while (!activeNodes.empty()) {
       auto* node = activeNodes.top(); activeNodes.pop();
+
+      if (node->texLayerIdx == -1) {
+        node->texLayerIdx = gm.acquireSlot();
+        nodesToGenerate.push(node);
+        continue;
+      }
 
       auto& currLeaf = terrain.leafs[terrain.activeLeafs++];
       currLeaf = NodeData{
@@ -80,12 +87,27 @@ void update(entt::registry& registry) {
         .faceIdx = node->face,
         .texLayerIdx = node->texLayerIdx
       };
-
-      if (node->texLayerIdx == -1) {
-        currLeaf.texLayerIdx = node->texLayerIdx = gm.acquireSlot();
-        gm.generateTerrain(currLeaf, terrain.planetRadius, terrain.heightScale);
-      }
     }
+
+    const size_t nodesToGenerateIdxOffset = terrain.activeLeafs;
+    while (!nodesToGenerate.empty()) {
+      auto* node = nodesToGenerate.top(); nodesToGenerate.pop();
+
+      auto& currLeaf = terrain.leafs[terrain.activeLeafs++];
+      currLeaf = NodeData{
+        .center = node->center,
+        .extents = node->extents,
+        .faceIdx = node->face,
+        .texLayerIdx = node->texLayerIdx
+      };
+    }
+
+    terrain.ubo.nodesData.updateSubData(terrain.leafs.data(), terrain.activeLeafs * sizeof(NodeData));
+
+    static ProfilerManager::Query queryQt("QuatreeComputePass");
+    auto _taskQtCS = profiler.startScopedTaskGpu(queryQt);
+
+    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, renderer, terrain.ubo.nodesData, terrain.planetRadius, terrain.heightScale);
   }
 }
 
@@ -107,7 +129,6 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .textures = texComponent.textures
     };
 
-    terrainComponent.ubo.nodesData.updateSubData(terrainComponent.leafs.data(), terrainComponent.activeLeafs * sizeof(NodeData));
     terrainComponent.ubo.nodesData.bindBase(0);
     meshComponent.mesh->setInstanceCount(terrainComponent.activeLeafs);
 

@@ -5,8 +5,10 @@
 
 namespace gfx::terrain {
 
-GenerationManager::GenerationManager(gfx::AssetManager& assetManager, int textureSize, int maxSlots) : maxSlots(maxSlots) {
-  constexpr ivec2 localSize(16);
+using namespace core::math::terrain;
+
+GenerationManager::GenerationManager(gfx::AssetManager& assetManager, u16 textureSize, int maxSlots) : maxSlots(maxSlots) {
+  constexpr uvec2 localSize(16);
 
   textureSize += 2;
 
@@ -21,13 +23,63 @@ GenerationManager::GenerationManager(gfx::AssetManager& assetManager, int textur
   swapShader = assetManager.getShader("TerrainSwap");
   texArrayNodes = assetManager.getTexture("TerrainNodes");
   texArrayNodesDummy = assetManager.getTexture("TerrainNodesDummy");
-  numGroups = (textureSize + localSize - 1) / localSize;
+  numGroups = (uvec2(textureSize) + localSize - 1u) / localSize;
 
   for (int i = 0; i < maxSlots; i++)
     freeSlots.push(i);
 
-  ubo.terrainConfig.gen();
+  ubo.terrainConfig = gfx::BufferObject::createUniformBuffer(true);
   ubo.terrainConfig.storage(&cfgTerrain, sizeof(TerrainConfig), GL_DYNAMIC_STORAGE_BIT);
+
+  computeCommandHeight = {
+    .shader = heightShader,
+    .numWorkGroups = uvec3(numGroups, 0),
+    .images = {
+      ImageDescriptor{
+      .texture = texArrayNodes,
+      .access = GL_WRITE_ONLY,
+      .format = GL_RGBA32F,
+      .layererd = GL_TRUE,
+    }},
+  };
+
+  computeCommandNormal = {
+    .shader = normalsShader,
+    .numWorkGroups = uvec3(numGroups, 0),
+    .images = {
+      ImageDescriptor{
+      .texture = texArrayNodes,
+      .access = GL_READ_ONLY,
+      .format = GL_RGBA32F,
+      .layererd = GL_TRUE
+      },
+      ImageDescriptor{
+      .texture = texArrayNodesDummy,
+      .access = GL_WRITE_ONLY,
+      .format = GL_RGBA32F,
+      .layererd = GL_TRUE
+      },
+    },
+  };
+
+  computeCommandSwap = {
+    .shader = swapShader,
+    .numWorkGroups = uvec3(numGroups, 0),
+    .images = {
+      ImageDescriptor{
+      .texture = texArrayNodesDummy,
+      .access = GL_READ_ONLY,
+      .format = GL_RGBA32F,
+      .layererd = GL_TRUE
+      },
+      ImageDescriptor{
+      .texture = texArrayNodes,
+      .access = GL_WRITE_ONLY,
+      .format = GL_RGBA32F,
+      .layererd = GL_TRUE
+      },
+    },
+  };
 
   global::json::loadPreset(cfgTerrain, "heightmap1.json");
 }
@@ -61,35 +113,30 @@ void GenerationManager::freeSlotAll() {
     freeSlots.push(i);
 }
 
-void GenerationManager::generateTerrain(const core::math::terrain::NodeData& node, float planetRadius, float heightScale) {
-  // TODO: Maybe create a pipeline for CS in Render (e.g. ComputeCommand)
+void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes, float planetRadius, float heightScale) {
+  computeCommandHeight.numWorkGroups.z = nodesCount;
+  computeCommandNormal.numWorkGroups.z = nodesCount;
+  computeCommandSwap  .numWorkGroups.z = nodesCount;
 
-  heightShader->use();
-  heightShader->setUniform2f("u_nodeCenter", node.center);
-  heightShader->setUniform1f("u_nodeExtents", node.extents);
   heightShader->setUniform1f("u_planetRadius", planetRadius);
   heightShader->setUniform1f("u_heightScale", heightScale);
-  heightShader->setUniform1i("u_nodeFaceIdx", node.faceIdx);
-  heightShader->setUniform1i("u_layer", node.texLayerIdx);
-
+  heightShader->setUniform1ui("u_offset", offset);
+  normalsShader->setUniform1ui("u_offset", offset);
+  swapShader->setUniform1ui("u_offset", offset);
   ubo.terrainConfig.bindBase(0);
-  glBindImageTexture(0, texArrayNodes->getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-  glDispatchCompute(numGroups.x, numGroups.y, 1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  nodes.bindBase(1);
 
-  normalsShader->use();
-  normalsShader->setUniform1i("u_layer", node.texLayerIdx);
-  glBindImageTexture(0, texArrayNodes->getId(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32F);
-  glBindImageTexture(1, texArrayNodesDummy->getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-  glDispatchCompute(numGroups.x, numGroups.y, 1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(computeCommandHeight);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  swapShader->use();
-  swapShader->setUniform1i("u_layer", node.texLayerIdx);
-  glBindImageTexture(0, texArrayNodesDummy->getId(), 0, GL_TRUE, 0, GL_READ_ONLY, GL_RGBA32F);
-  glBindImageTexture(1, texArrayNodes->getId(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-  glDispatchCompute(numGroups.x, numGroups.y, 1);
-  glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(computeCommandNormal);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+  renderer.submit(computeCommandSwap);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 } // terrain

@@ -57,8 +57,13 @@ void Renderer::init(const core::EngineContext* ctx) const {
   glFrontFace(GL_CCW);
 }
 
+void Renderer::memoryBarrier(GLbitfield barriers) const {
+  glMemoryBarrier(barriers);
+}
+
 void Renderer::newFrame(ivec2 viewPort) {
   renderQueue.clear();
+  computeQueue.clear();
   glViewport(0, 0, viewPort.x, viewPort.y);
   glClearColor(0.f, 0.f, 0.f, 1.f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -66,8 +71,12 @@ void Renderer::newFrame(ivec2 viewPort) {
 
 void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
 
-void Renderer::submit(const RenderCommand&& cmd) {
+void Renderer::submit(const RenderCommand& cmd) {
   renderQueue.push_back(std::move(cmd));
+}
+
+void Renderer::submit(const ComputeCommand& cmd) {
+  computeQueue.push_back(std::move(cmd));
 }
 
 void Renderer::renderFrame() {
@@ -122,6 +131,49 @@ void Renderer::renderFrame() {
   }
 
   renderQueue.clear();
+}
+
+void Renderer::dispatch() {
+  computeQueue.sort([](const ComputeCommand& a, const ComputeCommand& b) {
+    return a.shader < b.shader;
+  });
+
+  Shader* currBoundShader = nullptr;
+  const Texture* currBoundImages[MAX_TEXTURES]{};
+  const Texture* currBoundTextures[MAX_TEXTURES]{};
+
+  for (const auto& command : computeQueue) {
+    if (command.shader != currBoundShader) {
+      currBoundShader = command.shader;
+      currBoundShader->use();
+    }
+
+    for (size_t i = 0; i < command.images.size() && i < MAX_TEXTURES; i++) {
+      const ImageDescriptor& imgDesc = command.images[i];
+      const Texture*& currImg = currBoundImages[i];
+      const Texture* cmdImg = imgDesc.texture;
+
+      if (currImg != cmdImg) {
+        currImg = cmdImg;
+        currBoundShader->setUniform1i("u_layer", imgDesc.layer);
+        glBindImageTexture(i, currImg->getId(), imgDesc.level, imgDesc.layererd, imgDesc.layer, imgDesc.access, imgDesc.format);
+      }
+    }
+
+    for (size_t i = 0; i < command.textures.size() && i < MAX_TEXTURES; i++) {
+      const Texture*& currTex = currBoundTextures[i];
+      const Texture* cmdTex = command.textures[i];
+
+      if (currTex != cmdTex) {
+        currTex = cmdTex;
+        currTex->bind(i);
+      }
+    }
+
+    glDispatchCompute(command.numWorkGroups.x, command.numWorkGroups.y, command.numWorkGroups.z);
+  }
+
+  computeQueue.clear();
 }
 
 } // namespace gfx

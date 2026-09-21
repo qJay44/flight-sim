@@ -33,6 +33,9 @@ void render(entt::registry& registry) {
     auto& meshComponent = registry.get<MeshComponent>(entity);
     auto& transComponent = registry.get<TransformComponent>(entity);
 
+    if (meshComponent.disabled)
+      continue;
+
     gfx::Renderer::RenderCommand renderCmd{
       .shader = meshComponent.shader,
       .mesh = meshComponent.mesh,
