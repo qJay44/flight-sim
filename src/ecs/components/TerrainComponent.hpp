@@ -13,10 +13,6 @@ struct TerrainComponent {
   float sandThreshold = 0.08f;    // Percentage of [heightScale]
   float mountainThreshold = 0.6f; // Percentage of [heightScale]
 
-  float waveScale = 1.f;
-  float waterRadiusScale = 1.f;
-  float foamSharpness = 1.f;
-
   int qtMaxDepth = 8;
   float qtSplitThreshold = 0.5f;
 

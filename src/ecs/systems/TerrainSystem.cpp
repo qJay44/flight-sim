@@ -60,6 +60,7 @@ void update(entt::registry& registry) {
       quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrainConfig.planetRadius, activeCam.cam->position);
       quadtree.insert();
       quadtree.gatherLeafs(activeNodes);
+      assert(activeNodes.size() < TERRAIN_MAX_NODES);
 
       while (!quadtree.freedTexLayerIdxs.empty()) {
         gm.freeSlot(quadtree.freedTexLayerIdxs.top());

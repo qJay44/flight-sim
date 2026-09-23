@@ -11,7 +11,7 @@
 #define COLOR_SKY        vec3(0.69, 0.84, 1.0)
 
 #define sq(x) ((x)*(x))
-#define saturate(x) clamp(x, 0.f, 1.f)
+#define clamp01(x) clamp(x, 0.0, 1.0)
 #define smoothstep_inv(e0, e1, x) (1.f - smoothstep(e1, e0, x))
 
 struct NodeData {

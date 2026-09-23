@@ -37,13 +37,13 @@ void main() {
     float sandToGrass = smoothstep(u_seaThreshold, u_sandThreshold, height);
     surfaceColor = mix(COLOR_SAND, COLOR_GRASS, sandToGrass);
   } else {
-    float slopeWeight = smoothstep(0.25f, 0.6f, slope);
+    float slopeWeight = smoothstep(0.15f, 0.3f, slope);
     surfaceColor = mix(COLOR_GRASS, COLOR_ROCK, slopeWeight);
 
     // Mountains
     if (height > u_mountainThreshold) {
-      float snowBlend = smoothstep(u_mountainThreshold, 0.98f, height);
-      float cliffWeight = smoothstep(0.35f, 0.15f, slope);
+      float snowBlend = smoothstep(u_mountainThreshold, 0.70f, height);
+      float cliffWeight = smoothstep(0.15f, 0.35f, slope);
       vec3 highAltitudeColor = mix(COLOR_ROCK, COLOR_SNOW, cliffWeight);
       surfaceColor = mix(surfaceColor, highAltitudeColor, snowBlend);
     }

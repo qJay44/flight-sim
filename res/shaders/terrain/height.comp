@@ -155,7 +155,7 @@ float evaluateHeight(vec3 sphereDir) {
   mountainMap /= 1.5f;
 
   float continentMap = fbm(sphereDir * cfg.continentFreq, 4);
-  mountainMap *= clamp(continentMap, 0.1f, 1.f);
+  mountainMap *= smoothstep(0.4f, 0.9f, continentMap);
 
   // ----- 2. Mountain generation noise ---------------------------------------------------- //
   //
@@ -180,14 +180,15 @@ float evaluateHeight(vec3 sphereDir) {
     detailAmplitude *= cfg.gainDetail;
     detailFreq *= cfg.lacunarityDetail;
   }
-  float mountainGenerationNoise = mountainShape + detailNoise * 0.5f;
+  float mountainGenerationNoise = mountainShape + detailNoise * 0.3f;
 
   float scaled = mountainGenerationNoise * cfg.terraceSteps;
   float stepBase = floor(scaled);
   float stepFract = fract(scaled);
-  float smoothedFract = smoothstep(0.f, 0.4f, stepFract);
+  float smoothedFract = smoothstep(0.f, 0.8f, stepFract);
   float terracedNoise = (stepBase + smoothedFract) / cfg.terraceSteps;
 
+  mountainGenerationNoise = clamp01(mountainGenerationNoise);
   mountainGenerationNoise = mix(mountainGenerationNoise, terracedNoise, fbm(sphereDir, 3));
 
   return mountainMap * mountainGenerationNoise;

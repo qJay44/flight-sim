@@ -26,7 +26,7 @@ public:
     float displaceStrength = 1.f;
     float continentFreq = 1.f;
     float f2f1VoronoiFreq;
-    int octaves = 2;
+    int octavesDisplace = 2;
     int terraceSteps = 10;
     float _pad[3];
   };
@@ -79,10 +79,11 @@ private:
     initFrequencyDetail,
     gainDetail,
     lacunarityDetail,
+    f1VoronoiFreq,
     displaceStrength,
     continentFreq,
     f2f1VoronoiFreq,
-    octaves,
+    octavesDisplace,
     terraceSteps
   );
 

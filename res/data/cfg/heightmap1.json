@@ -2,6 +2,7 @@
   "continentFreq": 3.0,
   "displaceStrength": 0.25,
   "f2f1VoronoiFreq": 2.0,
+  "f1VoronoiFreq": 2.0,
   "gain": 0.5,
   "gainDetail": 0.5,
   "globalScale": 15.0,
@@ -11,7 +12,7 @@
   "initFrequencyDetail": 1.0,
   "lacunarity": 2.0,
   "lacunarityDetail": 3.0,
-  "octaves": 2,
+  "octavesDisplace": 2,
   "planetRadius": 100000.0,
   "planetRadiusPercent": 0.07000000029802322,
   "terraceSteps": 12

@@ -8,6 +8,7 @@
 #include "../ecs/components/VelocityComponent.hpp"
 #include "../ecs/systems/TerrainSystem.hpp"
 #include "../gfx/terrain/GenerationManager.hpp"
+#include "../core/ActiveCamera.hpp"
 #include "LoaderWidget.hpp"
 
 namespace gui {
@@ -59,6 +60,9 @@ void drawCameraUi(entt::registry& registry) {
 
 void drawTerrainUi(entt::registry& registry) {
   if (ImGui::CollapsingHeader("Terrain")) {
+    auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+    vec3 dirToCenter = glm::normalize(activeCam.cam->position);
+
     for (auto entity : registry.view<terrain::TerrainComponent>()) {
       auto& terrain = registry.get<terrain::TerrainComponent>(entity);
       auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
@@ -69,15 +73,13 @@ void drawTerrainUi(entt::registry& registry) {
 
       ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%d]", terrain.activeLeafs, TERRAIN_MAX_NODES);
       ImGui::Text("Height scale: [%.2f]", cfg.planetRadius * cfg.planetRadiusPercent);
+      ImGui::Text("Cam height (from sea level): [%.2f]", glm::distance(activeCam.cam->position, cfg.planetRadius * dirToCenter));
 
       ImGui::Separator();
 
       ImGui::SliderFloat("Sea threshold", &terrain.seaThreshold, 0.f, 1.f);
       ImGui::SliderFloat("Sand threshold", &terrain.sandThreshold, 0.f, 1.f);
       ImGui::SliderFloat("Moutain threshold", &terrain.mountainThreshold, 0.f, 1.f);
-      ImGui::DragFloat("Wave scale", &terrain.waveScale);
-      ImGui::DragFloat("Wave raidus", &terrain.waterRadiusScale);
-      ImGui::DragFloat("Foam sharpness", &terrain.foamSharpness);
       ImGui::SliderInt("Quadtree max depth", &terrain.qtMaxDepth, 1, 20);
       ImGui::SliderFloat("Quadtree split threshold", &terrain.qtSplitThreshold, 0.f, 1.f);
 
@@ -92,11 +94,15 @@ void drawTerrainUi(entt::registry& registry) {
         u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
         u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 1.f);
         u |= ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 1.f, 10.f);
+        u |= ImGui::SliderFloat("Start amplitude (detail)", &cfg.initAmplitudeDetail, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Start frequency (detail)", &cfg.initFrequencyDetail, 0.f, 10.f);
+        u |= ImGui::SliderFloat("Amplitude gain (detail)", &cfg.gainDetail, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Lacunarity (detail)", &cfg.lacunarityDetail, 1.f, 10.f);
         u |= ImGui::SliderFloat("F1 Voroni frequency", &cfg.f1VoronoiFreq, 0.f, 100.f);
-        u |= ImGui::SliderFloat("Displace strength", &cfg.displaceStrength, 0.f, 50.f);
-        u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 50.f);
-        u |= ImGui::SliderFloat("F2-F1 Voronoi frequency", &cfg.f2f1VoronoiFreq, 0.f, 100.f);
-        u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
+        u |= ImGui::SliderFloat("Displace strength", &cfg.displaceStrength, 0.f, 10.f);
+        u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 15.f);
+        u |= ImGui::SliderFloat("F2-F1 Voronoi frequency", &cfg.f2f1VoronoiFreq, 0.f, 10.f);
+        u |= ImGui::SliderInt("Octaves", &cfg.octavesDisplace, 1, 10);
         u |= ImGui::SliderInt("Terrace steps", &cfg.terraceSteps, 1, 30);
 
         ImGui::SeparatorText("Load/Save");

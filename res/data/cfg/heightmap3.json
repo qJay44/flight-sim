@@ -1,0 +1,19 @@
+{
+  "continentFreq": 2.5880000591278076,
+  "displaceStrength": 0.25,
+  "f1VoronoiFreq": 2.0,
+  "f2f1VoronoiFreq": 2.0999999046325684,
+  "gain": 0.5249999761581421,
+  "gainDetail": 0.5019999742507935,
+  "globalScale": 15.0,
+  "initAmplitude": 0.6100000143051147,
+  "initAmplitudeDetail": 1.0,
+  "initFrequency": 0.32499998807907104,
+  "initFrequencyDetail": 1.0,
+  "lacunarity": 2.6419999599456787,
+  "lacunarityDetail": 3.430000066757202,
+  "octavesDisplace": 2,
+  "planetRadius": 100000.0,
+  "planetRadiusPercent": 0.07000000029802322,
+  "terraceSteps": 14
+}
