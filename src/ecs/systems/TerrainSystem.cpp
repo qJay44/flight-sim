@@ -14,16 +14,17 @@ using namespace ecs::component;
 using namespace gfx::terrain;
 using namespace terrain;
 
-void init(entt::registry& registry, float planetRadius) {
+void init(entt::registry& registry) {
   entt::entity entity = registry.create();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto gm = GenerationManager(assetManager, 254, TERRAIN_MAX_NODES);
+  auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.createMeshPlane_Triangles(128, true);
 
+  assetManager.getShader("TerrainHeightCompute")->setOnReloadCallback([&registry]() { reload(registry); });
+
   TerrainComponent terrainComponent{};
-  terrainComponent.planetRadius = planetRadius;
   terrainComponent.ubo.nodesData = gfx::BufferObject::createUniformBuffer(true);
   terrainComponent.ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 
@@ -46,17 +47,17 @@ void update(entt::registry& registry) {
   auto& profiler =  registry.ctx().get<ProfilerManager>();
   auto& renderer =  registry.ctx().get<gfx::Renderer>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+  const auto& terrainConfig = gm.getConfig();
   gm.update();
 
   for (auto entity : registry.view<TerrainComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
     std::stack<Quadnode*> activeNodes;
-    terrain.heightScale = terrain.planetRadius * terrain.planetRadiusPercent;
 
     auto taskQt = profiler.startScopedTaskCpu("QuadtreePass");
 
     for (Quadnode& quadtree : terrain.quadtrees) {
-      quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrain.planetRadius, activeCam.cam->position);
+      quadtree.newFrame(terrain.qtMaxDepth, terrain.qtSplitThreshold, terrainConfig.planetRadius, activeCam.cam->position);
       quadtree.insert();
       quadtree.gatherLeafs(activeNodes);
 
@@ -107,12 +108,14 @@ void update(entt::registry& registry) {
     static ProfilerManager::Query queryQt("QuatreeComputePass");
     auto _taskQtCS = profiler.startScopedTaskGpu(queryQt);
 
-    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, renderer, terrain.ubo.nodesData, terrain.planetRadius, terrain.heightScale);
+    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, renderer, terrain.ubo.nodesData);
   }
 }
 
 void render(entt::registry& registry, gfx::Renderer& renderer) {
   const auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+  auto& gm = registry.ctx().get<GenerationManager>();
+  const auto& terrainConfig = gm.getConfig();
   auto terrainView = registry.view<TerrainComponent, MeshComponent, TextureComponent>();
 
   for (auto entity : terrainView) {
@@ -143,9 +146,8 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniformMatrix4f("u_localViewInv", glm::inverse(localView));
     meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
     meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
-    meshComponent.shader->setUniform1f("u_planetRadius", terrainComponent.planetRadius);
-    meshComponent.shader->setUniform1f("u_heightScale", terrainComponent.heightScale);
-    meshComponent.shader->setUniform1f("u_heightScaleMesh", terrainComponent.heightScaleMesh);
+    meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
+    meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
     meshComponent.shader->setUniform1f("u_seaThreshold", terrainComponent.seaThreshold);
     meshComponent.shader->setUniform1f("u_sandThreshold", terrainComponent.sandThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);

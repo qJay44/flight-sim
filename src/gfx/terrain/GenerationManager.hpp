@@ -4,7 +4,6 @@
 #include "../Shader.hpp"
 #include "../AssetManager.hpp"
 #include "../../gfx/Renderer.hpp"
-#include "../../core/math/terrain/NodeData.hpp"
 #include "nlohmann/json.hpp"
 
 namespace gfx::terrain {
@@ -12,29 +11,24 @@ namespace gfx::terrain {
 class GenerationManager {
 public:
   struct TerrainConfig {
-    float landThresholdA = 0.42f;
-    float landThresholdB = 0.55f;
-    float continentFreq = 1.2f;
+    float planetRadius = 1.f;
+    float planetRadiusPercent = 0.02f;
+    float globalScale = 15.f;
     float initAmplitude = 0.5f;
-    float initFrequency = 1.0f;
+    float initFrequency = 1.f;
     float gain = 0.5f;
-    float lacunarity = 2.0f;
-    float canyonSteps = 15.f;
-    float fbmOffsetFreq1 = 3.f;
-    float fbmOffsetFreq2 = 3.f;
-    float fbmOffsetFreq3 = 3.f;
-    float fbmOffsetTwist = 0.25f;
-    float f1VoronoiFreq1 = 5.f;
-    float f1VoronoiFreq2 = 10.5f;
-    float f1f2VoronoiFreq1 = 5.f;
-    float f1f2VoronoiFreq2 = 10.5f;
-    float detailInitAmplitude = 0.5f;
-    float detailInitFrequency = 12.0f;
-    float detailGain = 0.48f;
-    float detailLacunarity = 2.1f;
+    float lacunarity = 2.f;
+    float initAmplitudeDetail = 1.f;
+    float initFrequencyDetail = 1.f;
+    float gainDetail = 0.5f;
+    float lacunarityDetail = 3.f;
+    float f1VoronoiFreq = 2.f;
+    float displaceStrength = 1.f;
+    float continentFreq = 1.f;
+    float f2f1VoronoiFreq;
     int octaves = 2;
-    int detailOctaves = 10;
-    float _pad[2];
+    int terraceSteps = 10;
+    float _pad[3];
   };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
@@ -54,7 +48,7 @@ public:
   void freeSlot(int slot);
   void freeSlotAll();
 
-  void generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes, float planetRadius, float heightScale);
+  void generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes);
 
 private:
   int maxSlots;
@@ -74,28 +68,22 @@ private:
   TerrainConfig cfgTerrain;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(TerrainConfig,
-    landThresholdA,
-    landThresholdB,
-    continentFreq,
+    planetRadius,
+    planetRadiusPercent,
+    globalScale,
     initAmplitude,
     initFrequency,
     gain,
     lacunarity,
-    canyonSteps,
-    fbmOffsetFreq1,
-    fbmOffsetFreq2,
-    fbmOffsetFreq3,
-    fbmOffsetTwist,
-    f1VoronoiFreq1,
-    f1VoronoiFreq2,
-    f1f2VoronoiFreq1,
-    f1f2VoronoiFreq2,
-    detailInitAmplitude,
-    detailInitFrequency,
-    detailGain,
-    detailLacunarity,
+    initAmplitudeDetail,
+    initFrequencyDetail,
+    gainDetail,
+    lacunarityDetail,
+    displaceStrength,
+    continentFreq,
+    f2f1VoronoiFreq,
     octaves,
-    detailOctaves
+    terraceSteps
   );
 
   struct {

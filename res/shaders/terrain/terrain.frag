@@ -19,12 +19,7 @@ uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
 void main() {
-  ivec2 texSize = textureSize(u_texArray, 0).xy;
-  ivec2 actualTexSize = texSize - 2;
-  ivec2 innerTexelCoord = 1 + ivec2(v_uv * (actualTexSize));
-  vec2 uv = vec2(innerTexelCoord) / actualTexSize;
-
-  vec4 terrainData = texture(u_texArray, vec3(uv, v_layerIdx));
+  vec4 terrainData = texture(u_texArray, vec3(v_uv, v_layerIdx));
   float height = terrainData.a / u_heightScale;
   vec3 terrainNormal = terrainData.rgb;
 

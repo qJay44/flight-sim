@@ -71,11 +71,11 @@ void Renderer::newFrame(ivec2 viewPort) {
 
 void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
 
-void Renderer::submit(const RenderCommand& cmd) {
+void Renderer::submit(RenderCommand cmd) {
   renderQueue.push_back(std::move(cmd));
 }
 
-void Renderer::submit(const ComputeCommand& cmd) {
+void Renderer::submit(ComputeCommand cmd) {
   computeQueue.push_back(std::move(cmd));
 }
 

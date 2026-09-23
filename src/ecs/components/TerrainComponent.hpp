@@ -9,11 +9,6 @@ namespace ecs::component::terrain {
 using namespace core::math::terrain;
 
 struct TerrainComponent {
-  float planetRadius = 1.f;
-  float heightScale = 1.f;
-  float heightScaleMesh = 1.f;
-
-  float planetRadiusPercent = 0.02f;
   float seaThreshold = 0.05f;     // Percentage of [heightScale]
   float sandThreshold = 0.08f;    // Percentage of [heightScale]
   float mountainThreshold = 0.6f; // Percentage of [heightScale]

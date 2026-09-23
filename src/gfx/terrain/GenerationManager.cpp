@@ -5,8 +5,6 @@
 
 namespace gfx::terrain {
 
-using namespace core::math::terrain;
-
 GenerationManager::GenerationManager(gfx::AssetManager& assetManager, u16 textureSize, int maxSlots) : maxSlots(maxSlots) {
   constexpr uvec2 localSize(16);
 
@@ -113,13 +111,12 @@ void GenerationManager::freeSlotAll() {
     freeSlots.push(i);
 }
 
-void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes, float planetRadius, float heightScale) {
+void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes) {
   computeCommandHeight.numWorkGroups.z = nodesCount;
   computeCommandNormal.numWorkGroups.z = nodesCount;
   computeCommandSwap  .numWorkGroups.z = nodesCount;
 
-  heightShader->setUniform1f("u_planetRadius", planetRadius);
-  heightShader->setUniform1f("u_heightScale", heightScale);
+  heightShader->setUniform1f("u_heightScale", cfgTerrain.planetRadius * cfgTerrain.planetRadiusPercent);
   heightShader->setUniform1ui("u_offset", offset);
   normalsShader->setUniform1ui("u_offset", offset);
   swapShader->setUniform1ui("u_offset", offset);

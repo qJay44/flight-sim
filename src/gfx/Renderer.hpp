@@ -41,8 +41,8 @@ public:
 
   void setGlobalLight(const Light* light);
 
-  void submit(const RenderCommand& cmd);
-  void submit(const ComputeCommand& cmd);
+  void submit(RenderCommand cmd);
+  void submit(ComputeCommand cmd);
 
   void renderFrame();
   void dispatch();

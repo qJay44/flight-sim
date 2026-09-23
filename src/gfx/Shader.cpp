@@ -56,6 +56,9 @@ void Shader::reload() {
   for (int i = 0; i < idx; i++) glDeleteShader(shaders[i]);
 
   updateTimestamps();
+
+  if (onReload)
+    onReload();
 }
 
 void Shader::use() const { glUseProgram(program); }
@@ -93,6 +96,10 @@ void Shader::setUniform2i (const std::string& name, const ivec2& v)   { setUnifo
 void Shader::setUniform1fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform1fv(getUniformLoc(name), count, v); }
 void Shader::setUniform3fv(const std::string& name, GLsizei count, const GLfloat* v) { setUniform3fv(getUniformLoc(name), count, v); }
 void Shader::setUniformMatrix4f(const std::string& name, const mat4& m) { setUniformMatrix4f(getUniformLoc(name), m); }
+
+void Shader::setOnReloadCallback(std::function<void(void)>&& f) {
+  onReload = f;
+}
 
 Shader::Shader(const fspath& vsPath, const fspath& fsPath, const fspath& gsPath)
   : Shader(vsPath, fsPath, "", "", gsPath) {}

@@ -106,7 +106,7 @@ int main() {
 
   gui::init(window);
   ecs::InputSystem::init(registry);
-  ecs::TerrainSystem::init(registry, 1e5f);
+  ecs::TerrainSystem::init(registry);
 
   // ----- Entities ---------------------------------------------------------------------------------------------------------------- //
 

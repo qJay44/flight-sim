@@ -63,12 +63,15 @@ public:
   void setUniform3fv(const std::string& name, GLsizei count, const float* v);
   void setUniformMatrix4f(const std::string& name, const mat4& m);
 
+  void setOnReloadCallback(std::function<void(void)>&& f);
+
 private:
   static fspath rootDir;
 
   GLuint program = 0;
   std::unordered_map<std::string, GLint> locs;
   std::unordered_map<GLenum, std::pair<fspath, std::filesystem::file_time_type>> shadersMetadata;
+  std::function<void(void)> onReload{};
 
 private:
   std::string load(std::unordered_set<std::string>& includedShaders, fspath path);

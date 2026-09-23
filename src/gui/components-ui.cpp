@@ -61,11 +61,17 @@ void drawTerrainUi(entt::registry& registry) {
   if (ImGui::CollapsingHeader("Terrain")) {
     for (auto entity : registry.view<terrain::TerrainComponent>()) {
       auto& terrain = registry.get<terrain::TerrainComponent>(entity);
+      auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
+      auto& cfg = gm.getConfig();
+
       float nodesUsed = static_cast<float>(terrain.activeLeafs) / TERRAIN_MAX_NODES;
       vec4 nodesColor = nodesUsed > 0.8f ? vec4(1.f, 0.f, 0.f, 1.f) : nodesUsed > 0.5f ? vec4(1.f, 1.f, 0.f, 1.f) : vec4(1.f);
 
-      ImGui::DragFloat("Planet raidus", &terrain.planetRadius);
-      ImGui::DragFloat("Height scale mesh", &terrain.heightScaleMesh);
+      ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%d]", terrain.activeLeafs, TERRAIN_MAX_NODES);
+      ImGui::Text("Height scale: [%.2f]", cfg.planetRadius * cfg.planetRadiusPercent);
+
+      ImGui::Separator();
+
       ImGui::SliderFloat("Sea threshold", &terrain.seaThreshold, 0.f, 1.f);
       ImGui::SliderFloat("Sand threshold", &terrain.sandThreshold, 0.f, 1.f);
       ImGui::SliderFloat("Moutain threshold", &terrain.mountainThreshold, 0.f, 1.f);
@@ -74,37 +80,24 @@ void drawTerrainUi(entt::registry& registry) {
       ImGui::DragFloat("Foam sharpness", &terrain.foamSharpness);
       ImGui::SliderInt("Quadtree max depth", &terrain.qtMaxDepth, 1, 20);
       ImGui::SliderFloat("Quadtree split threshold", &terrain.qtSplitThreshold, 0.f, 1.f);
-      ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%d]", terrain.activeLeafs, TERRAIN_MAX_NODES);
-      ImGui::Text("Height scale: [%.2f]", terrain.heightScale);
 
-      if (ImGui::TreeNode("FBM")) {
-        auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
-        auto& cfg = gm.getConfig();
+      ImGui::SeparatorText("FBM");
+      {
         bool u = false;
 
-        u |= ImGui::SliderFloat("Planet radius percent (height scale)", &terrain.planetRadiusPercent, 0.f, 1.f);
-        u |= ImGui::SliderFloat("Land threshold start", &cfg.landThresholdA, 0.f, 1.f);
-        u |= ImGui::SliderFloat("Land threshold end", &cfg.landThresholdB, 0.f, 1.f);
-        u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 100.f);
+        u |= ImGui::DragFloat("Planet raidus", &cfg.planetRadius);
+        u |= ImGui::SliderFloat("Planet radius percent (height scale)", &cfg.planetRadiusPercent, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Global scale", &cfg.globalScale, 1.f, 50.f);
         u |= ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 1.f);
         u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
         u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 1.f);
         u |= ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 1.f, 10.f);
-        u |= ImGui::SliderFloat("Canyon steps", &cfg.canyonSteps, 1.f, 10.f);
-        u |= ImGui::SliderFloat("Mountain displacement frequency (1)", &cfg.fbmOffsetFreq1, 1.f, 100.f);
-        u |= ImGui::SliderFloat("Mountain displacement frequency (2)", &cfg.fbmOffsetFreq2, 1.f, 100.f);
-        u |= ImGui::SliderFloat("Mountain displacement frequency (3)", &cfg.fbmOffsetFreq3, 1.f, 100.f);
-        u |= ImGui::SliderFloat("Mountain twist", &cfg.fbmOffsetTwist, 0.f, 1.f);
-        u |= ImGui::SliderFloat("F1 Voroni frequency (1)", &cfg.f1VoronoiFreq1, 0.f, 100.f);
-        u |= ImGui::SliderFloat("F1 Voroni frequency (2)", &cfg.f1VoronoiFreq2, 0.f, 100.f);
-        u |= ImGui::SliderFloat("F1F2 Voroni frequency (1)", &cfg.f1f2VoronoiFreq1, 0.f, 10.f);
-        u |= ImGui::SliderFloat("F1F2 Voroni frequency (2)", &cfg.f1f2VoronoiFreq2, 0.f, 10.f);
-        u |= ImGui::SliderFloat("Detail start amplitude", &cfg.detailInitAmplitude, 0.f, 10.f);
-        u |= ImGui::SliderFloat("Detail start frequency", &cfg.detailInitFrequency, 0.f, 10.f);
-        u |= ImGui::SliderFloat("Detail Amplitude gain", &cfg.detailGain, 0.f, 1.f);
-        u |= ImGui::SliderFloat("Detail Lacunarity", &cfg.detailLacunarity, 1.f, 10.f);
+        u |= ImGui::SliderFloat("F1 Voroni frequency", &cfg.f1VoronoiFreq, 0.f, 100.f);
+        u |= ImGui::SliderFloat("Displace strength", &cfg.displaceStrength, 0.f, 50.f);
+        u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 50.f);
+        u |= ImGui::SliderFloat("F2-F1 Voronoi frequency", &cfg.f2f1VoronoiFreq, 0.f, 100.f);
         u |= ImGui::SliderInt("Octaves", &cfg.octaves, 1, 10);
-        u |= ImGui::SliderInt("Detail octaves", &cfg.detailOctaves, 1, 10);
+        u |= ImGui::SliderInt("Terrace steps", &cfg.terraceSteps, 1, 30);
 
         ImGui::SeparatorText("Load/Save");
         static LoaderWidget lw("heightmap1");
@@ -113,8 +106,6 @@ void drawTerrainUi(entt::registry& registry) {
 
         if (u)
           ecs::TerrainSystem::reload(registry);
-
-        ImGui::TreePop();
       }
     }
   }

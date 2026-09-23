@@ -4,7 +4,7 @@
 
 namespace ecs::TerrainSystem {
 
-void init(entt::registry& registry, float planetRadius);
+void init(entt::registry& registry);
 void update(entt::registry& registry);
 void render(entt::registry& registry, gfx::Renderer& renderer);
 void reload(entt::registry& registry);
