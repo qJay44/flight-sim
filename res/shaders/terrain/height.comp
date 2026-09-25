@@ -22,7 +22,7 @@ struct Config {
   float displaceStrength;
   float continentFreq;
   float f2f1VoronoiFreq;
-  int octaves;
+  int octavesDisplace;
   int terraceSteps;
 };
 
@@ -143,9 +143,9 @@ float evaluateHeight(vec3 sphereDir) {
   float mountainMap = 0.f;
 
   vec3 displace = vec3(
-    fbm(sphereDir, cfg.octaves),
-    fbm(sphereDir + vec3(11.5f), cfg.octaves),
-    fbm(sphereDir + vec3(41.3f), cfg.octaves)
+    fbm(sphereDir, cfg.octavesDisplace),
+    fbm(sphereDir + vec3(11.5f), cfg.octavesDisplace),
+    fbm(sphereDir + vec3(41.3f), cfg.octavesDisplace)
   );
 
   vec3 sphereDirDisplaced = sphereDir + displace * cfg.displaceStrength;

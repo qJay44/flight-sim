@@ -15,6 +15,7 @@ uniform mat4 u_localTranslation;
 uniform float u_camFar;
 uniform float u_planetRadius;
 uniform float u_heightScale;
+uniform int u_baseVertexCount;
 
 layout(binding = 0) uniform sampler2DArray u_texArray;
 
@@ -24,8 +25,6 @@ layout(std140, binding = 0) uniform NodesDataBlock {
 
 void main() {
   NodeData node = nodesData[gl_InstanceID];
-  ivec2 texSize = textureSize(u_texArray, 0).xy;
-  vec2 texelSize = 1.f / texSize;
 
   vec2 nodePos = a_pos.xz * node.extents + node.center;
   vec2 uv = a_pos.xz * 0.5f + 0.5f;
@@ -34,7 +33,8 @@ void main() {
   vec4 terrainData = texture(u_texArray, vec3(uv, node.texLayerIdx));
   float height = terrainData.a;
 
-  vec3 localSpherePos = sphereDir * (u_planetRadius + height);
+  float sign = gl_VertexID >= u_baseVertexCount ? -1.f : 1.f;
+  vec3 localSpherePos = sphereDir * (u_planetRadius + height * sign);
   vec4 worldPos = vec4(localSpherePos, 1.f);
 
   v_worldPos = worldPos.xyz;

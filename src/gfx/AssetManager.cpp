@@ -51,22 +51,27 @@ AssetManager::AssetManager() {
   }
 }
 
-void AssetManager::createMeshPlane_Triangles(size_t resolution, bool instancied) {
-  std::string name = std::format("MeshPlane_Triangles{}{}", resolution, instancied ? "_Instancied" : "");
+std::string AssetManager::createMeshPlane_Triangles(size_t resolution, bool skirts, bool instanced) {
+  std::string skirtsSuffix = skirts ? "_Skirts" : "";
+  std::string instancedSuffix = instanced ? "_Instancied" : "";
+  std::string name = std::format("MeshPlane_Triangles{}{}{}", resolution, skirts, instancedSuffix);
 
   if (meshes.contains(name)) {
     warning("[AssetManager::createMeshPlane_Triangles] Mesh ({}) already created", name);
-    return;
+    return name;
   }
 
-  std::vector<vertex::P> vertices;
-  std::vector<GLuint> indices;
+  size_t res1 = resolution - 1;
+  float invRes1 = 1.f / float(res1);
+
+  size_t baseVertexCount = resolution * resolution;
+  size_t skirtVertexCount = skirts ? 4 * 2 * res1 : 0;
+  std::vector<vertex::P> vertices(baseVertexCount + skirtVertexCount);
+
+  size_t baseIndexCount = res1 * res1 * 6;
+  size_t skirtIndexCount = skirts ? res1 * 4 * 6 : 0;
+  std::vector<GLuint> indices(baseIndexCount + skirtIndexCount);
   size_t triIndex = 0;
-
-  vertices.resize(resolution * resolution);
-  indices.resize((resolution - 1) * (resolution - 1) * 6);
-
-  float invRes1 = 1.f / (resolution - 1.f);
 
   for (size_t z = 0; z < resolution; z++) {
     float v = z * invRes1;
@@ -77,7 +82,7 @@ void AssetManager::createMeshPlane_Triangles(size_t resolution, bool instancied)
 
       vertices[idx].position = vec3(u, 0.f, v) * 2.f - 1.f;
 
-      if (x != resolution - 1 && z != resolution - 1) {
+      if (x != res1 && z != res1) {
         indices[triIndex + 0] = idx + resolution + 1;  // 0       2 -------- 1
         indices[triIndex + 1] = idx + 1;               // 1       |          |
         indices[triIndex + 2] = idx;                   // 2       |          |
@@ -91,18 +96,47 @@ void AssetManager::createMeshPlane_Triangles(size_t resolution, bool instancied)
     }
   }
 
+  if (skirts) {
+    size_t skirtVertexIdx = baseVertexCount;
+
+    const auto addSkirt = [&](size_t origIdxA, size_t origIdxB) {
+      vertices[skirtVertexIdx] = vertices[origIdxA];
+      vertices[skirtVertexIdx + 1] = vertices[origIdxB];
+
+      indices[triIndex + 0] = origIdxB;
+      indices[triIndex + 1] = skirtVertexIdx + 1;
+      indices[triIndex + 2] = skirtVertexIdx;
+
+      indices[triIndex + 3] = skirtVertexIdx;
+      indices[triIndex + 4] = origIdxA;
+      indices[triIndex + 5] = origIdxB;
+
+      triIndex += 6;
+      skirtVertexIdx += 2;
+    };
+
+    for (size_t i = 0; i < res1; i++) {
+      addSkirt(i, i + 1);
+      addSkirt(res1 * resolution + i + 1, res1 * resolution + i);
+      addSkirt((i + 1) * resolution, i * resolution);
+      addSkirt(i * resolution + res1, (i + 1) * resolution + res1);
+    }
+  }
+
   auto data = MeshData(vertices, indices);
-  data.instancing = instancied;
+  data.instanced = instanced;
 
   meshes.emplace(name, std::make_unique<Mesh>(Mesh(data)));
+  return name;
 }
 
-void AssetManager::createMeshPlane_Patches(size_t resolution, bool instancied) {
-  std::string name = std::format("MeshPlane_Patches{}{}", resolution, instancied ? "_Instancied" : "");
+std::string AssetManager::createMeshPlane_Patches(size_t resolution, bool instanced) {
+  std::string instancedSuffix = instanced ? "_Instancied" : "";
+  std::string name = std::format("MeshPlane_Patches{}{}", resolution, instancedSuffix);
 
   if (meshes.contains(name)) {
     warning("[AssetManager::createMeshPlane_Patches] Mesh ({}) already created", name);
-    return;
+    return name;
   }
 
   std::vector<vertex::P> vertices;
@@ -136,9 +170,10 @@ void AssetManager::createMeshPlane_Patches(size_t resolution, bool instancied) {
 
   MeshData data(vertices, indices);
   data.mode = GL_PATCHES;
-  data.instancing = instancied;
+  data.instanced = instanced;
 
   meshes.emplace(name, std::make_unique<Mesh>(Mesh(data)));
+  return name;
 }
 
 void AssetManager::loadFromObj(fspath filepath, bool printInfo) {

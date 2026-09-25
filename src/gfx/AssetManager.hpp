@@ -20,8 +20,8 @@ public:
 
   ~AssetManager() = default;
 
-  void createMeshPlane_Triangles(size_t resolution, bool instancied = false);
-  void createMeshPlane_Patches(size_t resolution, bool instancied = false);
+  std::string createMeshPlane_Triangles(size_t resolution, bool skirts = false, bool instanced = false);
+  std::string createMeshPlane_Patches(size_t resolution, bool instanced = false);
 
   void loadFromObj(fspath filepath, bool printInfo = false);
   void addShader(const std::string& name, Shader&& shader);

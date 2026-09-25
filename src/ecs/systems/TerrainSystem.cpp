@@ -20,7 +20,7 @@ void init(entt::registry& registry) {
   auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
-  assetManager.createMeshPlane_Triangles(128, true);
+  std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
 
   assetManager.getShader("TerrainHeightCompute")->setOnReloadCallback([&registry]() { reload(registry); });
 
@@ -29,9 +29,10 @@ void init(entt::registry& registry) {
   terrainComponent.ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 
   MeshComponent meshComponent{
-    .mesh = assetManager.getMesh("MeshPlane_Triangles128_Instancied"),
+    .mesh = assetManager.getMesh(meshName),
     .shader = assetManager.getShader("TerrainDraw")
   };
+  meshComponent.shader->setUniform1i("u_baseVertexCount", 128 * 128);
 
   TextureComponent textureComponent{};
   textureComponent.textures.push_back(assetManager.getTexture("TerrainNodes"));

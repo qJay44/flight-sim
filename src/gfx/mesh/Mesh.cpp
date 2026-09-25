@@ -23,7 +23,7 @@ Mesh::Mesh(const MeshData& data) {
     ebo.allocate(data.indices, data.indicesSize, data.usage);
     ebo.bind();
 
-    if (data.instancing)
+    if (data.instanced)
       drawCmd = ElementsInstancedDraw{
         .mode = data.mode,
         .indexCount = static_cast<GLsizei>(data.indicesSize / sizeof(data.indices[0])),

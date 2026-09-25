@@ -79,7 +79,7 @@ GenerationManager::GenerationManager(gfx::AssetManager& assetManager, u16 textur
     },
   };
 
-  global::json::loadPreset(cfgTerrain, "heightmap1.json");
+  global::json::loadPreset(cfgTerrain, "heightmap0.json");
 }
 
 GenerationManager::TerrainConfig& GenerationManager::getConfig() {

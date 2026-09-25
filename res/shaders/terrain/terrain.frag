@@ -30,7 +30,7 @@ void main() {
   float flatness = max(0.f, dot(terrainNormal, radialDir));
   float slope = 1.f - flatness;
 
-  vec3 surfaceColor = COLOR_GRASS;
+  vec3 surfaceColor = vec3(0.f);
 
   // Beaches / Sand
   if (height < u_sandThreshold) {

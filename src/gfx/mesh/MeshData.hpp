@@ -13,7 +13,7 @@ struct MeshData {
   vertex::Layout layout = {0};
   GLenum usage          = GL_STATIC_DRAW;
   GLenum mode           = GL_TRIANGLES;
-  bool instancing       = false;
+  bool instanced       = false;
 
   MeshData() = default;
 
