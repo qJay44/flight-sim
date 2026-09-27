@@ -6,7 +6,6 @@ namespace ecs::component {
 
 struct CameraComponent {
   core::Camera* cam;
-  bool isActive = false;
   bool isDetached = false; // NOTE: Make sure whatever changes this field adds/removes TransformComponent
 };
 

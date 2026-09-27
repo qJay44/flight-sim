@@ -5,7 +5,6 @@
 #include "../ecs/components/CameraComponent.hpp"
 #include "../ecs/components/TransformComponent.hpp"
 #include "../ecs/components/TerrainComponent.hpp"
-#include "../ecs/components/VelocityComponent.hpp"
 #include "../ecs/systems/TerrainSystem.hpp"
 #include "../gfx/terrain/GenerationManager.hpp"
 #include "../core/ActiveCamera.hpp"
@@ -18,13 +17,17 @@ using namespace ecs::component;
 void drawCameraUi(entt::registry& registry) {
   if (ImGui::CollapsingHeader("Cameras")) {
     auto camView = registry.view<CameraComponent, TransformComponent>();
+    auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
     for (auto entity : camView) {
       auto* camComponent = &registry.get<CameraComponent>(entity);
       auto* camPos = &registry.get<TransformComponent>(entity).pos;
-      auto& velComponent = registry.get<VelocityComponent>(entity);
+      bool isActive = camComponent->cam == activeCam.cam;
+      size_t id = static_cast<size_t>(entity);
 
-      if (ImGui::TreeNode(&entity, "#%zu%s", (size_t)entity, camComponent->isActive ? " (Active)" : "")) {
+      ImGui::PushID(id);
+
+      if (ImGui::TreeNode(&id, "#%zu%s", id, isActive ? " (Active)" : "")) {
         auto* cam = camComponent->cam;
 
         ImGui::Text("Up: [%.2f, %.2f, %2.f]", cam->up.x, cam->up.y, cam->up.z);
@@ -37,23 +40,17 @@ void drawCameraUi(entt::registry& registry) {
         ImGui::SliderAngle("Pitch", &cam->pitch);
         ImGui::SliderFloat("Sensitivity", &cam->sensitivity, 0.1f, 10.f);
         ImGui::DragFloat3("Position", (float*)camPos);
-        ImGui::SliderFloat("Velocity scale", &velComponent.scale, 0.1f, 1e4f);
 
-        if (ImGui::Checkbox("Is active", &camComponent->isActive)) {
-          for (auto otherEntity : camView) {
-            auto& otherCamComponent = registry.get<CameraComponent>(otherEntity);
-
-            if (camComponent->cam != otherCamComponent.cam) {
-              otherCamComponent.isActive = !camComponent->isActive;
-            } else {
-              auto& transComponent = registry.get<TransformComponent>(otherEntity);
-              camPos = &transComponent.pos;
-            }
+        if (!isActive) {
+          if (ImGui::Button("Make active")) {
+            activeCam.cam = cam;
           }
         }
 
         ImGui::TreePop();
       }
+
+      ImGui::PopID();
     }
   }
 }

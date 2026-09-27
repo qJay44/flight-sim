@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../frustum/Frustum.hpp"
+
 namespace core::math::terrain {
 
 struct Quadnode {
@@ -10,6 +12,14 @@ struct Quadnode {
     Bottom = 3,
     Front = 4,
     Back = 5,
+  };
+
+  struct GlobalData {
+    int maxDepth;
+    float splitThreshold;
+    float planetRadius;
+    vec3 camPos;
+    frustum::Frustum* frustum;
   };
 
   static std::stack<int> freedTexLayerIdxs;
@@ -24,15 +34,12 @@ struct Quadnode {
   Quadnode(Face face); // Root node
   ~Quadnode();
 
-  void newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos);
+  void newFrame(const GlobalData& data);
   void insert();
   void gatherLeafs(std::stack<Quadnode*>& leafs);
 
 private:
-  static int maxDepth;
-  static float splitThreshold;
-  static float planetRadius;
-  static vec3 camPos;
+  static GlobalData g;
 
 private:
   Quadnode(Face face, vec2 center, float extents, int depth);

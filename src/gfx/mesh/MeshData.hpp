@@ -10,7 +10,7 @@ struct MeshData {
   size_t verticesSize   = 0;
   GLuint* indices       = nullptr;
   size_t indicesSize    = 0;
-  vertex::Layout layout = {0};
+  vertex::Layout layout = {0, 0, 0};
   GLenum usage          = GL_STATIC_DRAW;
   GLenum mode           = GL_TRIANGLES;
   bool instanced       = false;

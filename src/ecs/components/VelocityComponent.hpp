@@ -3,7 +3,7 @@
 namespace ecs::component {
 
 struct VelocityComponent {
-  vec3 velocity;
+  vec3 velocity{};
   float scale = 1.f;
 };
 

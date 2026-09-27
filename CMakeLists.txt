@@ -69,18 +69,21 @@ file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
-target_compile_options(${PROJECT_NAME} PRIVATE -isystem ${PROFILER_PATH}/include)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wextra)
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src/pch.hpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-  ${STB_PATH}/include
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${GLM_PATH}/include
   ${TOL_PATH}/include
-  ${PROFILER_PATH}/include
-  ${PROJECT_SOURCE_DIR}/include
-  ${JSON_PATH}/include
+  ${STB_PATH}/include
   ${ENTT_PATH}/src
+  ${PROFILER_PATH}/include
+  ${JSON_PATH}/include
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${PROJECT_SOURCE_DIR}/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)

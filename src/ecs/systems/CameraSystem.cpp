@@ -28,7 +28,6 @@ void onMouseMove(entt::registry& registry, dvec2 mousePos) {
 void update(entt::registry& registry) {
   const auto& ctx = registry.ctx().get<core::EngineContext>();
   const float aspectRatio = ctx.getAspectRatio_WidthOverHeight();
-  const auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   for (auto entity : registry.view<CameraComponent>()) {
     auto& camComponent = registry.get<CameraComponent>(entity);
@@ -39,7 +38,6 @@ void update(entt::registry& registry) {
     }
 
     camComponent.cam->update(aspectRatio);
-    camComponent.isActive = camComponent.cam == activeCam.cam;
   }
 }
 

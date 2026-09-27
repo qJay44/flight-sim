@@ -14,14 +14,14 @@ public:
   struct RenderCommand {
     Shader* shader;
     Mesh* mesh;
-    std::vector<Texture*> textures;
+    std::vector<Texture*> textures{};
   };
 
   struct ComputeCommand {
     Shader* shader;
     uvec3 numWorkGroups;
     std::vector<ImageDescriptor> images;
-    std::vector<Texture*> textures;
+    std::vector<Texture*> textures{};
   };
 
   Renderer() = default;

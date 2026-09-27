@@ -1,11 +1,10 @@
 #include "quadtree.hpp"
 
+#include "../frustum/volumes/Sphere.hpp"
+
 namespace core::math::terrain {
 
-int Quadnode::maxDepth;
-float Quadnode::splitThreshold;
-float Quadnode::planetRadius;
-vec3 Quadnode::camPos;
+Quadnode::GlobalData Quadnode::g;
 std::stack<int> Quadnode::freedTexLayerIdxs;
 
 Quadnode::Quadnode(Face face) : face(face) {}
@@ -16,18 +15,15 @@ Quadnode::~Quadnode() {
       delete child;
 }
 
-void Quadnode::newFrame(int maxDepth, float splitThreshold, float planetRadius, vec3 camPos) {
-  Quadnode::maxDepth = maxDepth;
-  Quadnode::splitThreshold = splitThreshold;
-  Quadnode::planetRadius = planetRadius;
-  Quadnode::camPos = camPos;
+void Quadnode::newFrame(const GlobalData& globalData) {
+  Quadnode::g = globalData;
   assert(freedTexLayerIdxs.empty());
 }
 
 void Quadnode::insert() {
   float score = calculateSplitPriority();
 
-  if (score > splitThreshold && depth < maxDepth) {
+  if (score > g.splitThreshold && depth < g.maxDepth) {
     if (isLeaf())
       split();
 
@@ -100,12 +96,17 @@ vec3 Quadnode::cubeToSphere() const {
 
 float Quadnode::calculateSplitPriority() const {
   vec3 sphereDir = glm::normalize(cubeToSphere());
-  vec3 elevatedCenter = sphereDir * planetRadius;
+  vec3 elevatedCenter = sphereDir * g.planetRadius;
 
-  float distance = glm::distance(camPos, elevatedCenter);
-  float seaLevelRadius = extents * planetRadius * 1.4141f; // sqrt(2), diagonal length of the square
+  float distance = glm::distance(g.camPos, elevatedCenter);
+  float seaLevelRadius = extents * g.planetRadius * 1.4141f; // sqrt(2), diagonal length of the square
 
-  return seaLevelRadius / (distance + 0.001f);
+  auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius * 2.f);
+
+  if (frustumSphere.isOnFrustum(*g.frustum))
+    return seaLevelRadius / (distance + 0.001f);
+
+  return 0.f;
 }
 
 } // namespace terrain

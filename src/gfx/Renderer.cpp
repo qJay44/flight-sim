@@ -42,6 +42,9 @@ void GLAPIENTRY MessageCallback(
 
   if (stop)
     exit(EXIT_FAILURE);
+
+  (void)length;
+  (void)userParam;
 }
 
 } // namespace

@@ -85,13 +85,13 @@ int main() {
     assetManager.addShader("DefaultCube", gfx::Shader("PTNC.vert", "test.frag"));
     assetManager.addShader("Axis", gfx::Shader("axis.vert", "axis.frag"));
     assetManager.addTexture("DebugTexture0", std::move(debugTex0));
-    assetManager.addCamera("DefaultCamera", std::move(cam));
+    assetManager.addCamera("Default", std::move(cam));
     assetManager.addLight("GlobalLight", std::move(globalLight));
 
     ProfilerManager profiler(60);
 
     core::ActiveCamera activeCam{
-      .cam = assetManager.getCamera("DefaultCamera"),
+      .cam = assetManager.getCamera("Default"),
     };
 
     registry.ctx().emplace<core::EngineContext>(std::move(ctx));
@@ -120,7 +120,7 @@ int main() {
       };
 
       CameraComponent camComponent{
-        .cam = assetManager.getCamera("DefaultCamera"),
+        .cam = assetManager.getCamera("Default"),
         .isDetached = true,
       };
 
@@ -129,6 +129,7 @@ int main() {
       };
 
       InputComponent inputComponent{
+        .disabled = true,
         .shiftMultiplier = 10.f
       };
 

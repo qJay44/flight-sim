@@ -2,6 +2,7 @@
 
 #include "utils/utils.hpp"
 #include "../../core/EngineContext.hpp"
+#include "../../core/ActiveCamera.hpp"
 #include "../systems/CameraSystem.hpp"
 #include "../components/VelocityComponent.hpp"
 #include "../components/MeshComponent.hpp"
@@ -29,6 +30,7 @@ entt::registry* getRegistryFromGLFW(GLFWwindow* window) {
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
   entt::registry* registry = getRegistryFromGLFW(window);
   auto& ctx = registry->ctx().get<core::EngineContext>();
+  auto& activeCam = registry->ctx().get<core::ActiveCamera>();
 
   if (action == GLFW_PRESS)   ctx.keyboardKeys[key] = true;
   if (action == GLFW_RELEASE) ctx.keyboardKeys[key] = false;
@@ -61,6 +63,18 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       break;
     case GLFW_KEY_C:
       if (action == GLFW_PRESS) gui::toggleInfo();
+      break;
+    case GLFW_KEY_F:
+      if (action == GLFW_PRESS) {
+        for (auto entity : registry->view<CameraComponent, InputComponent>()) {
+          auto& camComponent = registry->get<CameraComponent>(entity);
+          auto& inputComponent = registry->get<InputComponent>(entity);
+          inputComponent.disabled = !inputComponent.disabled;
+
+          if (!inputComponent.disabled)
+            activeCam.cam = camComponent.cam;
+        }
+      }
       break;
     case GLFW_KEY_1:
       if (action == GLFW_PRESS) {
@@ -142,6 +156,9 @@ void update(entt::registry& registry) {
     const auto& camComponent = registry.get<CameraComponent>(entity);
     auto& velComponent = registry.get<VelocityComponent>(entity);
     auto& inputComponent = registry.get<InputComponent>(entity);
+
+    if (inputComponent.disabled)
+      continue;
 
     const vec3& orientation = camComponent.cam->orientation;
     const vec3& up = camComponent.cam->up;

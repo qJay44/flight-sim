@@ -7,7 +7,7 @@ struct NodeData{
   float extents;
   int faceIdx;
   int texLayerIdx = -1;
-  vec3 _pad;
+  vec3 _pad{};
 };
 static_assert(sizeof(NodeData) % 16 == 0);
 
