@@ -199,7 +199,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .enableCullFace = true,
       .enableDepthTest = true,
       .textures = texComponent.textures,
-      .priority = 2,
+      .priority = 1,
     };
 
     terrainComponent.ubo.nodesData.bindBase(0);
@@ -231,8 +231,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
     gfx::frustum::update(*frustumMesh, *camComponent.cam);
 
-    // localView = activeCam.cam->getLocalView(camComponent.cam->position);
-    // localTranslation = glm::translate(mat4(1.f), camComponent.cam->position - activeCam.cam->position);
+    localTranslation = glm::translate(mat4(1.f), camComponent.cam->position - activeCam.cam->position);
 
     frustumShader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
     frustumShader->setUniformMatrix4f("u_localView", localView);
@@ -245,7 +244,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .mesh = frustumMesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      .priority = 1,
+      .priority = 2,
     };
 
     renderer.submit(frustumRenderCmd);

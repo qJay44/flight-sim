@@ -14,10 +14,10 @@ std::vector<vertex::P> createVertices(const core::Camera& cam) {
   vec3 camLeft = normalize(cross(-cam.orientation, cam.up));
   vec3 camRight = -camLeft;
 
-  float aspectRatio = cam.cachedProj[1][1] / cam.cachedProj[0][0];
+  float aspectRatio = cam.extractAspectRatio();
   float farVSideHalf = cam.farPlane * tanf(cam.fov) * 0.5f;
   float farHSideHalf = farVSideHalf * aspectRatio;
-  vec3 farPos = cam.position + cam.orientation * cam.farPlane;
+  vec3 farPos = cam.orientation * cam.farPlane;
   vec3 farTR = farPos + camRight * farHSideHalf +  cam.up * farVSideHalf;
   vec3 farTL = farPos + camLeft  * farHSideHalf +  cam.up * farVSideHalf;
   vec3 farBL = farPos + camLeft  * farHSideHalf + -cam.up * farVSideHalf;
@@ -25,7 +25,7 @@ std::vector<vertex::P> createVertices(const core::Camera& cam) {
 
   float nearVSideHalf = cam.nearPlane * tanf(cam.fov) * 0.5f;
   float nearHSideHalf = nearVSideHalf * aspectRatio;
-  vec3 nearPos = cam.position + cam.orientation * cam.nearPlane;
+  vec3 nearPos = cam.orientation * cam.nearPlane;
   vec3 nearTR = nearPos + camRight * nearHSideHalf +  cam.up * nearVSideHalf;
   vec3 nearTL = nearPos + camLeft  * nearHSideHalf +  cam.up * nearVSideHalf;
   vec3 nearBL = nearPos + camLeft  * nearHSideHalf + -cam.up * nearVSideHalf;

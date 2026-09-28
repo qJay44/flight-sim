@@ -30,7 +30,11 @@ struct Camera {
     cachedView = glm::lookAt(position, position + orientation, up);
   }
 
-  mat4 getLocalView(vec3 eye) {
+  float extractAspectRatio() const {
+    return cachedProj[1][1] / cachedProj[0][0];
+  }
+
+  mat4 getLocalView(vec3 eye) const {
     return glm::lookAt(eye, eye + orientation, up);
   }
 };

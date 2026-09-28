@@ -13,14 +13,15 @@ layout(std140, binding = 1) uniform NodesDataBlock {
   NodeData nodesData[TERRAIN_MAX_NODES];
 };
 
-int layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
+int layer;
 
 vec3 get(int x, int y) {
   return imageLoad(imgLoad, ivec3(x, y, layer)).rgb;
 }
 
 void main() {
-  // NodeData node = nodesData[gl_GlobalInvocationID.z + u_offset];
+  layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
+
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imgLoad).xy;
 

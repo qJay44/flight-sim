@@ -16,12 +16,11 @@ struct Frustum {
   Plane nearFace;
 
   Frustum(const Camera& cam) {
-    // TODO: Is this correct?
-    vec3 camLeft = normalize(cross(cam.orientation, cam.up));
+    vec3 camLeft = normalize(cross(-cam.orientation, cam.up));
     vec3 camRight = -camLeft;
     vec3 camBack = -cam.orientation;
 
-    float aspectRatio = cam.cachedProj[1][1] / cam.cachedProj[0][0];
+    float aspectRatio = cam.extractAspectRatio();
     float halfVSide = cam.farPlane * tanf(cam.fov * 0.5f);
     float halfHSide = halfVSide * aspectRatio;
     vec3 frontMultFar = cam.farPlane * cam.orientation;
