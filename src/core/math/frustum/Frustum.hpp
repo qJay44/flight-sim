@@ -29,8 +29,8 @@ struct Frustum {
     // Pointing inside the frustum
     vec3 right = normalize(cross(frontMultFar + camLeft  * halfHSide,  cam.up));
     vec3 left  = normalize(cross(frontMultFar + camRight * halfHSide, -cam.up));
-    vec3 up    = normalize(cross(frontMultFar + cam.up     * halfVSide,  camRight));
-    vec3 down  = normalize(cross(frontMultFar - cam.up     * halfVSide,  camLeft));
+    vec3 up    = normalize(cross(frontMultFar + cam.up   * halfVSide,  camRight));
+    vec3 down  = normalize(cross(frontMultFar - cam.up   * halfVSide,  camLeft));
 
     farFace    = {camBack, dot(camBack, cam.position + frontMultFar)};
     nearFace   = {cam.orientation, dot(cam.orientation, cam.position + cam.nearPlane * cam.orientation)};

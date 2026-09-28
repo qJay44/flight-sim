@@ -8,6 +8,7 @@
 #include "../components/VelocityComponent.hpp"
 #include "../components/InputComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
+#include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
 #include "../../core/ActiveCamera.hpp"
 #include "../../core/math/frustum/Frustum.hpp"
@@ -25,15 +26,21 @@ void init(entt::registry& registry) {
   auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
   auto& terrainConfig = gm.getConfig();
 
+  // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
+
   assetManager.addCamera("Terrain", {
     .farPlane = 1e6f,
     .position = {0.f, 0.f, terrainConfig.planetRadius + 25.f},
   });
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
+
   std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
+  assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
 
   assetManager.getShader("TerrainHeightCompute")->setOnReloadCallback([&registry]() { reload(registry); });
+
+  // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
   TerrainComponent terrainComponent{};
   terrainComponent.ubo.nodesData = gfx::BufferObject::createUniformBuffer(true);
@@ -53,7 +60,7 @@ void init(entt::registry& registry) {
     .isDetached = true,
   };
 
-  // NOTE: Just for camera movement ------------------------------------------------------------------------------------------ //
+  // NOTE: Just for camera movement //
 
   TransformComponent transComponent{
     .pos = {0.f, 0.f, terrainConfig.planetRadius + 25.f}
@@ -67,7 +74,9 @@ void init(entt::registry& registry) {
     .shiftMultiplier = 10.f
   };
 
-  // ------------------------------------------------------------------------------------------------------------------------- //
+  ////////////////////////////////////
+
+  // --------------------------------------------------------------------------------------------------------------------------------- //
 
   core::ActiveCamera activeCam{
     .cam = assetManager.getCamera("Terrain"),
@@ -179,6 +188,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     const auto& terrainComponent = registry.get<TerrainComponent>(entity);
     const auto& meshComponent = registry.get<MeshComponent>(entity);
     const auto& texComponent = registry.get<TextureComponent>(entity);
+    const auto& camComponent = registry.get<CameraComponent>(entity);
 
     if (meshComponent.disabled)
       continue;
@@ -186,7 +196,10 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     gfx::Renderer::RenderCommand renderCmd{
       .shader = meshComponent.shader,
       .mesh = meshComponent.mesh,
-      .textures = texComponent.textures
+      .enableCullFace = true,
+      .enableDepthTest = true,
+      .textures = texComponent.textures,
+      .priority = 2,
     };
 
     terrainComponent.ubo.nodesData.bindBase(0);
@@ -196,20 +209,46 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     mat4 localView = activeCam.cam->getLocalView(vec3(0.f));
     mat4 localTranslation = glm::translate(mat4(1.f), planetCameraOffset);
 
-    meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
-
     meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
     meshComponent.shader->setUniformMatrix4f("u_localView", localView);
-    meshComponent.shader->setUniformMatrix4f("u_localViewInv", glm::inverse(localView));
     meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
     meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
+    meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
     meshComponent.shader->setUniform1f("u_seaThreshold", terrainComponent.seaThreshold);
     meshComponent.shader->setUniform1f("u_sandThreshold", terrainComponent.sandThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);
 
-    renderer.submit(std::move(renderCmd));
+    renderer.submit(renderCmd);
+
+    if (!terrainComponent.renderFrustum || camComponent.cam == activeCam.cam)
+      continue;
+
+    auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+    auto* frustumShader = assetManager.getShader("FrustumDraw");
+    auto* frustumMesh = assetManager.getMesh("TerrainFrustum");
+
+    gfx::frustum::update(*frustumMesh, *camComponent.cam);
+
+    // localView = activeCam.cam->getLocalView(camComponent.cam->position);
+    // localTranslation = glm::translate(mat4(1.f), camComponent.cam->position - activeCam.cam->position);
+
+    frustumShader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
+    frustumShader->setUniformMatrix4f("u_localView", localView);
+    frustumShader->setUniformMatrix4f("u_localTranslation", localTranslation);
+    frustumShader->setUniform3f("u_color", vec3(1.f));
+    frustumShader->setUniform1f("u_camFar", activeCam.cam->farPlane);
+
+    gfx::Renderer::RenderCommand frustumRenderCmd{
+      .shader = frustumShader,
+      .mesh = frustumMesh,
+      .enableCullFace = false,
+      .enableDepthTest = true,
+      .priority = 1,
+    };
+
+    renderer.submit(frustumRenderCmd);
   }
 
   renderer.renderFrame();

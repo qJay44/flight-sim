@@ -17,13 +17,18 @@ public:
   Mesh& operator=(Mesh&&) = default;
   ~Mesh() = default;
 
+  [[nodiscard]]
+  static Mesh createMeshPlane(size_t resolution, bool skirts, bool instanced);
+
+  [[nodiscard]] Mesh(const MeshData& data);
+
   void togglePolygonMode();
   void convertToInstancing();
   void setInstanceCount(int n);
+  void updateDataBuffer(const MeshData& data);
 
 private:
   friend class Renderer;
-  friend class AssetManager;
 
   VAO vao{};
   BufferObject vbo{GL_ARRAY_BUFFER};
@@ -33,8 +38,6 @@ private:
   std::variant<ArraysDraw, ElementsDraw, ElementsInstancedDraw> drawCmd;
 
 private:
-  [[nodiscard]] Mesh(const MeshData& data);
-
   void linkAttributes(const vertex::Layout& layout);
 };
 

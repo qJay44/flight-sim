@@ -14,7 +14,10 @@ public:
   struct RenderCommand {
     Shader* shader;
     Mesh* mesh;
+    bool enableCullFace = true;
+    bool enableDepthTest = true;
     std::vector<Texture*> textures{};
+    int priority = 0;
   };
 
   struct ComputeCommand {

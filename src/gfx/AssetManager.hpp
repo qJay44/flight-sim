@@ -21,9 +21,9 @@ public:
   ~AssetManager() = default;
 
   std::string createMeshPlane_Triangles(size_t resolution, bool skirts = false, bool instanced = false);
-  std::string createMeshPlane_Patches(size_t resolution, bool instanced = false);
 
   void loadFromObj(fspath filepath, bool printInfo = false);
+  void addMesh(const std::string& name, Mesh&& mesh);
   void addShader(const std::string& name, Shader&& shader);
   void addTexture(const std::string& name, Texture&& texture);
   void addCamera(const std::string& name, core::Camera&& camera);

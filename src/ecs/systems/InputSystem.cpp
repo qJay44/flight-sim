@@ -10,6 +10,7 @@
 #include "../components/InputComponent.hpp"
 #include "../components/TransformComponent.hpp"
 #include "../components/AuxiliaryComponent.hpp"
+#include "../components/TerrainComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gui/gui.hpp"
 
@@ -97,6 +98,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             meshComponent.disabled = !meshComponent.disabled;
             break;
           }
+        }
+      }
+      break;
+    case GLFW_KEY_3:
+      if (action == GLFW_PRESS) {
+        for (auto entity : registry->view<terrain::TerrainComponent, CameraComponent>()) {
+          auto& terrainComponent = registry->get<terrain::TerrainComponent>(entity);
+          terrainComponent.renderFrustum = !terrainComponent.renderFrustum;
         }
       }
       break;

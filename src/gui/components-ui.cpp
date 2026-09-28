@@ -35,9 +35,9 @@ void drawCameraUi(entt::registry& registry) {
 
         ImGui::SliderFloat("Near", &cam->nearPlane, 0.01f, 10.f);
         ImGui::DragFloat("Far", &cam->farPlane, 1.f, 1e5f);
-        ImGui::SliderAngle("Fov", &cam->fov);
-        ImGui::SliderAngle("Yaw", &cam->yaw);
-        ImGui::SliderAngle("Pitch", &cam->pitch);
+        ImGui::SliderAngle("Fov", &cam->fov, 0.f, 120.f);
+        ImGui::SliderAngle("Yaw", &cam->yaw, -180.f, 180.f);
+        ImGui::SliderAngle("Pitch", &cam->pitch, -89.f, 89.f);
         ImGui::SliderFloat("Sensitivity", &cam->sensitivity, 0.1f, 10.f);
         ImGui::DragFloat3("Position", (float*)camPos);
 

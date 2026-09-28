@@ -27,6 +27,7 @@ struct TerrainComponent {
   };
 
   size_t activeLeafs = 0;
+  bool renderFrustum = false;
 
   struct {
     gfx::BufferObject nodesData;

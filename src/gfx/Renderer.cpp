@@ -84,7 +84,7 @@ void Renderer::submit(ComputeCommand cmd) {
 
 void Renderer::renderFrame() {
   renderQueue.sort([](const RenderCommand& a, const RenderCommand& b) {
-    return a.shader < b.shader;
+    return a.priority == b.priority ? a.shader < b.shader : a.priority < b.priority;
   });
 
   assert(globalLight);
@@ -107,8 +107,12 @@ void Renderer::renderFrame() {
       currBoundMesh = command.mesh;
       currBoundMesh->vao.bind();
       glPolygonMode(GL_FRONT_AND_BACK, currBoundMesh->polygonMode);
-      glEnable(GL_CULL_FACE);
-      glEnable(GL_DEPTH_TEST);
+
+      if (command.enableCullFace) glEnable (GL_CULL_FACE);
+      else                        glDisable(GL_CULL_FACE);
+
+      if (command.enableDepthTest) glEnable (GL_DEPTH_TEST);
+      else                         glDisable(GL_DEPTH_TEST);
     }
 
     for (size_t i = 0; i < command.textures.size() && i < MAX_TEXTURES; i++) {
