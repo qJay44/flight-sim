@@ -24,6 +24,9 @@ Texture2DArray::Texture2DArray(GLint slots, ivec2 size, const TextureDescriptor&
   unbind();
 }
 
+Texture2DArray::Texture2DArray(GLint slots, int size, const TextureDescriptor& desc)
+  : Texture2DArray(slots, ivec2(size), desc) {}
+
 const GLint& Texture2DArray::getSlots() const {
   return slots;
 }

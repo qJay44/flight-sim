@@ -23,7 +23,7 @@ using namespace terrain;
 void init(entt::registry& registry) {
   entt::entity entity = registry.create();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto gm = GenerationManager(assetManager, 160, TERRAIN_MAX_NODES);
+  auto gm = GenerationManager(assetManager);
   auto& terrainConfig = gm.getConfig();
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
@@ -38,7 +38,7 @@ void init(entt::registry& registry) {
   std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
   assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
 
-  assetManager.getShader("TerrainHeightCompute")->setOnReloadCallback([&registry]() { reload(registry); });
+  assetManager.getShader("TerrainCompute" )->setOnReloadCallback([&registry]() { reload(registry); });
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
@@ -50,7 +50,6 @@ void init(entt::registry& registry) {
     .mesh = assetManager.getMesh(meshName),
     .shader = assetManager.getShader("TerrainDraw")
   };
-  meshComponent.shader->setUniform1i("u_baseVertexCount", 128 * 128);
 
   TextureComponent textureComponent{};
   textureComponent.textures.push_back(assetManager.getTexture("TerrainNodes"));

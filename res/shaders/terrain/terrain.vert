@@ -1,20 +1,19 @@
 #version 460 core
 
-#include "../common.glsl"
+#include "terrain.glsl"
 
 layout(location = 0) in vec3 a_pos;
 
 out vec3 v_worldPos;
 out vec3 v_normal;
 out vec2 v_uv;
-out flat int v_layerIdx;
+out flat int v_texLayer;
 
 uniform mat4 u_proj;
 uniform mat4 u_localView;
 uniform mat4 u_localTranslation;
 uniform float u_camFar;
 uniform float u_planetRadius;
-uniform float u_heightScale;
 uniform int u_baseVertexCount;
 
 layout(binding = 0) uniform sampler2DArray u_texArray;
@@ -33,14 +32,14 @@ void main() {
   vec4 terrainData = texture(u_texArray, vec3(uv, node.texLayerIdx));
   float height = terrainData.a;
 
-  float sign = gl_VertexID >= u_baseVertexCount ? -1.f : 1.f;
+  float sign = gl_VertexID >= BASE_VERTEX_COUNT ? -1.f : 1.f;
   vec3 localSpherePos = sphereDir * (u_planetRadius + height * sign);
   vec4 worldPos = vec4(localSpherePos, 1.f);
 
   v_worldPos = worldPos.xyz;
   v_normal = sphereDir;
   v_uv = uv;
-  v_layerIdx = node.texLayerIdx;
+  v_texLayer = node.texLayerIdx;
 
 	gl_Position = u_proj * (u_localView * (u_localTranslation * worldPos));
 

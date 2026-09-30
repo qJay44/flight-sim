@@ -56,7 +56,7 @@ int main() {
 
     gfx::Light globalLight{
       .color = vec3(1.f),
-      .direction = glm::normalize(vec3(0.45f, 0.45f, 0.f)),
+      .direction = glm::normalize(vec3(0.707f, 0.707f, 0.f)),
       .ambient = 0.1f,
       .specular = 0.2f,
     };

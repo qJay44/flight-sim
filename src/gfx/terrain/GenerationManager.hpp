@@ -32,7 +32,7 @@ public:
   };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
-  GenerationManager(gfx::AssetManager& assetManager, u16 textureSize, int maxSlots);
+  GenerationManager(gfx::AssetManager& assetManager);
 
   GenerationManager(GenerationManager&&) = default;
   GenerationManager& operator=(GenerationManager&&) = default;
@@ -51,19 +51,12 @@ public:
   void generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes);
 
 private:
-  int maxSlots;
-
   gfx::Texture* texArrayNodes;
-  gfx::Texture* texArrayNodesDummy;
-  gfx::Shader* heightShader{};
-  gfx::Shader* normalsShader{};
-  gfx::Shader* swapShader{};
+  gfx::Shader* genShader{};
 
   uvec2 numGroups;
   std::stack<int> freeSlots;
   gfx::Renderer::ComputeCommand computeCommandHeight;
-  gfx::Renderer::ComputeCommand computeCommandNormal;
-  gfx::Renderer::ComputeCommand computeCommandSwap;
 
   TerrainConfig cfgTerrain;
 

@@ -11,6 +11,7 @@ public:
 
   Texture2DArray() = default;
   Texture2DArray(GLint slots, ivec2 size, const TextureDescriptor& desc);
+  Texture2DArray(GLint slots, int size, const TextureDescriptor& desc);
 
   const GLint& getSlots() const;
   const ivec2& getSize() const;

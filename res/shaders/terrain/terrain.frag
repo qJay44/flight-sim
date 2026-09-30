@@ -1,13 +1,13 @@
 #version 460 core
 
-#include "../common.glsl"
+#include "terrain.glsl"
 
 out vec4 FragColor;
 
 in vec3 v_worldPos;
 in vec3 v_normal;
 in vec2 v_uv;
-in flat int v_layerIdx;
+in flat int v_texLayer;
 
 layout(binding = 0) uniform sampler2DArray u_texArray;
 
@@ -19,7 +19,7 @@ uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
 void main() {
-  vec4 terrainData = texture(u_texArray, vec3(v_uv, v_layerIdx));
+  vec4 terrainData = texture(u_texArray, vec3(v_uv, v_texLayer));
   float height = terrainData.a / u_heightScale;
   vec3 terrainNormal = terrainData.rgb;
 
