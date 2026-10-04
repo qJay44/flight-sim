@@ -70,7 +70,9 @@ void drawTerrainUi(entt::registry& registry) {
 
       ImGui::TextColored(nodesColor, "Active leafs: [%zu] / [%d]", terrain.activeLeafs, TERRAIN_MAX_NODES);
       ImGui::Text("Height scale: [%.2f]", cfg.planetRadius * cfg.planetRadiusPercent);
-      ImGui::Text("Cam height (from sea level): [%.2f]", glm::distance(activeCam.cam->position, cfg.planetRadius * dirToCenter));
+      ImGui::Text("Free   slots: [%zu]", gm.getFreeSlots());
+      ImGui::Text("Cached slots: [%zu]", gm.getCachedSlots());
+      ImGui::Text("Altitude: [%.2f]", glm::distance(activeCam.cam->position, cfg.planetRadius * dirToCenter));
 
       ImGui::Separator();
 

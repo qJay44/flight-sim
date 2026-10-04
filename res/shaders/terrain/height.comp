@@ -176,39 +176,23 @@ float evaluateHeight(vec3 sphereDir) {
 }
 
 void main() {
-  NodeData node = nodesData[gl_GlobalInvocationID.z + u_offset];
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
   ivec2 size = imageSize(imageWrite).xy;
 
   if (texCoord.x >= size.x || texCoord.y >= size.y)
     return;
 
+  NodeData node = nodesData[gl_GlobalInvocationID.z + u_offset];
+
   // [-1, 1]
   vec2 pixelUV = vec2(texCoord) / vec2(size - 1) * 2.f - 1.f;
   vec2 nodeUV = pixelUV * node.extents + node.center;
   float nodeTexelSize = (node.extents * 2.f) / float(size.x - 1);
 
-  vec3 dir  = normalize(cubeToSphere(nodeUV, node.faceIdx));
-  vec3 dirL = normalize(cubeToSphere(nodeUV + vec2(-nodeTexelSize, 0.f), node.faceIdx));
-  vec3 dirR = normalize(cubeToSphere(nodeUV + vec2( nodeTexelSize, 0.f), node.faceIdx));
-  vec3 dirD = normalize(cubeToSphere(nodeUV + vec2(0.f, -nodeTexelSize), node.faceIdx));
-  vec3 dirU = normalize(cubeToSphere(nodeUV + vec2(0.f,  nodeTexelSize), node.faceIdx));
+  vec3 sphereDir = normalize(cubeToSphere(nodeUV, node.faceIdx));
+  float height = evaluateHeight(sphereDir) * u_heightScale;
+  vec3 pos = sphereDir * (cfg.planetRadius + height);
 
-  float height  = evaluateHeight(dir ) * u_heightScale;
-  float heightL = evaluateHeight(dirL) * u_heightScale;
-  float heightR = evaluateHeight(dirR) * u_heightScale;
-  float heightD = evaluateHeight(dirD) * u_heightScale;
-  float heightU = evaluateHeight(dirU) * u_heightScale;
-
-  vec3 posL = dirL * (cfg.planetRadius + heightL);
-  vec3 posR = dirR * (cfg.planetRadius + heightR);
-  vec3 posD = dirD * (cfg.planetRadius + heightD);
-  vec3 posU = dirU * (cfg.planetRadius + heightU);
-
-  vec3 tangentX = posR - posL;
-  vec3 tangentY = posU - posD;
-  vec3 normal = normalize(cross(tangentY, tangentX));
-
-  imageStore(imageWrite, ivec3(texCoord, node.texLayerIdx), vec4(normal, height));
+  imageStore(imageWrite, ivec3(texCoord, node.texLayerIdx), vec4(pos, height));
 }
 

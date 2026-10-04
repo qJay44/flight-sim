@@ -1,5 +1,4 @@
 #define TERRAIN_MAX_NODES 512
-#define BASE_VERTEX_COUNT (128*128)
 
 #define COLOR_DEEP_OCEAN vec3(0.05, 0.15, 0.3)
 #define COLOR_SHALLOW    vec3(0.1, 0.3, 0.5)

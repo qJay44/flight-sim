@@ -22,13 +22,19 @@ struct Quadnode {
     frustum::Frustum* frustum;
   };
 
-  static std::stack<int> freedTexLayerIdxs;
+  struct RemoveData {
+    u64 key;
+    int texLayerIdx;
+  };
+
+  static std::stack<RemoveData> removedNodeDatas;
 
   Face face;
   vec2 center{0.f};
   float extents{1.f}; // Distance from node center to its edges
   int depth = 1;
   int texLayerIdx = -1;
+  u64 key = 0;
   Quadnode* children[4]{};
 
   Quadnode(Face face); // Root node
@@ -38,11 +44,13 @@ struct Quadnode {
   void insert();
   void gatherLeafs(std::stack<Quadnode*>& leafs);
 
-private:
   static GlobalData g;
+private:
 
 private:
   Quadnode(Face face, vec2 center, float extents, int depth);
+
+  void generateKey();
 
   bool isLeaf() const;
   void split();

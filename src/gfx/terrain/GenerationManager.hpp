@@ -41,22 +41,30 @@ public:
   GenerationManager& operator=(const GenerationManager&) = delete;
 
   TerrainConfig& getConfig();
+  size_t getFreeSlots() const;
+  size_t getCachedSlots() const;
+  bool isSlotCached(u64 nodeKey) const;
 
   void update();
 
-  [[nodiscard]] int acquireSlot();
-  void freeSlot(int slot);
+  [[nodiscard]] int acquireSlot(u64 nodeKey);
+  void freeSlot(u64 nodeKey, int slot);
   void freeSlotAll();
 
   void generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes);
 
 private:
+  gfx::Texture* texArrayNodesDummy;
   gfx::Texture* texArrayNodes;
-  gfx::Shader* genShader{};
 
-  uvec2 numGroups;
+  gfx::Shader* heightShader{};
+  gfx::Shader* normalsShader{};
+
   std::stack<int> freeSlots;
+  std::unordered_map<u64, int> cachedSlots;
+
   gfx::Renderer::ComputeCommand computeCommandHeight;
+  gfx::Renderer::ComputeCommand computeCommandNormals;
 
   TerrainConfig cfgTerrain;
 

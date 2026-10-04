@@ -58,8 +58,6 @@ void render(entt::registry& registry) {
   ImGui::SetNextWindowPos({0, 0}, ImGuiCond_FirstUseEver);
   ImGui::SetNextWindowCollapsed(configCollapsed);
 
-  auto _task = profiler.startScopedTaskCpu("gui::draw");
-
   ImGui::Begin("Config");
 
   if (ImGui::CollapsingHeader("Global light")) {
@@ -73,8 +71,6 @@ void render(entt::registry& registry) {
   drawTerrainUi(registry);
 
   ImGui::End();
-
-  _task.end();
 
   // ::::: Info window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 

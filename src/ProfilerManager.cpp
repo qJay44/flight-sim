@@ -56,7 +56,7 @@ ProfilerManager::Query::Query(const std::string& name) : name(name) {
 }
 
 double ProfilerManager::Query::calcDuration() const {
-  constexpr double toSecondsInv = 1.0 / 1e6;
+  constexpr double toSecondsInv = 1.0 / 1e9;
 
   GLuint64 t0;
   GLuint64 t1;

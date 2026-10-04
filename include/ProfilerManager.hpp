@@ -46,8 +46,8 @@ public:
 
   void newFrame();
 
-  ProfilerManager::ScopedTaskCpu startScopedTaskCpu(const std::string& name, u32 color = 0);
-  ProfilerManager::ScopedTaskGpu startScopedTaskGpu(const Query& q, u32 color = 0);
+  [[nodiscard]] ProfilerManager::ScopedTaskCpu startScopedTaskCpu(const std::string& name, u32 color = 0);
+  [[nodiscard]] ProfilerManager::ScopedTaskGpu startScopedTaskGpu(const Query& q, u32 color = 0);
 
   void renderTasks();
 

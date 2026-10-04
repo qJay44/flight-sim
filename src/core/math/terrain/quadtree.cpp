@@ -5,9 +5,11 @@
 namespace core::math::terrain {
 
 Quadnode::GlobalData Quadnode::g;
-std::stack<int> Quadnode::freedTexLayerIdxs;
+std::stack<Quadnode::RemoveData> Quadnode::removedNodeDatas;
 
-Quadnode::Quadnode(Face face) : face(face) {}
+Quadnode::Quadnode(Face face) : face(face) {
+  generateKey();
+}
 
 Quadnode::~Quadnode() {
   for (auto* child : children)
@@ -17,7 +19,7 @@ Quadnode::~Quadnode() {
 
 void Quadnode::newFrame(const GlobalData& globalData) {
   Quadnode::g = globalData;
-  assert(freedTexLayerIdxs.empty());
+  assert(removedNodeDatas.empty());
 }
 
 void Quadnode::insert() {
@@ -45,7 +47,24 @@ void Quadnode::gatherLeafs(std::stack<Quadnode*>& leafs) {
 }
 
 Quadnode::Quadnode(Face face, vec2 center, float extents, int depth)
-  : face(face), center(center), extents(extents), depth(depth) {}
+  : face(face), center(center), extents(extents), depth(depth)
+{
+  generateKey();
+}
+
+void Quadnode::generateKey() {
+  key = 0;
+  key |= static_cast<u64>(face & 0x7);
+
+  key <<= 5;
+  key |= static_cast<u64>(depth) & 0x1F;
+
+  key <<= 28;
+  key |= static_cast<u64>(center.x * 1e6f) & 0x0FFFFFFF;
+
+  key <<= 28;
+  key |= static_cast<u64>(center.y * 1e6f) & 0x0FFFFFFF;
+}
 
 bool Quadnode::isLeaf() const { return children[0] == nullptr; }
 
@@ -69,7 +88,7 @@ void Quadnode::merge() {
 
   for (auto*& child : children) {
     if (child->texLayerIdx != -1)
-      freedTexLayerIdxs.push(child->texLayerIdx);
+      removedNodeDatas.emplace(child->key, child->texLayerIdx);
 
     delete child;
     child = nullptr;
@@ -101,7 +120,7 @@ float Quadnode::calculateSplitPriority() const {
   float distance = glm::distance(g.camPos, elevatedCenter);
   float seaLevelRadius = extents * g.planetRadius * 1.4141f; // sqrt(2), diagonal length of the square
 
-  auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius * 2.f);
+  auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius);
 
   if (frustumSphere.isOnFrustum(*g.frustum))
     return seaLevelRadius / (distance + 0.001f);

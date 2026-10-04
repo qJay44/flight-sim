@@ -1,0 +1,45 @@
+#version 460 core
+
+#include "terrain.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) readonly  uniform image2DArray imgDummy;
+layout(rgba32f, binding = 1) writeonly uniform image2DArray imgMain;
+
+uniform uint u_offset;
+
+layout(std140, binding = 1) uniform NodesDataBlock {
+  NodeData nodesData[TERRAIN_MAX_NODES];
+};
+
+ivec2 mainSize;
+int layer;
+
+vec3 getWorldPos(int x, int y) {
+  return imageLoad(imgDummy, ivec3(x + 1, y + 1, layer)).rgb;
+}
+
+void main() {
+  mainSize = imageSize(imgMain).xy;
+  layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
+
+  ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+
+  if (texCoord.x >= mainSize.x || texCoord.y >= mainSize.y)
+    return;
+
+  float h = imageLoad(imgDummy, ivec3(texCoord + 1, layer)).a;
+
+  vec3 left  = getWorldPos(texCoord.x - 1, texCoord.y);
+  vec3 right = getWorldPos(texCoord.x + 1, texCoord.y);
+  vec3 down  = getWorldPos(texCoord.x, texCoord.y - 1);
+  vec3 up    = getWorldPos(texCoord.x, texCoord.y + 1);
+
+  vec3 tangentX = right - left;
+  vec3 tangentY = up - down;
+  vec3 objectNormal = normalize(cross(tangentY, tangentX));
+
+  imageStore(imgMain, ivec3(texCoord, layer), vec4(objectNormal, h));
+}
+

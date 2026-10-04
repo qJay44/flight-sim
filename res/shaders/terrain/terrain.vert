@@ -2,6 +2,9 @@
 
 #include "terrain.glsl"
 
+#define MESH_RESOLUTION 128
+#define BASE_VERTEX_COUNT (MESH_RESOLUTION*MESH_RESOLUTION)
+
 layout(location = 0) in vec3 a_pos;
 
 out vec3 v_worldPos;

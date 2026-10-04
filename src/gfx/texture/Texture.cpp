@@ -1,4 +1,5 @@
 #include "Texture.hpp"
+#include "utils/utils.hpp"
 
 namespace gfx {
 
@@ -24,12 +25,21 @@ Texture::~Texture() {
 }
 
 void Texture::bind(GLuint unit) const {
+  assert(id);
   glActiveTexture(GL_TEXTURE0 + unit);
   glBindTexture(target, id);
 }
 
 void Texture::unbind() const {
+  assert(id);
   glBindTexture(target, 0);
+}
+
+void Texture::swap(Texture& other) {
+  assert(id);
+  if (target != other.target)
+    error("[Texture::swap] Other texture ({}) have different target ({})", target, other.target);
+  std::swap(id, other.id);
 }
 
 void Texture::clear() {
@@ -42,6 +52,8 @@ GLuint Texture::getId() const { return id; }
 GLenum Texture::getTarget() const { return target; }
 
 GLenum Texture::getInternalFormat() const {
+  assert(id);
+
   GLint internalFormat;
   glGetTextureLevelParameteriv(id, 0, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
 
@@ -49,6 +61,8 @@ GLenum Texture::getInternalFormat() const {
 }
 
 ivec2 Texture::getSize(GLint mipLevel) const {
+  assert(id);
+
   ivec2 res;
 
   bind(0);

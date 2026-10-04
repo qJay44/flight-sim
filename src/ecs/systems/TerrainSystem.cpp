@@ -35,10 +35,12 @@ void init(entt::registry& registry) {
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
 
+  // NOTE: Same as [MESH_RESOLUTION]
   std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
   assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
 
-  assetManager.getShader("TerrainCompute" )->setOnReloadCallback([&registry]() { reload(registry); });
+  assetManager.getShader("TerrainComputeHeight" )->setOnReloadCallback([&registry]() { reload(registry); });
+  assetManager.getShader("TerrainComputeNormals")->setOnReloadCallback([&registry]() { reload(registry); });
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
@@ -122,13 +124,15 @@ void update(entt::registry& registry) {
       quadtree.gatherLeafs(activeNodes);
       assert(activeNodes.size() < TERRAIN_MAX_NODES);
 
-      while (!quadtree.freedTexLayerIdxs.empty()) {
-        gm.freeSlot(quadtree.freedTexLayerIdxs.top());
-        quadtree.freedTexLayerIdxs.pop();
+      while (!quadtree.removedNodeDatas.empty()) {
+        const auto& data = quadtree.removedNodeDatas.top();
+        gm.freeSlot(data.key, data.texLayerIdx);
+        quadtree.removedNodeDatas.pop();
       }
     }
 
     taskQt.end();
+    auto taskLeafsPush = profiler.startScopedTaskCpu("LeafsPush");
 
     terrain.activeLeafs = 0;
     std::stack<Quadnode*> nodesToGenerate;
@@ -137,11 +141,15 @@ void update(entt::registry& registry) {
     while (!activeNodes.empty()) {
       auto* node = activeNodes.top(); activeNodes.pop();
 
-      // Defer nodes that need new textures
+      // Defer nodes that need a new texture
       if (node->texLayerIdx == -1) {
-        node->texLayerIdx = gm.acquireSlot();
-        nodesToGenerate.push(node);
-        continue;
+        bool isCached = gm.isSlotCached(node->key);
+        node->texLayerIdx = gm.acquireSlot(node->key);
+
+        if (!isCached) {
+          nodesToGenerate.push(node);
+          continue;
+        }
       }
 
       auto& currLeaf = terrain.leafs[terrain.activeLeafs++];
@@ -178,6 +186,7 @@ void update(entt::registry& registry) {
 }
 
 void render(entt::registry& registry, gfx::Renderer& renderer) {
+  auto& profiler  = registry.ctx().get<ProfilerManager>();
   auto& gm = registry.ctx().get<GenerationManager>();
   const auto& terrainConfig = gm.getConfig();
   auto terrainView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
@@ -248,6 +257,9 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
     renderer.submit(frustumRenderCmd);
   }
+
+  static ProfilerManager::Query queryRender("TerrainRender");
+  auto _taskRender = profiler.startScopedTaskGpu(queryRender);
 
   renderer.renderFrame();
 }
