@@ -140,6 +140,8 @@ void update(entt::registry& registry) {
     // Prepare nodes for UBO
     while (!activeNodes.empty()) {
       auto* node = activeNodes.top(); activeNodes.pop();
+      if (!node->onFrustum)
+        continue;
 
       // Defer nodes that need a new texture
       if (node->texLayerIdx == -1) {

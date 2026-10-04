@@ -113,7 +113,7 @@ vec3 Quadnode::cubeToSphere() const {
   return p;
 }
 
-float Quadnode::calculateSplitPriority() const {
+float Quadnode::calculateSplitPriority() {
   vec3 sphereDir = glm::normalize(cubeToSphere());
   vec3 elevatedCenter = sphereDir * g.planetRadius;
 
@@ -122,7 +122,7 @@ float Quadnode::calculateSplitPriority() const {
 
   auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius);
 
-  if (frustumSphere.isOnFrustum(*g.frustum))
+  if ((onFrustum = frustumSphere.isOnFrustum(*g.frustum)))
     return seaLevelRadius / (distance + 0.001f);
 
   return 0.f;

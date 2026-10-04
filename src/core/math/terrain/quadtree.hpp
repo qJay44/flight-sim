@@ -32,6 +32,7 @@ struct Quadnode {
   Face face;
   vec2 center{0.f};
   float extents{1.f}; // Distance from node center to its edges
+  bool onFrustum = true;
   int depth = 1;
   int texLayerIdx = -1;
   u64 key = 0;
@@ -58,7 +59,7 @@ private:
 
   vec3 cubeToSphere() const;
 
-  float calculateSplitPriority() const;
+  float calculateSplitPriority();
 };
 
 } // namespace terrain
