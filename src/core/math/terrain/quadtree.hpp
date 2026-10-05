@@ -18,6 +18,7 @@ struct Quadnode {
     int maxDepth;
     float splitThreshold;
     float planetRadius;
+    float heightScale;
     vec3 camPos;
     frustum::Frustum* frustum;
   };

@@ -103,7 +103,7 @@ int GenerationManager::acquireSlot(u64 nodeKey) {
 
   if (freeSlots.empty()) {
     slot = cachedSlots.begin()->second;
-    cachedSlots.erase(cachedSlots.begin());
+    cachedSlots.erase(cachedSlots.begin()); // Might eat visible chunk?
   } else {
     slot = freeSlots.top();
     freeSlots.pop();
@@ -146,7 +146,7 @@ void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Render
 
   renderer.submit(computeCommandNormals);
   renderer.dispatch();
-  renderer.memoryBarrier(GL_TEXTURE_FETCH_BARRIER_BIT);
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 } // terrain

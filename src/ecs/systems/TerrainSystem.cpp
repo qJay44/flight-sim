@@ -116,6 +116,7 @@ void update(entt::registry& registry) {
         .maxDepth = terrain.qtMaxDepth,
         .splitThreshold = terrain.qtSplitThreshold,
         .planetRadius = terrainConfig.planetRadius,
+        .heightScale = terrainConfig.planetRadius * terrainConfig.planetRadiusPercent,
         .camPos = camComponent.cam->position,
         .frustum = &frustum,
       });

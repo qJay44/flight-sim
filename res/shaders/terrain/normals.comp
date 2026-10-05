@@ -13,7 +13,6 @@ layout(std140, binding = 1) uniform NodesDataBlock {
   NodeData nodesData[TERRAIN_MAX_NODES];
 };
 
-ivec2 mainSize;
 int layer;
 
 vec3 getWorldPos(int x, int y) {
@@ -21,13 +20,13 @@ vec3 getWorldPos(int x, int y) {
 }
 
 void main() {
-  mainSize = imageSize(imgMain).xy;
-  layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
-
+  ivec2 mainSize = imageSize(imgMain).xy;
   ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
 
   if (texCoord.x >= mainSize.x || texCoord.y >= mainSize.y)
     return;
+
+  layer = nodesData[gl_GlobalInvocationID.z + u_offset].texLayerIdx;
 
   float h = imageLoad(imgDummy, ivec3(texCoord + 1, layer)).a;
 

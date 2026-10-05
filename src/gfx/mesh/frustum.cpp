@@ -12,24 +12,25 @@ std::vector<vertex::P> createVertices(const core::Camera& cam) {
   core::math::frustum::Frustum frustum(cam);
 
   vec3 camLeft = normalize(cross(-cam.orientation, cam.up));
+  vec3 camViewUp = normalize(cross(cam.orientation, camLeft));
   vec3 camRight = -camLeft;
 
   float aspectRatio = cam.extractAspectRatio();
   float farVSideHalf = cam.farPlane * tanf(cam.fov) * 0.5f;
   float farHSideHalf = farVSideHalf * aspectRatio;
   vec3 farPos = cam.orientation * cam.farPlane;
-  vec3 farTR = farPos + camRight * farHSideHalf +  cam.up * farVSideHalf;
-  vec3 farTL = farPos + camLeft  * farHSideHalf +  cam.up * farVSideHalf;
-  vec3 farBL = farPos + camLeft  * farHSideHalf + -cam.up * farVSideHalf;
-  vec3 farBR = farPos + camRight * farHSideHalf + -cam.up * farVSideHalf;
+  vec3 farTR = farPos + camRight * farHSideHalf +  camViewUp * farVSideHalf;
+  vec3 farTL = farPos + camLeft  * farHSideHalf +  camViewUp * farVSideHalf;
+  vec3 farBL = farPos + camLeft  * farHSideHalf + -camViewUp * farVSideHalf;
+  vec3 farBR = farPos + camRight * farHSideHalf + -camViewUp * farVSideHalf;
 
   float nearVSideHalf = cam.nearPlane * tanf(cam.fov) * 0.5f;
   float nearHSideHalf = nearVSideHalf * aspectRatio;
   vec3 nearPos = cam.orientation * cam.nearPlane;
-  vec3 nearTR = nearPos + camRight * nearHSideHalf +  cam.up * nearVSideHalf;
-  vec3 nearTL = nearPos + camLeft  * nearHSideHalf +  cam.up * nearVSideHalf;
-  vec3 nearBL = nearPos + camLeft  * nearHSideHalf + -cam.up * nearVSideHalf;
-  vec3 nearBR = nearPos + camRight * nearHSideHalf + -cam.up * nearVSideHalf;
+  vec3 nearTR = nearPos + camRight * nearHSideHalf +  camViewUp * nearVSideHalf;
+  vec3 nearTL = nearPos + camLeft  * nearHSideHalf +  camViewUp * nearVSideHalf;
+  vec3 nearBL = nearPos + camLeft  * nearHSideHalf + -camViewUp * nearVSideHalf;
+  vec3 nearBR = nearPos + camRight * nearHSideHalf + -camViewUp * nearVSideHalf;
 
   vec3 centerTR = (farTR + nearTR) * 0.5f;
   vec3 centerTL = (farTL + nearTL) * 0.5f;

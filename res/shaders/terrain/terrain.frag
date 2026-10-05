@@ -55,6 +55,7 @@ void main() {
   vec3 color = surfaceColor * (diffuse + ambient);
 
   FragColor = vec4(color, 1.f);
+  // FragColor = vec4(terrainNormal, 1.f);
   // FragColor = vec4(vec3(height), 1.f);
 }
 

@@ -59,6 +59,8 @@ void Quadnode::generateKey() {
   key <<= 5;
   key |= static_cast<u64>(depth) & 0x1F;
 
+  // Maybe use 536e6f (1<<28), but 1e6f seems enough
+
   key <<= 28;
   key |= static_cast<u64>(center.x * 1e6f) & 0x0FFFFFFF;
 
@@ -120,9 +122,10 @@ float Quadnode::calculateSplitPriority() {
   float distance = glm::distance(g.camPos, elevatedCenter);
   float seaLevelRadius = extents * g.planetRadius * 1.4141f; // sqrt(2), diagonal length of the square
 
-  auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius);
+  auto frustumSphere = frustum::volume::Sphere(elevatedCenter, seaLevelRadius + g.heightScale * 0.5f);
+  onFrustum = frustumSphere.isOnFrustum(*g.frustum);
 
-  if ((onFrustum = frustumSphere.isOnFrustum(*g.frustum)))
+  if (onFrustum)
     return seaLevelRadius / (distance + 0.001f);
 
   return 0.f;
