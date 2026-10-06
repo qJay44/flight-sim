@@ -11,6 +11,7 @@
 #include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
 #include "../../core/ActiveCamera.hpp"
+#include "../../core/EngineContext.hpp"
 #include "../../core/math/frustum/Frustum.hpp"
 #include "ProfilerManager.hpp"
 
@@ -23,7 +24,9 @@ using namespace terrain;
 void init(entt::registry& registry) {
   entt::entity entity = registry.create();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto gm = GenerationManager(assetManager);
+  auto& profiler  = registry.ctx().get<ProfilerManager>();
+  auto& renderer  = registry.ctx().get<gfx::Renderer>();
+  auto gm = GenerationManager(&renderer, &profiler, assetManager);
   auto& terrainConfig = gm.getConfig();
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
@@ -34,6 +37,7 @@ void init(entt::registry& registry) {
   });
 
   assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
+  assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));
 
   // NOTE: Same as [MESH_RESOLUTION]
   std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
@@ -99,9 +103,9 @@ void init(entt::registry& registry) {
 void update(entt::registry& registry) {
   auto& gm = registry.ctx().get<GenerationManager>();
   auto& profiler  = registry.ctx().get<ProfilerManager>();
-  auto& renderer  = registry.ctx().get<gfx::Renderer>();
+  auto& ctx = registry.ctx().get<core::EngineContext>();
   const auto& terrainConfig = gm.getConfig();
-  gm.update();
+  gm.update(ctx.time, ctx.dt);
 
   for (auto entity : registry.view<TerrainComponent, CameraComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
@@ -184,7 +188,7 @@ void update(entt::registry& registry) {
     auto _taskQtCS = profiler.startScopedTaskGpu(queryQt);
 
     // Generate textures for deferred nodes
-    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, renderer, terrain.ubo.nodesData);
+    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, terrain.ubo.nodesData);
   }
 }
 
@@ -194,6 +198,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
   const auto& terrainConfig = gm.getConfig();
   auto terrainView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+  auto& assetManager = registry.ctx().get<gfx::AssetManager>();
 
   for (auto entity : terrainView) {
     const auto& terrainComponent = registry.get<TerrainComponent>(entity);
@@ -233,10 +238,37 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
     renderer.submit(renderCmd);
 
+    auto& water = gm.getWater();
+    auto* waterShader = assetManager.getShader("TerrainDrawWater");
+    waterShader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
+    waterShader->setUniformMatrix4f("u_localView", localView);
+    waterShader->setUniformMatrix4f("u_localTranslation", localTranslation);
+    waterShader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
+    waterShader->setUniform3f("u_camPos", activeCam.cam->position);
+    waterShader->setUniform1f("u_camFar", activeCam.cam->farPlane);
+    waterShader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
+    waterShader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
+    waterShader->setUniform1f("u_foamSharpness", 1.f);
+    waterShader->setUniform1f("u_sunIntensity", 1.f);
+
+    gfx::Renderer::RenderCommand renderCmdWater{
+      .shader = waterShader,
+      .mesh = meshComponent.mesh,
+      .enableCullFace = true,
+      .enableDepthTest = true,
+      .textures = {
+        &water.getTexDisplacement(),
+        &water.getTexDerivatives(),
+        &water.getTexTurbulence()
+      },
+      .priority = 2,
+    };
+
+    renderer.submit(renderCmdWater);
+
     if (!terrainComponent.renderFrustum || camComponent.cam == activeCam.cam)
       continue;
 
-    auto& assetManager = registry.ctx().get<gfx::AssetManager>();
     auto* frustumShader = assetManager.getShader("FrustumDraw");
     auto* frustumMesh = assetManager.getMesh("TerrainFrustum");
 
@@ -255,7 +287,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .mesh = frustumMesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      .priority = 2,
+      .priority = 3,
     };
 
     renderer.submit(frustumRenderCmd);

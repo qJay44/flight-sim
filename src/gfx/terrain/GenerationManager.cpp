@@ -1,16 +1,22 @@
 #include "GenerationManager.hpp"
 
 #include "../texture/Texture2DArray.hpp"
+#include "Tessendorf.hpp"
 #include "global.hpp"
 
 namespace gfx::terrain {
 
 #define TEXTURE_MAX_SLOTS TERRAIN_MAX_NODES
 
-GenerationManager::GenerationManager(gfx::AssetManager& assetManager) {
+GenerationManager::GenerationManager(Renderer* renderer, ProfilerManager* profiler, AssetManager& assetManager)
+ : renderer(renderer), profiler(profiler)
+{
   constexpr uvec2 localSize(16);
   constexpr ivec2 textureRes(160);
   constexpr ivec2 textureResDummy = textureRes + 2;
+
+  water = water::Tessendorf(renderer, profiler, assetManager);
+  water.markForRebuild();
 
   gfx::TextureDescriptor texDesc{
     .target = GL_TEXTURE_2D_ARRAY,
@@ -74,6 +80,9 @@ GenerationManager::GenerationManager(gfx::AssetManager& assetManager) {
 GenerationManager::TerrainConfig& GenerationManager::getConfig() {
   return cfgTerrain;
 }
+water::Tessendorf& GenerationManager::getWater() {
+  return water;
+}
 
 size_t GenerationManager::getFreeSlots() const {
   return freeSlots.size();
@@ -87,8 +96,9 @@ bool GenerationManager::isSlotCached(u64 nodeKey) const {
   return cachedSlots.contains(nodeKey);
 }
 
-void GenerationManager::update() {
+void GenerationManager::update(float time, float dt) {
   ubo.terrainConfig.updateSubData(&cfgTerrain, sizeof(TerrainConfig));
+  water.update(time, dt);
 }
 
 int GenerationManager::acquireSlot(u64 nodeKey) {
@@ -127,7 +137,7 @@ void GenerationManager::freeSlotAll() {
   cachedSlots.clear();
 }
 
-void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Renderer& renderer, const BufferObject& nodes) {
+void GenerationManager::generateTexures(size_t nodesCount, size_t offset, const BufferObject& nodes) {
   computeCommandHeight.numWorkGroups.z = nodesCount;
   computeCommandNormals.numWorkGroups.z = nodesCount;
 
@@ -140,13 +150,13 @@ void GenerationManager::generateTexures(size_t nodesCount, size_t offset, Render
   ubo.terrainConfig.bindBase(0);
   nodes.bindBase(1);
 
-  renderer.submit(computeCommandHeight);
-  renderer.dispatch();
-  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer->submit(computeCommandHeight);
+  renderer->dispatch();
+  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  renderer.submit(computeCommandNormals);
-  renderer.dispatch();
-  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+  renderer->submit(computeCommandNormals);
+  renderer->dispatch();
+  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 } // terrain
