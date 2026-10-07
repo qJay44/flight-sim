@@ -20,7 +20,7 @@ public:
 
   ~AssetManager() = default;
 
-  std::string createMeshPlane_Triangles(size_t resolution, bool skirts = false, bool instanced = false);
+  std::string createMeshPlane_Triangles(size_t resolution, const std::string& nameSuffix, bool skirts = false, bool instanced = false);
 
   void loadFromObj(fspath filepath, bool printInfo = false);
   void addMesh(const std::string& name, Mesh&& mesh);

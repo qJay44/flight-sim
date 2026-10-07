@@ -34,5 +34,5 @@ struct TerrainComponent {
   } ubo;
 };
 
-} // namespace terrain
+} // namespace ecs::component::terrain
 

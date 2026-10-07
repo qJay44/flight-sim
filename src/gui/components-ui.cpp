@@ -5,6 +5,7 @@
 #include "../ecs/components/CameraComponent.hpp"
 #include "../ecs/components/TransformComponent.hpp"
 #include "../ecs/components/TerrainComponent.hpp"
+#include "../ecs/components/WaterComponent.hpp"
 #include "../ecs/systems/TerrainSystem.hpp"
 #include "../gfx/terrain/GenerationManager.hpp"
 #include "../core/ActiveCamera.hpp"
@@ -112,6 +113,15 @@ void drawTerrainUi(entt::registry& registry) {
         if (u)
           ecs::TerrainSystem::reload(registry);
       }
+    }
+
+    ImGui::SeparatorText("Water");
+
+    for (auto entity : registry.view<terrain::WaterComponent>()) {
+      auto& waterComponent = registry.get<terrain::WaterComponent>(entity);
+      ImGui::SliderFloat("Foam sharpness", &waterComponent.foamSharpness, 0.f, 20.f);
+      ImGui::SliderFloat("Sun intensity", &waterComponent.sunIntensity, 0.f, 20.f);
+      ImGui::SliderFloat("Scale of height scale", &waterComponent.heightScaleScale, 0.f, 1.f);
     }
   }
 }

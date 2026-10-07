@@ -51,10 +51,11 @@ AssetManager::AssetManager() {
   }
 }
 
-std::string AssetManager::createMeshPlane_Triangles(size_t resolution, bool skirts, bool instanced) {
+std::string AssetManager::createMeshPlane_Triangles(size_t resolution, const std::string& nameSuffix, bool skirts, bool instanced) {
   std::string skirtsSuffix = skirts ? "_Skirts" : "";
   std::string instancedSuffix = instanced ? "_Instancied" : "";
-  std::string name = std::format("MeshPlane_Triangles{}{}{}", resolution, skirts, instancedSuffix);
+  std::string uniqueSuffix = "_" + nameSuffix;
+  std::string name = std::format("MeshPlane_Triangles{}{}{}{}", uniqueSuffix, resolution, skirtsSuffix, instancedSuffix);
 
   if (meshes.contains(name)) {
     warning("[AssetManager::createMeshPlane_Triangles] Mesh ({}) already created", name);

@@ -7,6 +7,7 @@
 #include "../components/TransformComponent.hpp"
 #include "../components/VelocityComponent.hpp"
 #include "../components/InputComponent.hpp"
+#include "../components/WaterComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
@@ -21,30 +22,18 @@ using namespace ecs::component;
 using namespace gfx::terrain;
 using namespace terrain;
 
-void init(entt::registry& registry) {
+namespace {
+
+void createLandEntity(entt::registry& registry) {
   entt::entity entity = registry.create();
+
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto& profiler  = registry.ctx().get<ProfilerManager>();
-  auto& renderer  = registry.ctx().get<gfx::Renderer>();
-  auto gm = GenerationManager(&renderer, &profiler, assetManager);
-  auto& terrainConfig = gm.getConfig();
+  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
-  assetManager.addCamera("Terrain", {
-    .farPlane = 1e6f,
-    .position = {0.f, 0.f, terrainConfig.planetRadius + 25.f},
-  });
-
-  assetManager.addShader("TerrainDraw", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
-  assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));
-
-  // NOTE: Same as [MESH_RESOLUTION]
-  std::string meshName = assetManager.createMeshPlane_Triangles(128, true, true);
-  assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
-
-  assetManager.getShader("TerrainComputeHeight" )->setOnReloadCallback([&registry]() { reload(registry); });
-  assetManager.getShader("TerrainComputeNormals")->setOnReloadCallback([&registry]() { reload(registry); });
+  // NOTE: The mesh resolution is the same as [MESH_RESOLUTION]
+  std::string meshName = assetManager.createMeshPlane_Triangles(128, "TerrainLand", true, true);
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
@@ -54,7 +43,7 @@ void init(entt::registry& registry) {
 
   MeshComponent meshComponent{
     .mesh = assetManager.getMesh(meshName),
-    .shader = assetManager.getShader("TerrainDraw")
+    .shader = assetManager.getShader("TerrainDrawLand")
   };
 
   TextureComponent textureComponent{};
@@ -68,7 +57,7 @@ void init(entt::registry& registry) {
   // NOTE: Just for camera movement //
 
   TransformComponent transComponent{
-    .pos = {0.f, 0.f, terrainConfig.planetRadius + 25.f}
+    .pos = activeCam.cam->position
   };
 
   VelocityComponent velComponent{
@@ -83,10 +72,6 @@ void init(entt::registry& registry) {
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
 
-  core::ActiveCamera activeCam{
-    .cam = assetManager.getCamera("Terrain"),
-  };
-
   registry.emplace<MeshComponent>(entity, meshComponent);
   registry.emplace<TerrainComponent>(entity, std::move(terrainComponent));
   registry.emplace<TextureComponent>(entity, textureComponent);
@@ -95,9 +80,107 @@ void init(entt::registry& registry) {
   registry.emplace<TransformComponent>(entity, transComponent);
   registry.emplace<VelocityComponent>(entity, velComponent);
   registry.emplace<InputComponent>(entity, inputComponent);
+}
+
+void createWaterEntity(entt::registry& registry) {
+  entt::entity entity = registry.create();
+
+  auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+  auto& gm = registry.ctx().get<GenerationManager>();
+  auto& water = gm.getWater();
+
+  // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
+
+  std::string meshName = assetManager.createMeshPlane_Triangles(256, "TerrainWater", true, true);
+
+  // ----- Components -------------------------------------------------------------------------------------------------------------- //
+
+  WaterComponent waterComponent{
+    .foamSharpness = 1.f,
+    .sunIntensity = 7.f,
+    .heightScaleScale = 0.03f,
+  };
+
+  MeshComponent meshComponent{
+    .mesh = assetManager.getMesh(meshName),
+    .shader = assetManager.getShader("TerrainDrawWater")
+  };
+
+  TextureComponent textureComponent{
+    .textures = {
+      &water.getTexDisplacement(),
+      &water.getTexDerivatives(),
+      &water.getTexDisplacement()
+    }
+  };
+
+  CameraComponent cameraComponent{
+    .cam = assetManager.getCamera("Terrain"),
+    .isDetached = true,
+  };
+
+  // NOTE: Just for camera movement //
+
+  TransformComponent transComponent{
+    .pos = activeCam.cam->position
+  };
+
+  VelocityComponent velComponent{
+    .scale = 1e4f
+  };
+
+  InputComponent inputComponent{
+    .shiftMultiplier = 10.f
+  };
+
+  ////////////////////////////////////
+
+  // --------------------------------------------------------------------------------------------------------------------------------- //
+
+  meshComponent.mesh->setInstanceCount(6);
+
+  registry.emplace<MeshComponent>(entity, meshComponent);
+  registry.emplace<WaterComponent>(entity, waterComponent);
+  registry.emplace<TextureComponent>(entity, textureComponent);
+  registry.emplace<CameraComponent>(entity, cameraComponent);
+
+  registry.emplace<TransformComponent>(entity, transComponent);
+  registry.emplace<VelocityComponent>(entity, velComponent);
+  registry.emplace<InputComponent>(entity, inputComponent);
+}
+
+} // namespace
+
+void init(entt::registry& registry) {
+  auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  auto& profiler  = registry.ctx().get<ProfilerManager>();
+  auto& renderer  = registry.ctx().get<gfx::Renderer>();
+  auto gm = GenerationManager(&renderer, &profiler, assetManager);
+  auto& terrainConfig = gm.getConfig();
+
+  assetManager.addCamera("Terrain", {
+    .farPlane = 1e6f,
+    .position = {0.f, 0.f, terrainConfig.planetRadius + 25.f},
+  });
+
+  core::ActiveCamera activeCam{
+    .cam = assetManager.getCamera("Terrain"),
+  };
+
+  assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
+  assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));
+
+  assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
+
+  assetManager.getShader("TerrainComputeHeight" )->setOnReloadCallback([&registry]() { reload(registry); });
+  assetManager.getShader("TerrainComputeNormals")->setOnReloadCallback([&registry]() { reload(registry); });
 
   registry.ctx().emplace<GenerationManager>(std::move(gm));
   registry.ctx().insert_or_assign<core::ActiveCamera>(std::move(activeCam));
+
+  createLandEntity(registry);
+  createWaterEntity(registry);
 }
 
 void update(entt::registry& registry) {
@@ -193,14 +276,20 @@ void update(entt::registry& registry) {
 }
 
 void render(entt::registry& registry, gfx::Renderer& renderer) {
+  static ProfilerManager::Query queryRenderLand("TerrainRenderLand");
+  static ProfilerManager::Query queryRenderWater("TerrainRenderWater");
+
   auto& profiler  = registry.ctx().get<ProfilerManager>();
   auto& gm = registry.ctx().get<GenerationManager>();
-  const auto& terrainConfig = gm.getConfig();
-  auto terrainView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  const auto& terrainConfig = gm.getConfig();
+  auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
+  auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
 
-  for (auto entity : terrainView) {
+  // ----- Land -------------------------------------------------------------------------------------------------------------------- //
+
+  for (auto entity : terrainLandView) {
     const auto& terrainComponent = registry.get<TerrainComponent>(entity);
     const auto& meshComponent = registry.get<MeshComponent>(entity);
     const auto& texComponent = registry.get<TextureComponent>(entity);
@@ -238,33 +327,12 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
     renderer.submit(renderCmd);
 
-    auto& water = gm.getWater();
-    auto* waterShader = assetManager.getShader("TerrainDrawWater");
-    waterShader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
-    waterShader->setUniformMatrix4f("u_localView", localView);
-    waterShader->setUniformMatrix4f("u_localTranslation", localTranslation);
-    waterShader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
-    waterShader->setUniform3f("u_camPos", activeCam.cam->position);
-    waterShader->setUniform1f("u_camFar", activeCam.cam->farPlane);
-    waterShader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
-    waterShader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
-    waterShader->setUniform1f("u_foamSharpness", 1.f);
-    waterShader->setUniform1f("u_sunIntensity", 1.f);
+    {
+      auto _task = profiler.startScopedTaskGpu(queryRenderLand);
+      renderer.renderFrame();
+    }
 
-    gfx::Renderer::RenderCommand renderCmdWater{
-      .shader = waterShader,
-      .mesh = meshComponent.mesh,
-      .enableCullFace = true,
-      .enableDepthTest = true,
-      .textures = {
-        &water.getTexDisplacement(),
-        &water.getTexDerivatives(),
-        &water.getTexTurbulence()
-      },
-      .priority = 2,
-    };
-
-    renderer.submit(renderCmdWater);
+    // ----- Camera frustum ---------------------------------------------------------------------------------------------------------- //
 
     if (!terrainComponent.renderFrustum || camComponent.cam == activeCam.cam)
       continue;
@@ -287,16 +355,58 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .mesh = frustumMesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      .priority = 3,
+      .priority = 2,
     };
 
     renderer.submit(frustumRenderCmd);
+    renderer.renderFrame();
   }
 
-  static ProfilerManager::Query queryRender("TerrainRender");
-  auto _taskRender = profiler.startScopedTaskGpu(queryRender);
+  // ----- Water ------------------------------------------------------------------------------------------------------------------- //
 
-  renderer.renderFrame();
+  for (auto entity : terrainWaterView) {
+    const auto& waterComponent = registry.get<WaterComponent>(entity);
+    const auto& meshComponent = registry.get<MeshComponent>(entity);
+    const auto& texComponent = registry.get<TextureComponent>(entity);
+    // const auto& camComponent = registry.get<CameraComponent>(entity);
+
+    if (meshComponent.disabled)
+      continue;
+
+    vec3 planetCameraOffset = vec3(0.f) - activeCam.cam->position; // Planet always at the center (0,0,0)
+    mat4 localView = activeCam.cam->getLocalView(vec3(0.f));
+    mat4 localTranslation = glm::translate(mat4(1.f), planetCameraOffset);
+
+    meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
+    meshComponent.shader->setUniformMatrix4f("u_localView", localView);
+    meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
+    meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
+    meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
+    meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
+    meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
+    meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
+    meshComponent.shader->setUniform1f("u_heightScaleScale", waterComponent.heightScaleScale);
+    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
+    meshComponent.shader->setUniform1f("u_sunIntensity", waterComponent.sunIntensity);
+
+    gfx::Renderer::RenderCommand renderCmdWater{
+      .shader = meshComponent.shader,
+      .mesh = meshComponent.mesh,
+      .enableCullFace = true,
+      .enableDepthTest = true,
+      .textures = texComponent.textures,
+      .priority = 1,
+    };
+
+    renderer.submit(renderCmdWater);
+  }
+
+  {
+    auto _task = profiler.startScopedTaskGpu(queryRenderWater);
+    renderer.renderFrame();
+  }
+
+  // --------------------------------------------------------------------------------------------------------------------------------- //
 }
 
 void reload(entt::registry& registry) {

@@ -2,6 +2,9 @@
 
 #include "terrain.glsl"
 
+#define MESH_RESOLUTION 256
+#define BASE_VERTEX_COUNT (MESH_RESOLUTION*MESH_RESOLUTION)
+
 layout(location = 0) in vec3 a_pos;
 
 out vec3 v_worldPos;
@@ -15,21 +18,16 @@ uniform mat4 u_localTranslation;
 uniform float u_camFar;
 uniform float u_planetRadius;
 uniform float u_heightScale;
+uniform float u_heightScaleScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 
-layout(std140, binding = 0) uniform NodesDataBlock {
-  NodeData nodesData[TERRAIN_MAX_NODES];
-};
-
 void main() {
-  NodeData node = nodesData[gl_InstanceID];
   float sign = gl_VertexID >= BASE_VERTEX_COUNT ? -1.f : 1.f;
 
-  vec2 nodePos = a_pos.xz * node.extents + node.center;
   vec2 uv = a_pos.xz * 0.5f + 0.5f;
-  vec3 sphereDir = normalize(cubeToSphere(nodePos, node.faceIdx));
-  vec3 pos = sphereDir * (u_planetRadius + u_heightScale * 0.1f * sign);
+  vec3 sphereDir = normalize(cubeToSphere(a_pos.xz, gl_InstanceID));
+  vec3 pos = sphereDir * (u_planetRadius + u_heightScale * u_heightScaleScale * sign);
   vec3 wave = texture(u_texDisplacement, uv).rgb;
 
   vec4 worldPos = vec4(pos + sphereDir * wave, 1.f);
