@@ -98,8 +98,8 @@ void createWaterEntity(entt::registry& registry) {
 
   WaterComponent waterComponent{
     .foamSharpness = 1.f,
-    .sunIntensity = 7.f,
     .heightScaleScale = 0.03f,
+    .quadsPerAxis = 4,
   };
 
   MeshComponent meshComponent{
@@ -111,7 +111,7 @@ void createWaterEntity(entt::registry& registry) {
     .textures = {
       &water.getTexDisplacement(),
       &water.getTexDerivatives(),
-      &water.getTexDisplacement()
+      &water.getTexTurbulence()
     }
   };
 
@@ -137,8 +137,6 @@ void createWaterEntity(entt::registry& registry) {
   ////////////////////////////////////
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
-
-  meshComponent.mesh->setInstanceCount(6);
 
   registry.emplace<MeshComponent>(entity, meshComponent);
   registry.emplace<WaterComponent>(entity, waterComponent);
@@ -295,7 +293,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     const auto& texComponent = registry.get<TextureComponent>(entity);
     const auto& camComponent = registry.get<CameraComponent>(entity);
 
-    if (meshComponent.disabled)
+    // if (meshComponent.disabled)
       continue;
 
     gfx::Renderer::RenderCommand renderCmd{
@@ -377,6 +375,8 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     mat4 localView = activeCam.cam->getLocalView(vec3(0.f));
     mat4 localTranslation = glm::translate(mat4(1.f), planetCameraOffset);
 
+    meshComponent.mesh->setInstanceCount(6 * waterComponent.quadsPerAxis * waterComponent.quadsPerAxis);
+
     meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
     meshComponent.shader->setUniformMatrix4f("u_localView", localView);
     meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
@@ -387,7 +387,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
     meshComponent.shader->setUniform1f("u_heightScaleScale", waterComponent.heightScaleScale);
     meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
-    meshComponent.shader->setUniform1f("u_sunIntensity", waterComponent.sunIntensity);
+    meshComponent.shader->setUniform1i("u_quadsPerAxis", waterComponent.quadsPerAxis);
 
     gfx::Renderer::RenderCommand renderCmdWater{
       .shader = meshComponent.shader,

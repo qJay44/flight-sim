@@ -120,8 +120,8 @@ void drawTerrainUi(entt::registry& registry) {
     for (auto entity : registry.view<terrain::WaterComponent>()) {
       auto& waterComponent = registry.get<terrain::WaterComponent>(entity);
       ImGui::SliderFloat("Foam sharpness", &waterComponent.foamSharpness, 0.f, 20.f);
-      ImGui::SliderFloat("Sun intensity", &waterComponent.sunIntensity, 0.f, 20.f);
       ImGui::SliderFloat("Scale of height scale", &waterComponent.heightScaleScale, 0.f, 1.f);
+      ImGui::SliderInt("Quads per axis", &waterComponent.quadsPerAxis, 1, 8);
     }
   }
 }

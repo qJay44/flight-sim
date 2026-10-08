@@ -101,6 +101,8 @@ void Renderer::renderFrame() {
       currBoundShader->setUniform3f("u_lightDir", globalLight->direction);
       currBoundShader->setUniform1f("u_lightAmbient", globalLight->ambient);
       currBoundShader->setUniform1f("u_lightSpecular", globalLight->specular);
+      currBoundShader->setUniform1f("u_lightIntensity", globalLight->intensity);
+      currBoundShader->setUniform1f("u_lightFocus", globalLight->focus);
     }
 
     if (command.mesh != currBoundMesh) {

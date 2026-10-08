@@ -1,7 +1,12 @@
 #define PI 3.14159265358979f
+#define PI_2 (PI / 2.0)
+#define PI_3 (PI / 3.0)
+#define PI_4 (PI / 4.0)
+#define PI_6 (PI / 6.0)
 #define TAU (2.f * PI)
 
 #define sq(x) ((x)*(x))
+#define dot0(x, y) max(0.0, dot(x, y))
 #define clamp01(x) clamp(x, 0.0, 1.0)
 #define smoothstep_inv(e0, e1, x) (1.f - smoothstep(e1, e0, x))
 

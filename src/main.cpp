@@ -59,6 +59,8 @@ int main() {
       .direction = glm::normalize(vec3(0.707f, 0.707f, 0.f)),
       .ambient = 0.1f,
       .specular = 0.2f,
+      .intensity = 7.f,
+      .focus = 800.f
     };
 
     gfx::Renderer renderer;

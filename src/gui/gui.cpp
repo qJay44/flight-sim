@@ -65,6 +65,8 @@ void render(entt::registry& registry) {
     ImGui::SliderFloat("Ambient", &light->ambient, 0.f, 1.f);
     ImGui::SliderFloat("Specular", &light->specular, 0.f, 1.f);
     ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+    ImGui::SliderFloat("Intensity", &light->intensity, 0.f, 20.f);
+    ImGui::SliderFloat("Focus", &light->focus, 0.f, 1000.f);
   }
 
   drawCameraUi(registry);

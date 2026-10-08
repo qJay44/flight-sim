@@ -7,6 +7,8 @@ struct Light{
   vec3 direction; // Towards light source
   float ambient;
   float specular;
+  float intensity;
+  float focus;
 };
 
 } // namespace core

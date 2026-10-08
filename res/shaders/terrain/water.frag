@@ -5,29 +5,30 @@
 
 out vec4 FragColor;
 
-in vec3 v_normal;
 in vec3 v_worldPos;
+in vec3 v_normal;
+in vec3 v_viewVec;
 in vec2 v_uv;
-in flat int v_id;
+in flat int v_face;
 
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
-uniform vec3 u_camPos;
 uniform float u_planetRadius;
 uniform float u_heightScale;
 uniform float u_foamSharpness;
-uniform float u_sunIntensity;
+uniform float u_lightIntensity;
+uniform float u_lightFocus;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 layout(binding = 1) uniform sampler2D u_texDerivatives;
 layout(binding = 2) uniform sampler2D u_texTurbulence;
 
-vec3 getNormal(vec2 uv) {
+vec3 getWaveNormal(vec2 uv) {
   vec4 derivatives = texture(u_texDerivatives, uv);
   vec2 slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
   vec3 waveNormal = normalize(vec3(-slope.x, 1.f, -slope.y));
 
-  return waveNormal * v_normal;
+  return waveNormal;
 }
 
 vec3 getTriplanarNormal(vec3 pos, vec3 normal, float scale) {
@@ -35,9 +36,9 @@ vec3 getTriplanarNormal(vec3 pos, vec3 normal, float scale) {
   vec2 uvY = pos.xz * scale;
   vec2 uvZ = pos.xy * scale;
 
-  vec3 nx = getNormal(uvX) * 2.f - 1.f;
-  vec3 ny = getNormal(uvY) * 2.f - 1.f;
-  vec3 nz = getNormal(uvZ) * 2.f - 1.f;
+  vec3 nx = getWaveNormal(uvX) * 2.f - 1.f;
+  vec3 ny = getWaveNormal(uvY) * 2.f - 1.f;
+  vec3 nz = getWaveNormal(uvZ) * 2.f - 1.f;
 
   vec3 blend = abs(normal);
   blend = pow(blend, vec3(4.f));
@@ -46,54 +47,36 @@ vec3 getTriplanarNormal(vec3 pos, vec3 normal, float scale) {
   return normalize(nx * blend.x + ny * blend.y + nz * blend.z);
 }
 
-vec3 getSkyColor(vec3 rayDir) {
-  // 1. Horizon Gradient (White/Light Blue at horizon, Deep Blue up top)
-  float horizonFactor = smoothstep(-0.1, 0.3, rayDir.y);
-  vec3 zenithColor = vec3(0.05, 0.1, 0.3); // Dark Space Blue
-  vec3 horizonColor = vec3(0.6, 0.7, 0.9); // Pale Haze
-  vec3 skyBase = mix(horizonColor, zenithColor, horizonFactor);
-
-  // 2. Sun Halo (Bright glow around the sun)
-  float sunSpot = max(dot(rayDir, u_lightDir), 0.0);
-  float sunHalo = pow(sunSpot, 200.0); // Sharp sun disk
-
-  return skyBase + u_lightColor * sunHalo;
-}
-
 void main() {
-  vec3 viewVec = u_camPos - v_worldPos;
-  float height = u_planetRadius / u_heightScale;
-  float camHeight = length(viewVec);
+  float viewVecLen = length(v_viewVec);
+  float camHeight = viewVecLen;
 
-  vec3 geometricNormal = normalize(v_normal);
-  vec3 waveNormal = getNormal(v_uv);
-  // vec3 waveNormal = getTriplanarNormal(v_worldPos, geometricNormal, 1.f);
-  vec3 finalNormal = normalize(geometricNormal + waveNormal * 0.5f); // Perturbed Normal, 0.5 is wave strength
-
-  vec3 viewDir = viewVec / camHeight;
+  // vec3 normal = getTriplanarNormal(v_worldPos, v_normal, 0.0001f);
+  vec3 normal = getWaveNormal(v_uv);
+  vec3 viewDir = v_viewVec / viewVecLen;
+  vec3 reflDir = reflect(-viewDir, normal);
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
-  vec3 reflDir = reflect(-viewDir, finalNormal);
-  vec3 reflColor = getSkyColor(reflDir);
 
-  float NdotH = max(dot(finalNormal, halfwayDir), 0.f);
-  float spec = pow(NdotH, 128.f);
+  float VdotN = dot0(viewDir, normal);
+  float LdotN = dot0(u_lightDir, normal);
+  float NdotH = dot0(normal, halfwayDir);
+  float ambient = 0.1f;
 
-  float NdotV = max(dot(geometricNormal, viewDir), 0.f);
-  float fresnel = pow(1.f - NdotV, 5.f);
+  float scatter = pow(dot0(viewDir, -u_lightDir), 3.f) * (2.f - VdotN);
+  vec3 scatterCol = vec3(0.f, 0.4f, 0.4f) * scatter * u_lightIntensity;
 
-  // 0.02 - Water is 98% transparent looking down
-  // 0.95 - Water is 95% opaque at the horison
-  fresnel = clamp(fresnel + 0.92f, 0.f, 0.95f);
-
-  vec4 surfaceColor = vec4(COLOR_SHALLOW, fresnel);
+  vec3 waterBase = COLOR_SHALLOW;
+  vec3 diffuseCol = waterBase * (LdotN + ambient);
 
   float jacobian = texture(u_texTurbulence, v_uv).r;
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
   foam *= exp(-camHeight * 1e-4f);
 
-  surfaceColor += foam;
+  float specAmount = pow(NdotH, u_lightFocus);
+  vec3 specularCol = u_lightColor * specAmount * u_lightIntensity;
 
-  vec3 finalColor = surfaceColor.rgb + u_lightColor * spec * u_sunIntensity;
+  vec3 finalColor = diffuseCol + foam + specularCol;
 
-  FragColor = vec4(finalColor, fresnel);
+  FragColor = vec4(finalColor, 1.f);
 }
+
