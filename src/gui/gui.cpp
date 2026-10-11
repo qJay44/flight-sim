@@ -6,9 +6,13 @@
 #include "backends/imgui_impl_opengl3.h"
 
 #include "ProfilerManager.hpp"
-#include "components-ui.hpp"
+#include "components.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "../gfx/AssetManager.hpp"
+#include "../gfx/terrain/GenerationManager.hpp"
+#include "../core/ActiveCamera.hpp"
+#include "../ecs/systems/TerrainSystem.hpp"
+#include "LoaderWidget.hpp"
 
 namespace gui {
 
@@ -52,6 +56,7 @@ void render(entt::registry& registry) {
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler = registry.ctx().get<ProfilerManager>();
+  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   // ::::: Config window ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: //
 
@@ -69,8 +74,110 @@ void render(entt::registry& registry) {
     ImGui::SliderFloat("Focus", &light->focus, 0.f, 1000.f);
   }
 
-  drawCameraUi(registry);
-  drawTerrainUi(registry);
+  if (ImGui::CollapsingHeader("Cameras")) {
+    auto camView = registry.view<CameraComponent, TransformComponent>();
+    auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+
+    for (auto entity : camView) {
+      size_t id = static_cast<size_t>(entity);
+      auto& camComponent = registry.get<CameraComponent>(entity);
+
+      ImGui::PushID(id);
+      ImGui::SetNextItemOpen(camComponent.cam == activeCam.cam, ImGuiCond_FirstUseEver);
+
+      if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
+        auto& transComponent = registry.get<TransformComponent>(entity);
+
+        drawCameraComponent(camComponent, activeCam);
+        drawTransformComponent(transComponent);
+
+        ImGui::TreePop();
+      }
+
+      ImGui::PopID();
+    }
+  }
+
+  if (ImGui::CollapsingHeader("Terrain")) {
+    auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
+    auto& cfg = gm.getConfig();
+    vec3 dirToCenter = glm::normalize(activeCam.cam->position);
+
+    ImGui::Text("Height scale: [%.2f]", cfg.planetRadius * cfg.planetRadiusPercent);
+    ImGui::Text("Free   slots: [%zu]", gm.getFreeSlots());
+    ImGui::Text("Cached slots: [%zu]", gm.getCachedSlots());
+    ImGui::Text("Altitude: [%.2f]", glm::distance(activeCam.cam->position, cfg.planetRadius * dirToCenter));
+
+    ImGui::SeparatorText("FBM");
+    {
+      bool u = false;
+
+      u |= ImGui::DragFloat("Planet raidus", &cfg.planetRadius);
+      u |= ImGui::SliderFloat("Planet radius percent (height scale)", &cfg.planetRadiusPercent, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Global scale", &cfg.globalScale, 1.f, 50.f);
+      u |= ImGui::SliderFloat("Start amplitude", &cfg.initAmplitude, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Start frequency", &cfg.initFrequency, 0.f, 10.f);
+      u |= ImGui::SliderFloat("Amplitude gain", &cfg.gain, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Lacunarity", &cfg.lacunarity, 1.f, 10.f);
+      u |= ImGui::SliderFloat("Start amplitude (detail)", &cfg.initAmplitudeDetail, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Start frequency (detail)", &cfg.initFrequencyDetail, 0.f, 10.f);
+      u |= ImGui::SliderFloat("Amplitude gain (detail)", &cfg.gainDetail, 0.f, 1.f);
+      u |= ImGui::SliderFloat("Lacunarity (detail)", &cfg.lacunarityDetail, 1.f, 10.f);
+      u |= ImGui::SliderFloat("F1 Voroni frequency", &cfg.f1VoronoiFreq, 0.f, 100.f);
+      u |= ImGui::SliderFloat("Displace strength", &cfg.displaceStrength, 0.f, 10.f);
+      u |= ImGui::SliderFloat("Continent frequency", &cfg.continentFreq, 0.f, 15.f);
+      u |= ImGui::SliderFloat("F2-F1 Voronoi frequency", &cfg.f2f1VoronoiFreq, 0.f, 10.f);
+      u |= ImGui::SliderInt("Octaves", &cfg.octavesDisplace, 1, 10);
+      u |= ImGui::SliderInt("Terrace steps", &cfg.terraceSteps, 1, 30);
+
+      ImGui::SeparatorText("Load/Save");
+      static LoaderWidget lw("heightmap1");
+      u |= lw.render(cfg);
+
+      if (u)
+        ecs::TerrainSystem::reload(registry);
+
+      ImGui::SeparatorText("Lands");
+      for (auto entity : registry.view<terrain::TerrainComponent, MeshComponent>()) {
+        size_t id = static_cast<size_t>(entity);
+        ImGui::PushID(id);
+        ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+
+        if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
+          auto& terrainComponent = registry.get<terrain::TerrainComponent>(entity);
+          auto& meshComponent = registry.get<MeshComponent>(entity);
+
+          ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+          drawTerrainComponent(terrainComponent);
+          drawMeshComponent(meshComponent);
+
+          ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+      }
+
+      ImGui::SeparatorText("Waters");
+      for (auto entity : registry.view<terrain::WaterComponent, MeshComponent>()) {
+        size_t id = static_cast<size_t>(entity);
+        ImGui::PushID(id);
+        ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+
+        if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
+          auto& waterComponent = registry.get<terrain::WaterComponent>(entity);
+          auto& meshComponent = registry.get<MeshComponent>(entity);
+
+          ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+          drawWaterComponent(waterComponent);
+          drawMeshComponent(meshComponent);
+
+          ImGui::TreePop();
+        }
+
+        ImGui::PopID();
+      }
+    }
+  }
 
   ImGui::End();
 
