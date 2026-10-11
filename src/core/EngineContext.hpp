@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/ext/matrix_clip_space.hpp>
 namespace core {
 
 struct EngineContext {
@@ -43,6 +44,11 @@ struct EngineContext {
   inline float getAspectRatio_HeihtOverWidth() const {
     vec2 winSize = getWinSize();
     return winSize.y / winSize.x;
+  }
+
+  inline mat4 getScreenProjection() {
+    vec2 winSize = getWinSize();
+    return glm::ortho(0.f, winSize.x, 0.f, winSize.y);
   }
 };
 

@@ -20,11 +20,15 @@ public:
   [[nodiscard]]
   static Mesh createMeshPlane(size_t resolution, bool skirts, bool instanced);
 
+  [[nodiscard]]
+  static Mesh createMeshScreenGrid(size_t resolution);
+
   [[nodiscard]] Mesh(const MeshData& data);
 
   void togglePolygonMode();
   void convertToInstancing();
   void setInstanceCount(int n);
+  void setPolygonMode(GLenum mode);
   void updateDataBuffer(const MeshData& data);
 
 private:

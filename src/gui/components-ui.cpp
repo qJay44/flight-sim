@@ -6,6 +6,7 @@
 #include "../ecs/components/TransformComponent.hpp"
 #include "../ecs/components/TerrainComponent.hpp"
 #include "../ecs/components/WaterComponent.hpp"
+#include "../ecs/components/MeshComponent.hpp"
 #include "../ecs/systems/TerrainSystem.hpp"
 #include "../gfx/terrain/GenerationManager.hpp"
 #include "../core/ActiveCamera.hpp"
@@ -14,6 +15,39 @@
 namespace gui {
 
 using namespace ecs::component;
+
+// TODO: Refactor Camera and Terrain like this
+void drawMeshComponentUI(size_t id, MeshComponent& component) {
+  if (ImGui::TreeNode("Mesh component")) {
+    ImGui::PushID(id);
+
+    ImGui::Checkbox("Disabled", &component.disabled);
+    ImGui::BeginDisabled(component.disabled);
+
+    ImGui::SeparatorText("Mesh");
+
+    ImGui::Text("Polygon mode");
+    {
+      static auto rbPolygonMode = GL_FILL;
+      bool u = false;
+
+      if (ImGui::RadioButton("GL_FILL", rbPolygonMode == GL_FILL))   rbPolygonMode = GL_FILL , u = true;
+      if (ImGui::RadioButton("GL_LINE", rbPolygonMode == GL_LINE))   rbPolygonMode = GL_LINE , u = true;
+      if (ImGui::RadioButton("GL_POINT", rbPolygonMode == GL_POINT)) rbPolygonMode = GL_POINT, u = true;
+      if (u)
+        component.mesh->setPolygonMode(rbPolygonMode);
+    }
+
+    ImGui::EndDisabled();
+
+    ImGui::SeparatorText("Shader");
+    if (ImGui::Button("Reload"))
+      component.shader->reload();
+
+    ImGui::PopID();
+    ImGui::TreePop();
+  }
+}
 
 void drawCameraUi(entt::registry& registry) {
   if (ImGui::CollapsingHeader("Cameras")) {
@@ -63,8 +97,10 @@ void drawTerrainUi(entt::registry& registry) {
 
     for (auto entity : registry.view<terrain::TerrainComponent>()) {
       auto& terrain = registry.get<terrain::TerrainComponent>(entity);
+      auto& meshComponent = registry.get<MeshComponent>(entity);
       auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
       auto& cfg = gm.getConfig();
+      size_t id = static_cast<size_t>(entity);
 
       float nodesUsed = static_cast<float>(terrain.activeLeafs) / TERRAIN_MAX_NODES;
       vec4 nodesColor = nodesUsed > 0.8f ? vec4(1.f, 0.f, 0.f, 1.f) : nodesUsed > 0.5f ? vec4(1.f, 1.f, 0.f, 1.f) : vec4(1.f);
@@ -112,16 +148,20 @@ void drawTerrainUi(entt::registry& registry) {
 
         if (u)
           ecs::TerrainSystem::reload(registry);
+
       }
+
+      drawMeshComponentUI(id, meshComponent);
     }
 
     ImGui::SeparatorText("Water");
 
     for (auto entity : registry.view<terrain::WaterComponent>()) {
       auto& waterComponent = registry.get<terrain::WaterComponent>(entity);
+
       ImGui::SliderFloat("Foam sharpness", &waterComponent.foamSharpness, 0.f, 20.f);
       ImGui::SliderFloat("Scale of height scale", &waterComponent.heightScaleScale, 0.f, 1.f);
-      ImGui::SliderInt("Quads per axis", &waterComponent.quadsPerAxis, 1, 8);
+      ImGui::SliderFloat("Tile scale", &waterComponent.tileScale, 0.f, 50.f);
     }
   }
 }

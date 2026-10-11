@@ -5,11 +5,9 @@
 
 out vec4 FragColor;
 
-in vec3 v_worldPos;
-in vec3 v_normal;
-in vec3 v_viewVec;
-in vec2 v_uv;
-in flat int v_face;
+in vec3 v_sphereDir;
+in float v_camHeight;
+in flat Ray v_ray;
 
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
@@ -18,6 +16,7 @@ uniform float u_heightScale;
 uniform float u_foamSharpness;
 uniform float u_lightIntensity;
 uniform float u_lightFocus;
+uniform float u_tileScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 layout(binding = 1) uniform sampler2D u_texDerivatives;
@@ -48,12 +47,15 @@ vec3 getTriplanarNormal(vec3 pos, vec3 normal, float scale) {
 }
 
 void main() {
-  float viewVecLen = length(v_viewVec);
-  float camHeight = viewVecLen;
+  vec3 viewDir = v_ray.dir;
 
-  // vec3 normal = getTriplanarNormal(v_worldPos, v_normal, 0.0001f);
-  vec3 normal = getWaveNormal(v_uv);
-  vec3 viewDir = v_viewVec / viewVecLen;
+  vec2 equatorUV = vec2(atan(v_sphereDir.z, v_sphereDir.x), asin(v_sphereDir.y)) * u_tileScale;
+  vec2 polarUV = v_sphereDir.xz * u_tileScale;
+  float poleBlend = smoothstep(0.6f, 0.8f, abs(v_sphereDir.y));
+
+  vec3 normalEquator = getWaveNormal(equatorUV);
+  vec3 normalPolar = getWaveNormal(polarUV);
+  vec3 normal = mix(normalEquator, normalPolar, poleBlend);
   vec3 reflDir = reflect(-viewDir, normal);
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
 
@@ -68,9 +70,11 @@ void main() {
   vec3 waterBase = COLOR_SHALLOW;
   vec3 diffuseCol = waterBase * (LdotN + ambient);
 
-  float jacobian = texture(u_texTurbulence, v_uv).r;
+  float jacobianEquator = texture(u_texTurbulence, equatorUV).r;
+  float jacobianPolar = texture(u_texTurbulence, polarUV).r;
+  float jacobian = mix(jacobianEquator, jacobianPolar, poleBlend);
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
-  foam *= exp(-camHeight * 1e-4f);
+  foam *= exp(-v_camHeight * 1e-4f);
 
   float specAmount = pow(NdotH, u_lightFocus);
   vec3 specularCol = u_lightColor * specAmount * u_lightIntensity;

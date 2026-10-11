@@ -1,3 +1,5 @@
+#define FLOAT_MAX 3.4028235e38f
+
 #define PI 3.14159265358979f
 #define PI_2 (PI / 2.0)
 #define PI_3 (PI / 3.0)
@@ -14,6 +16,30 @@ struct Ray {
   vec3 origin;
   vec3 dir;
 };
+
+struct RayHitInfo {
+  float distToSphere;
+  float distThroughSphere;
+};
+
+RayHitInfo raySphere(vec3 center, float radius, Ray ray) {
+  vec3 offset = ray.origin - center;
+  float a = 1.f;
+  float b = 2.f * dot(offset, ray.dir);
+  float c = dot(offset, offset) - radius * radius;
+  float discriminant = b * b - 4.f * a * c;
+
+  if (discriminant > 0.f) {
+    float s = sqrt(discriminant);
+    float dstToSphereNear = max(0.f, (-b - s) / (2.f * a));
+    float dstToSphereFar = (-b + s) / (2.f * a);
+
+    if (dstToSphereFar >= 0.f)
+      return RayHitInfo(dstToSphereNear, dstToSphereFar - dstToSphereNear);
+  }
+
+  return RayHitInfo(FLOAT_MAX, 0.f);
+}
 
 vec2 complexMultiply(vec2 n1, vec2 n2) {
   // (a + bi) * (c + di) = ac + adi + bci + bdi^2

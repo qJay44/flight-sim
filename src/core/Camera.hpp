@@ -18,6 +18,8 @@ struct Camera {
   vec3 orientation{0.f, 0.f, -1.f};
   mat4 cachedProj{1.f};
   mat4 cachedView{1.f};
+  mat4 cachedProjInv{1.f};
+  mat4 cachedViewInv{1.f};
 
   void update(float aspectRatio) {
     orientation = normalize(vec3{
@@ -28,6 +30,8 @@ struct Camera {
 
     cachedProj = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
     cachedView = glm::lookAt(position, position + orientation, up);
+    cachedProjInv = glm::inverse(cachedProj);
+    cachedViewInv = glm::inverse(cachedView);
   }
 
   float extractAspectRatio() const {

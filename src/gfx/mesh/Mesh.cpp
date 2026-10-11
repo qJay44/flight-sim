@@ -14,6 +14,10 @@ void Mesh::setInstanceCount(int n) {
   std::get<ElementsInstancedDraw>(drawCmd).instanceCount = n;
 };
 
+void Mesh::setPolygonMode(GLenum mode) {
+  polygonMode = mode;
+}
+
 void Mesh::updateDataBuffer(const MeshData& data) {
   vbo.updateSubData(data.vertices, data.verticesSize);
 }
@@ -130,6 +134,40 @@ Mesh Mesh::createMeshPlane(size_t resolution, bool skirts, bool instanced) {
   data.instanced = instanced;
 
   return Mesh(data);
+}
+
+Mesh Mesh::createMeshScreenGrid(size_t res) {
+  size_t res1 = res + 1;
+  size_t triIndex = 0;
+  float invRes = 1.f / float(res);
+
+  std::vector<vertex::P> vertices(res1 * res1);
+  std::vector<GLuint> indices(6 * res * res);
+
+  for (size_t z = 0; z < res1; z++) {
+    float v = z * invRes;
+
+    for (size_t x = 0; x < res1; x++) {
+      size_t idx = x + z * res1;
+      float u = x * invRes;
+
+      vertices[idx].position = vec3(u, v, 0.f) * 2.f - 1.f;
+
+      if (x != res && z != res) {
+        indices[triIndex + 0] = idx + res1 + 1;
+        indices[triIndex + 1] = idx + 1;
+        indices[triIndex + 2] = idx;
+
+        indices[triIndex + 3] = idx;
+        indices[triIndex + 4] = idx + res1;
+        indices[triIndex + 5] = idx + res1 + 1;
+
+        triIndex += 6;
+      }
+    }
+  }
+
+  return Mesh(MeshData(vertices, indices));
 }
 
 void Mesh::linkAttributes(const vertex::Layout& layout) {

@@ -1,19 +1,15 @@
 #version 460 core
 
-#include "terrain.glsl"
-
-#define MESH_RESOLUTION 256
-#define BASE_VERTEX_COUNT (MESH_RESOLUTION*MESH_RESOLUTION)
+#include "../common.glsl"
 
 layout(location = 0) in vec3 a_pos;
 
-out vec3 v_worldPos;
-out vec3 v_normal;
-out vec3 v_viewVec;
-out vec2 v_uv;
-out flat int v_face;
+out vec3 v_sphereDir;
+out float v_camHeight;
+out flat Ray v_ray;
 
 uniform mat4 u_proj;
+uniform mat4 u_pvInvLocal;
 uniform mat4 u_localView;
 uniform mat4 u_localTranslation;
 uniform vec3 u_camPos;
@@ -21,39 +17,49 @@ uniform float u_camFar;
 uniform float u_planetRadius;
 uniform float u_heightScale;
 uniform float u_heightScaleScale;
-uniform int u_quadsPerAxis;
+uniform float u_tileScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 
+const vec3 planetCenter = vec3(0.f);
+
+vec3 calcViewVec(vec2 uv) {
+  vec2 ndc = uv * 2.f - 1.f;
+  vec4 clipPos = vec4(ndc, -1.f, 1.f);
+  vec4 worldPos = u_pvInvLocal * clipPos;
+  worldPos /= worldPos.w;
+
+  return worldPos.xyz;
+}
+
 void main() {
-  float sign = gl_VertexID >= BASE_VERTEX_COUNT ? -1.f : 1.f;
-  float offsetSize = 1.f / u_quadsPerAxis;
-  int quadsTotal = u_quadsPerAxis * u_quadsPerAxis;
-  int face = gl_InstanceID / quadsTotal;
-  int quad = gl_InstanceID % quadsTotal;
-  int row = quad / u_quadsPerAxis;
-  int col = quad % u_quadsPerAxis;
+  vec4 ndc = vec4(a_pos, 1.f);
+  vec3 viewVec = calcViewVec(a_pos.xy * 0.5f + 0.5f);
+  Ray ray = Ray(u_camPos, normalize(viewVec));
+  float waterRadius = u_planetRadius + u_heightScale * u_heightScaleScale;
 
-  vec2 uv = a_pos.xz * 0.5f + 0.5f;
-  vec2 localPos = uv / (u_quadsPerAxis * 0.5f) - 1.f;
-  localPos += vec2(col, row) * 0.5f;
+  RayHitInfo hitInfo = raySphere(vec3(0.f), waterRadius, ray);
+  vec3 worldPos = ray.origin + ray.dir * hitInfo.distToSphere;
+  vec3 sphereDir = normalize(worldPos - planetCenter);
 
-  vec3 sphereDir = normalize(cubeToSphere(localPos, face));
-  vec3 pos = sphereDir * (u_planetRadius + u_heightScale * u_heightScaleScale * sign);
+  vec2 equatorUV = vec2(atan(sphereDir.z, sphereDir.x), asin(sphereDir.y)) * u_tileScale;
+  vec2 polarUV = sphereDir.xz * u_tileScale;
+  float poleBlend = smoothstep(0.6f, 0.8f, abs(sphereDir.y));
 
-  vec3 wave = texture(u_texDisplacement, uv).rgb;
-  vec4 worldPos = vec4(pos + sphereDir * wave * 30.f, 1.f);
+  vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
+  vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
+  vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
+  worldPos += sphereDir * displacement;
 
-  v_worldPos = worldPos.xyz;
-  v_normal = sphereDir;
-  v_viewVec = u_camPos - v_worldPos;
-  v_uv = uv;
-  v_face = face;
-
-	gl_Position = u_proj * (u_localView * (u_localTranslation * worldPos));
+  // TODO: Some parts are cut off when very close at the mesh
+	gl_Position = u_proj * (u_localView * (u_localTranslation * vec4(worldPos, 1.f)));
 
   float C = 0.001;
   float distNorm = log(C * gl_Position.w + 1.0) / log(C * u_camFar + 1.0);
   gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
+
+  v_sphereDir = sphereDir;
+  v_camHeight = length(worldPos - u_camPos);
+  v_ray = ray;
 }
 

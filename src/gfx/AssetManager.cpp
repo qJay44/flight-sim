@@ -66,6 +66,19 @@ std::string AssetManager::createMeshPlane_Triangles(size_t resolution, const std
   return name;
 }
 
+std::string AssetManager::createMeshScreenGrid_Triangles(size_t resolution, const std::string& nameSuffix) {
+  std::string uniqueSuffix = "_" + nameSuffix;
+  std::string name = std::format("MeshPlane_Triangles{}{}", uniqueSuffix, resolution);
+
+  if (meshes.contains(name)) {
+    warning("[AssetManager::createMeshPlane_Triangles] Mesh ({}) already created", name);
+    return name;
+  }
+
+  meshes.emplace(name, std::make_unique<Mesh>(Mesh::createMeshScreenGrid(resolution)));
+  return name;
+}
+
 void AssetManager::loadFromObj(fspath filepath, bool printInfo) {
   std::string filename = filepath.filename().string();
 
