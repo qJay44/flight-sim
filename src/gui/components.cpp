@@ -98,6 +98,25 @@ void drawCameraComponent(CameraComponent& component, core::ActiveCamera& activeC
   ImGui::PopID();
 }
 
+void drawInputComponent(InputComponent& component) {
+  if (ImGui::TreeNode("Input component")) {
+    ImGui::Checkbox("Disabled", &component.disabled);
+    ImGui::BeginDisabled(component.disabled);
+    ImGui::SliderFloat("Shift multiplier", &component.shiftMultiplier, 0.f, 50.f);
+    ImGui::EndDisabled();
+    ImGui::TreePop();
+  }
+}
+
+void drawVelocityComponent(VelocityComponent& component) {
+  if (ImGui::TreeNode("Velocity component")) {
+    const auto& v = component.velocity;
+    ImGui::Text("Velocity: [%.2f, %.2f, %.2f]", v.x, v.y, v.z);
+    ImGui::SliderFloat("Scale", &component.scale, 0.f, 50.f);
+    ImGui::TreePop();
+  }
+}
+
 void drawTerrainComponent(terrain::TerrainComponent& component) {
   if (ImGui::TreeNode("Terrain component")) {
     float nodesUsed = static_cast<float>(component.activeLeafs) / TERRAIN_MAX_NODES;
@@ -121,6 +140,7 @@ void drawWaterComponent(terrain::WaterComponent& component) {
     ImGui::SliderFloat("Foam sharpness", &component.foamSharpness, 0.f, 20.f);
     ImGui::SliderFloat("Scale of height scale", &component.heightScaleScale, 0.f, 1.f);
     ImGui::SliderFloat("Tile scale", &component.tileScale, 0.f, 50.f);
+    ImGui::SliderFloat("Displacement scale", &component.displacementScale, 1.f, 10.f);
 
     ImGui::TreePop();
   }

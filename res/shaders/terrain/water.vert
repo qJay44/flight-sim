@@ -5,7 +5,7 @@
 layout(location = 0) in vec3 a_pos;
 
 out vec3 v_sphereDir;
-out float v_camHeight;
+out float v_viewDist;
 out flat Ray v_ray;
 
 uniform mat4 u_proj;
@@ -18,10 +18,12 @@ uniform float u_planetRadius;
 uniform float u_heightScale;
 uniform float u_heightScaleScale;
 uniform float u_tileScale;
+uniform float u_displacementScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 
 const vec3 planetCenter = vec3(0.f);
+const float gridScale = 1.5f; // Prevent cutting grid at the screen edges
 
 vec3 calcViewVec(vec2 uv) {
   vec2 ndc = uv * 2.f - 1.f;
@@ -33,14 +35,19 @@ vec3 calcViewVec(vec2 uv) {
 }
 
 void main() {
-  vec4 ndc = vec4(a_pos, 1.f);
-  vec3 viewVec = calcViewVec(a_pos.xy * 0.5f + 0.5f);
+  vec2 uv = a_pos.xy * gridScale * 0.5f + 0.5f;
+  vec3 viewVec = calcViewVec(uv);
   Ray ray = Ray(u_camPos, normalize(viewVec));
   float waterRadius = u_planetRadius + u_heightScale * u_heightScaleScale;
 
   RayHitInfo hitInfo = raySphere(vec3(0.f), waterRadius, ray);
   vec3 worldPos = ray.origin + ray.dir * hitInfo.distToSphere;
   vec3 sphereDir = normalize(worldPos - planetCenter);
+
+  float viewDist = length(worldPos - u_camPos);
+  float fadeStart = 1000.f;
+  float fadeEnd = 7000.f;
+  float distFactor = 1.f - smoothstep(fadeStart, fadeEnd, viewDist);
 
   vec2 equatorUV = vec2(atan(sphereDir.z, sphereDir.x), asin(sphereDir.y)) * u_tileScale;
   vec2 polarUV = sphereDir.xz * u_tileScale;
@@ -49,9 +56,8 @@ void main() {
   vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
   vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
   vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
-  worldPos += sphereDir * displacement;
+  worldPos += sphereDir * displacement * u_displacementScale * distFactor;
 
-  // TODO: Some parts are cut off when very close at the mesh
 	gl_Position = u_proj * (u_localView * (u_localTranslation * vec4(worldPos, 1.f)));
 
   float C = 0.001;
@@ -59,7 +65,7 @@ void main() {
   gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
 
   v_sphereDir = sphereDir;
-  v_camHeight = length(worldPos - u_camPos);
+  v_viewDist = viewDist;
   v_ray = ray;
 }
 

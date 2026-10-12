@@ -32,7 +32,7 @@ void createLandEntity(entt::registry& registry) {
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
-  // NOTE: The mesh resolution is the same as [MESH_RESOLUTION]
+  // NOTE: The mesh resolution is the same as [MESH_RESOLUTION] in the shader
   std::string meshName = assetManager.createMeshPlane_Triangles(128, "TerrainLand", true, true);
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
@@ -92,7 +92,7 @@ void createWaterEntity(entt::registry& registry) {
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
-  std::string meshName = assetManager.createMeshScreenGrid_Triangles(256, "TerrainWater");
+  std::string meshName = assetManager.createMeshScreenGrid_Triangles(512, "TerrainWater");
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
@@ -100,6 +100,7 @@ void createWaterEntity(entt::registry& registry) {
     .foamSharpness = 1.f,
     .heightScaleScale = 0.03f,
     .tileScale = 50.f,
+    .displacementScale = 3.f,
   };
 
   MeshComponent meshComponent{
@@ -385,9 +386,10 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
+    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
     meshComponent.shader->setUniform1f("u_heightScaleScale", waterComponent.heightScaleScale);
     meshComponent.shader->setUniform1f("u_tileScale", waterComponent.tileScale);
-    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
+    meshComponent.shader->setUniform1f("u_displacementScale", waterComponent.displacementScale);
 
     gfx::Renderer::RenderCommand renderCmdWater{
       .shader = meshComponent.shader,

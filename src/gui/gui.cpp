@@ -75,7 +75,7 @@ void render(entt::registry& registry) {
   }
 
   if (ImGui::CollapsingHeader("Cameras")) {
-    auto camView = registry.view<CameraComponent, TransformComponent>();
+    auto camView = registry.view<CameraComponent, TransformComponent, InputComponent, VelocityComponent>();
     auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
     for (auto entity : camView) {
@@ -87,9 +87,13 @@ void render(entt::registry& registry) {
 
       if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
         auto& transComponent = registry.get<TransformComponent>(entity);
+        auto& inputComponent = registry.get<InputComponent>(entity);
+        auto& velComponent = registry.get<VelocityComponent>(entity);
 
         drawCameraComponent(camComponent, activeCam);
         drawTransformComponent(transComponent);
+        drawInputComponent(inputComponent);
+        drawVelocityComponent(velComponent);
 
         ImGui::TreePop();
       }
