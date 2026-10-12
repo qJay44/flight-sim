@@ -1,12 +1,12 @@
 #define TERRAIN_MAX_NODES 512
 
-#define COLOR_DEEP_OCEAN vec3(0.05, 0.15, 0.3)
-#define COLOR_SHALLOW    vec3(0.1, 0.3, 0.5)
-#define COLOR_SAND       vec3(0.78, 0.72, 0.55)
-#define COLOR_GRASS      vec3(0.22, 0.45, 0.18)
-#define COLOR_ROCK       vec3(0.4, 0.38, 0.36)
-#define COLOR_SNOW       vec3(0.95, 0.95, 0.95)
-#define COLOR_SKY        vec3(0.69, 0.84, 1.0)
+#define COLOR_OCEAN_DEEP    vec3(0.02, 0.1, 0.2)
+#define COLOR_OCEAN_SHALLOW vec3(0.f, 0.4f, 0.4f)
+#define COLOR_SAND          vec3(0.78, 0.72, 0.55)
+#define COLOR_GRASS         vec3(0.22, 0.45, 0.18)
+#define COLOR_ROCK          vec3(0.4,  0.38, 0.36)
+#define COLOR_SNOW          vec3(0.95, 0.95, 0.95)
+#define COLOR_SKY           vec3(0.69, 0.84, 1.0)
 
 struct NodeData {
   vec2 center;

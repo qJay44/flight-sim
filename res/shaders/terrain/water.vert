@@ -4,8 +4,11 @@
 
 layout(location = 0) in vec3 a_pos;
 
+out vec3 v_worldPos;
 out vec3 v_sphereDir;
+out vec3 v_viewVec;
 out float v_viewDist;
+out float v_depth;
 out flat Ray v_ray;
 
 uniform mat4 u_proj;
@@ -13,6 +16,7 @@ uniform mat4 u_pvInvLocal;
 uniform mat4 u_localView;
 uniform mat4 u_localTranslation;
 uniform vec3 u_camPos;
+uniform vec3 u_planetCenter;
 uniform float u_camFar;
 uniform float u_planetRadius;
 uniform float u_heightScale;
@@ -22,7 +26,6 @@ uniform float u_displacementScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 
-const vec3 planetCenter = vec3(0.f);
 const float gridScale = 1.5f; // Prevent cutting grid at the screen edges
 
 vec3 calcViewVec(vec2 uv) {
@@ -40,9 +43,9 @@ void main() {
   Ray ray = Ray(u_camPos, normalize(viewVec));
   float waterRadius = u_planetRadius + u_heightScale * u_heightScaleScale;
 
-  RayHitInfo hitInfo = raySphere(vec3(0.f), waterRadius, ray);
+  RayHitInfo hitInfo = raySphere(u_planetCenter, waterRadius, ray);
   vec3 worldPos = ray.origin + ray.dir * hitInfo.distToSphere;
-  vec3 sphereDir = normalize(worldPos - planetCenter);
+  vec3 sphereDir = normalize(worldPos - u_planetCenter);
 
   float viewDist = length(worldPos - u_camPos);
   float fadeStart = 1000.f;
@@ -53,6 +56,7 @@ void main() {
   vec2 polarUV = sphereDir.xz * u_tileScale;
   float poleBlend = smoothstep(0.6f, 0.8f, abs(sphereDir.y));
 
+  vec3 waterBottom = worldPos;
   vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
   vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
   vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
@@ -64,8 +68,11 @@ void main() {
   float distNorm = log(C * gl_Position.w + 1.0) / log(C * u_camFar + 1.0);
   gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
 
+  v_worldPos = worldPos;
   v_sphereDir = sphereDir;
+  v_viewVec = viewVec;
   v_viewDist = viewDist;
+  v_depth = length(worldPos - waterBottom);
   v_ray = ray;
 }
 

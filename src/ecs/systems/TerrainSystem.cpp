@@ -381,13 +381,13 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniformMatrix4f("u_localView", localView);
     meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
     meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
-    meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
+    meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
     meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
-    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
     meshComponent.shader->setUniform1f("u_heightScaleScale", waterComponent.heightScaleScale);
+    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
     meshComponent.shader->setUniform1f("u_tileScale", waterComponent.tileScale);
     meshComponent.shader->setUniform1f("u_displacementScale", waterComponent.displacementScale);
 
