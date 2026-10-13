@@ -97,7 +97,7 @@ void createWaterEntity(entt::registry& registry) {
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
   WaterComponent waterComponent{
-    .foamSharpness = 1.f,
+    .foamSharpness = 2.f,
     .heightScaleScale = 0.03f,
     .tileScale = 50.f,
     .displacementScale = 3.f,

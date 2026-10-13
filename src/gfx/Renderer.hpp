@@ -16,8 +16,11 @@ public:
     Mesh* mesh;
     bool enableCullFace = true;
     bool enableDepthTest = true;
+    bool enableBlend = false;
+    bool enableDepthMask = true;
     std::vector<Texture*> textures{};
     int priority = 0;
+    std::pair<GLenum, GLenum> blendFunc{GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA};
   };
 
   struct ComputeCommand {

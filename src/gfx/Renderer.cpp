@@ -115,6 +115,16 @@ void Renderer::renderFrame() {
 
       if (command.enableDepthTest) glEnable (GL_DEPTH_TEST);
       else                         glDisable(GL_DEPTH_TEST);
+
+      if (command.enableDepthMask) glDepthMask(GL_TRUE);
+      else                         glDepthMask(GL_FALSE);
+
+      if (command.enableBlend) {
+        glEnable(GL_BLEND);
+        glBlendFunc(command.blendFunc.first, command.blendFunc.second);
+      } else {
+        glDisable(GL_BLEND);
+      }
     }
 
     for (size_t i = 0; i < command.textures.size() && i < MAX_TEXTURES; i++) {

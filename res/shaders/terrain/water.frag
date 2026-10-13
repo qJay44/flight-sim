@@ -15,6 +15,7 @@ in flat Ray v_ray;
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
 uniform vec3 u_planetCenter;
+uniform vec3 u_camPos;
 uniform float u_planetRadius;
 uniform float u_heightScale;
 uniform float u_heightScaleScale;
@@ -50,10 +51,10 @@ vec3 getWaveNormal(vec2 uv) {
 }
 
 void main() {
-  vec3 viewDir = v_ray.dir;
+  vec3 viewDir = normalize(u_camPos - v_worldPos);
   float waterDepth = u_heightScale * u_heightScaleScale;
   float waterRadius = u_planetRadius + waterDepth;
-  float depthT = 1.f - smoothstep(0.f, waterDepth, v_depth);
+  float depthT = 1.f - smoothstep(0.f, waterDepth, v_depth); // 0.0 - shallow, 1.0 - deep
   RayHitInfo hitInfo = raySphere(u_planetCenter, waterRadius, v_ray);
 
   vec2 equatorUV = vec2(atan(v_sphereDir.z, v_sphereDir.x), asin(v_sphereDir.y)) * u_tileScale;
@@ -63,35 +64,34 @@ void main() {
   vec3 normalEquator = getWaveNormal(equatorUV);
   vec3 normalPolar = getWaveNormal(polarUV);
   vec3 normal = mix(normalEquator, normalPolar, poleBlend);
-  vec3 reflDir = reflect(-viewDir, normal);
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
   float distScale = smoothstep(0.f, u_planetRadius - u_heightScale * 10.f, max(0.f, v_viewDist));
 
   normal = mix(normal, v_sphereDir, distScale);
 
   float VdotN = dot0(viewDir, normal);
-  float LdotN = dot0(u_lightDir, normal);
+  float NdotL = dot0(normal, u_lightDir);
   float NdotH = dot0(normal, halfwayDir);
-  float ambient = 0.1f;
 
-  float scatter = pow(dot0(viewDir, -u_lightDir), 2.f) * (1.f - VdotN);
-  vec3 scatterCol = vec3(0.f, 0.4f, 0.4f) * scatter * u_lightIntensity;
+  vec3 scatterDir = normalize(u_lightDir + normal * 0.4f);
+  float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
+  vec3 scatterCol = COLOR_OCEAN_SHALLOW * scatter * 1.f;
 
   float jacobianEquator = texture(u_texTurbulence, equatorUV).r;
   float jacobianPolar = texture(u_texTurbulence, polarUV).r;
   float jacobian = mix(jacobianEquator, jacobianPolar, poleBlend);
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
-  foam *= 1.f - distScale;
-  foam = foam * max(0.4f, LdotN);
 
-  vec3 waterBase = mix(COLOR_OCEAN_SHALLOW, COLOR_OCEAN_DEEP, depthT);
-  vec3 diffuseCol = waterBase * (LdotN + ambient);
+  vec3 waterBase = COLOR_OCEAN_DEEP;
 
-  float specAmount = pow(NdotH, u_lightFocus);
-  vec3 specularCol = u_lightColor * specAmount * u_lightIntensity;
+  float diffuse = NdotL;
+  float specular = pow(NdotH, u_lightFocus) * u_lightIntensity;
+  float ambient = 0.1f;
 
-  vec3 finalColor = diffuseCol + foam + specularCol;
-  // finalColor = pow(finalColor, vec3(1.f / 2.2f));
+  vec3 finalColor = (diffuse + ambient) * u_lightColor * waterBase;
+  finalColor += specular * u_lightColor;
+  finalColor += scatterCol;
+  finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - depthT);
 
   FragColor = vec4(finalColor, 1.f);
   // FragColor = vec4(vec3(depthT), 1.f);

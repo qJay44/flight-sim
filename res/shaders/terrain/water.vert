@@ -41,7 +41,8 @@ void main() {
   vec2 uv = a_pos.xy * gridScale * 0.5f + 0.5f;
   vec3 viewVec = calcViewVec(uv);
   Ray ray = Ray(u_camPos, normalize(viewVec));
-  float waterRadius = u_planetRadius + u_heightScale * u_heightScaleScale;
+  float waterDepth = u_heightScale * u_heightScaleScale;
+  float waterRadius = u_planetRadius + waterDepth;
 
   RayHitInfo hitInfo = raySphere(u_planetCenter, waterRadius, ray);
   vec3 worldPos = ray.origin + ray.dir * hitInfo.distToSphere;
@@ -60,7 +61,8 @@ void main() {
   vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
   vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
   vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
-  worldPos += sphereDir * displacement * u_displacementScale * distFactor;
+  vec3 displacementFinal = displacement * u_displacementScale * distFactor;
+  worldPos += sphereDir * displacementFinal;
 
 	gl_Position = u_proj * (u_localView * (u_localTranslation * vec4(worldPos, 1.f)));
 
@@ -72,7 +74,7 @@ void main() {
   v_sphereDir = sphereDir;
   v_viewVec = viewVec;
   v_viewDist = viewDist;
-  v_depth = length(worldPos - waterBottom);
+  v_depth = length(displacementFinal);
   v_ray = ray;
 }
 
