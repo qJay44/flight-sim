@@ -10,6 +10,14 @@ static const union { vec3 right   {1.f, 0.f, 0.f}, red;   };
 static const union { vec3 up      {0.f, 1.f, 0.f}, green; };
 static const union { vec3 forward {0.f, 0.f, 1.f}, blue;  };
 
+inline vec3 linearToGamma(vec3 g, float gamma = 2.2f) {
+  return glm::pow(g, vec3(gamma));
+}
+
+inline vec3 gammaToLinear(vec3 l, float gamma = 2.2f) {
+  return glm::pow(l, vec3(1.f / gamma));
+}
+
 namespace json {
   // NLOHMANN_DEFINE_TYPE_INTRUSIVE(struct_t, field1, field2, ...)     // For private structs
   // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(struct_t, field1, field2, ...) // For public structs

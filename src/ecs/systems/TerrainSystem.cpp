@@ -44,6 +44,7 @@ void createLandEntity(entt::registry& registry) {
   MeshComponent meshComponent{
     .mesh = assetManager.getMesh(meshName),
     .shader = assetManager.getShader("TerrainDrawLand"),
+    .fbo = assetManager.getFBO("TerrainFbo"),
   };
 
   TextureComponent textureComponent{};
@@ -97,22 +98,33 @@ void createWaterEntity(entt::registry& registry) {
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
   WaterComponent waterComponent{
+    .oceanDeepColorLinear = vec3(0.02f, 0.1f, 0.2f),
+    .oceanShallowColorLinear = vec3(0.f, 0.4f, 0.4f),
     .foamSharpness = 2.f,
     .heightScaleScale = 0.03f,
     .tileScale = 50.f,
     .displacementScale = 3.f,
+    .waterDensity = 200.f,
+    .refractionDistortScale = 0.12f,
+    .normalToScatterScale = 0.4f,
+    .ambient = 0.1f,
+    .diffusePowScale = 80.f,
+    .specularPowScale = 256.f,
   };
 
   MeshComponent meshComponent{
     .mesh = assetManager.getMesh(meshName),
-    .shader = assetManager.getShader("TerrainDrawWater")
+    .shader = assetManager.getShader("TerrainDrawWater"),
+    .fbo = assetManager.getFBO("TerrainFbo"),
   };
 
   TextureComponent textureComponent{
     .textures = {
       &water.getTexDisplacement(),
       &water.getTexDerivatives(),
-      &water.getTexTurbulence()
+      &water.getTexTurbulence(),
+      assetManager.getTexture("TerrainFboColor1"),
+      assetManager.getTexture("TerrainFboDepth"),
     }
   };
 
@@ -152,11 +164,21 @@ void createWaterEntity(entt::registry& registry) {
 } // namespace
 
 void init(entt::registry& registry) {
+  auto& ctx          = registry.ctx().get<core::EngineContext>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto& profiler  = registry.ctx().get<ProfilerManager>();
-  auto& renderer  = registry.ctx().get<gfx::Renderer>();
+  auto& profiler     = registry.ctx().get<ProfilerManager>();
+  auto& renderer     = registry.ctx().get<gfx::Renderer>();
   auto gm = GenerationManager(&renderer, &profiler, assetManager);
   auto& terrainConfig = gm.getConfig();
+  ivec2 winSize = ctx.getWinSize();
+
+  gfx::FBO fboTerrain(1);
+  gfx::Texture2D texColor0(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
+  gfx::Texture2D texColor1(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
+  gfx::Texture2D texColorDepth(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texColor0);
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT1, texColor1);
+  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texColorDepth);
 
   assetManager.addCamera("Terrain", {
     .farPlane = 1e6f,
@@ -167,8 +189,14 @@ void init(entt::registry& registry) {
     .cam = assetManager.getCamera("Terrain"),
   };
 
+  assetManager.addFBO("TerrainFbo", std::move(fboTerrain));
+  assetManager.addTexture("TerrainFboColor0", std::move(texColor0));
+  assetManager.addTexture("TerrainFboColor1", std::move(texColor1));
+  assetManager.addTexture("TerrainFboDepth", std::move(texColorDepth));
+
   assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));
+  assetManager.addShader("TerrainPP", gfx::Shader("screen.vert", "terrain/post-process.frag"));
 
   assetManager.addMesh("TerrainFrustum", gfx::frustum::create(*assetManager.getCamera("Terrain")));
 
@@ -278,13 +306,21 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
   static ProfilerManager::Query queryRenderLand("TerrainRenderLand");
   static ProfilerManager::Query queryRenderWater("TerrainRenderWater");
 
-  auto& profiler  = registry.ctx().get<ProfilerManager>();
-  auto& gm = registry.ctx().get<GenerationManager>();
-  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
+  auto& ctx          = registry.ctx().get<core::EngineContext>();
+  auto& profiler     = registry.ctx().get<ProfilerManager>();
+  auto& gm           = registry.ctx().get<GenerationManager>();
+  auto& activeCam    = registry.ctx().get<core::ActiveCamera>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   const auto& terrainConfig = gm.getConfig();
   auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
+
+  gfx::Renderer::ClearCommand clearCmd{
+    .fbo = assetManager.getFBO("TerrainFbo"),
+    .viewPort = ctx.getWinSize(),
+  };
+
+  renderer.clearFrame(clearCmd);
 
   // ----- Land -------------------------------------------------------------------------------------------------------------------- //
 
@@ -296,15 +332,6 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
     if (meshComponent.disabled)
       continue;
-
-    gfx::Renderer::RenderCommand renderCmd{
-      .shader = meshComponent.shader,
-      .mesh = meshComponent.mesh,
-      .enableCullFace = true,
-      .enableDepthTest = true,
-      .textures = texComponent.textures,
-      .priority = 1,
-    };
 
     terrainComponent.ubo.nodesData.bindBase(0);
     meshComponent.mesh->setInstanceCount(terrainComponent.activeLeafs);
@@ -324,12 +351,16 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniform1f("u_sandThreshold", terrainComponent.sandThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);
 
-    renderer.submit(renderCmd);
+    gfx::Renderer::RenderCommand renderCmd{
+      .shader = meshComponent.shader,
+      .mesh = meshComponent.mesh,
+      .enableCullFace = true,
+      .enableDepthTest = true,
+      .textures = texComponent.textures,
+      .priority = 1,
+    };
 
-    {
-      auto _task = profiler.startScopedTaskGpu(queryRenderLand);
-      renderer.renderFrame();
-    }
+    renderer.submit(renderCmd);
 
     // ----- Camera frustum ---------------------------------------------------------------------------------------------------------- //
 
@@ -358,6 +389,11 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     };
 
     renderer.submit(frustumRenderCmd);
+  }
+
+  {
+    auto _task = profiler.startScopedTaskGpu(queryRenderLand);
+    renderer.setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
     renderer.renderFrame();
   }
 
@@ -383,13 +419,23 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
     meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
     meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
+    meshComponent.shader->setUniform3f("u_oceanDeepColor", waterComponent.oceanDeepColorLinear);
+    meshComponent.shader->setUniform3f("u_oceanShallowColor", waterComponent.oceanShallowColorLinear);
+    meshComponent.shader->setUniform1f("u_camNear", activeCam.cam->nearPlane);
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
-    meshComponent.shader->setUniform1f("u_heightScaleScale", waterComponent.heightScaleScale);
-    meshComponent.shader->setUniform1f("u_foamSharpness", waterComponent.foamSharpness);
-    meshComponent.shader->setUniform1f("u_tileScale", waterComponent.tileScale);
-    meshComponent.shader->setUniform1f("u_displacementScale", waterComponent.displacementScale);
+    meshComponent.shader->setUniform1f("u_heightScaleScale",       waterComponent.heightScaleScale);
+    meshComponent.shader->setUniform1f("u_foamSharpness",          waterComponent.foamSharpness);
+    meshComponent.shader->setUniform1f("u_tileScale",              waterComponent.tileScale);
+    meshComponent.shader->setUniform1f("u_displacementScale",      waterComponent.displacementScale);
+    meshComponent.shader->setUniform1f("u_waterDensity",           waterComponent.waterDensity);
+    meshComponent.shader->setUniform1f("u_refractionDistortScale", waterComponent.refractionDistortScale);
+    meshComponent.shader->setUniform1f("u_normalToScatterScale",   waterComponent.normalToScatterScale);
+    meshComponent.shader->setUniform1f("u_ambient",                waterComponent.ambient);
+    meshComponent.shader->setUniform1f("u_diffusePowScale",        waterComponent.diffusePowScale);
+    meshComponent.shader->setUniform1f("u_specularPowScale",       waterComponent.specularPowScale);
+    meshComponent.shader->setUniform1f("u_time", ctx.time);
 
     gfx::Renderer::RenderCommand renderCmdWater{
       .shader = meshComponent.shader,
@@ -397,7 +443,6 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .enableCullFace = false,
       .enableDepthTest = true,
       .textures = texComponent.textures,
-      .priority = 1,
     };
 
     renderer.submit(renderCmdWater);
@@ -405,8 +450,27 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
   {
     auto _task = profiler.startScopedTaskGpu(queryRenderWater);
+    renderer.setDrawBuffers({GL_COLOR_ATTACHMENT0});
     renderer.renderFrame();
   }
+
+  // ----- Post-process ------------------------------------------------------------------------------------------------------------ //
+
+  renderer.clearFrame({.viewPort = ctx.getWinSize()});
+
+  gfx::Renderer::RenderCommand renderCmd{
+    .shader = assetManager.getShader("TerrainPP"),
+    .mesh = assetManager.getMesh("ScreenRect"),
+    .enableCullFace = false,
+    .enableDepthTest = false,
+    .textures = {
+      assetManager.getTexture("TerrainFboColor0"),
+      assetManager.getTexture("TerrainFboDepth"),
+    }
+  };
+
+  renderer.submit(renderCmd);
+  renderer.renderFrame();
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
 }

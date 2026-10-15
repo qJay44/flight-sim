@@ -1,5 +1,6 @@
 #include "components.hpp"
 
+#include "global.hpp"
 #include "imgui.h"
 #include <glm/ext/quaternion_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -137,10 +138,33 @@ void drawTerrainComponent(terrain::TerrainComponent& component) {
 
 void drawWaterComponent(terrain::WaterComponent& component) {
   if (ImGui::TreeNode("Water component")) {
+    static float srgbDeep[3] = {
+      component.oceanDeepColorLinear.r,
+      component.oceanDeepColorLinear.g,
+      component.oceanDeepColorLinear.b
+    };
+
+    static float srgbShallow[3] = {
+      component.oceanShallowColorLinear.r,
+      component.oceanShallowColorLinear.g,
+      component.oceanShallowColorLinear.b
+    };
+
+    if (ImGui::ColorEdit3("Deep color", srgbDeep))
+      component.oceanDeepColorLinear = global::gammaToLinear(glm::make_vec3(srgbDeep));
+
+    if (ImGui::ColorEdit3("Shallow color", srgbShallow))
+      component.oceanShallowColorLinear = global::gammaToLinear(glm::make_vec3(srgbShallow));
+
     ImGui::SliderFloat("Foam sharpness", &component.foamSharpness, 0.f, 20.f);
     ImGui::SliderFloat("Scale of height scale", &component.heightScaleScale, 0.f, 1.f);
     ImGui::SliderFloat("Tile scale", &component.tileScale, 0.f, 50.f);
     ImGui::SliderFloat("Displacement scale", &component.displacementScale, 1.f, 10.f);
+    ImGui::SliderFloat("Water density", &component.waterDensity, 0.f, 200.f);
+    ImGui::SliderFloat("Refraction UV distort scale", &component.refractionDistortScale, 0.f, 1.f);
+    ImGui::SliderFloat("Ambient", &component.ambient, 0.f, 1.f);
+    ImGui::SliderFloat("Diffuse pow scale", &component.diffusePowScale, 0.f, 100.f);
+    ImGui::SliderFloat("Specular pow scale", &component.specularPowScale, 0.f, 300.f);
 
     ImGui::TreePop();
   }

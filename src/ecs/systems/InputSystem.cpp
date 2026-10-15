@@ -109,6 +109,14 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         }
       }
       break;
+    case GLFW_KEY_4:
+      if (action == GLFW_PRESS) {
+        for (auto entity : registry->view<terrain::TerrainComponent, MeshComponent>()) {
+          auto& meshComponent = registry->get<MeshComponent>(entity);
+          meshComponent.disabled = !meshComponent.disabled;
+        }
+      }
+      break;
   }
 }
 

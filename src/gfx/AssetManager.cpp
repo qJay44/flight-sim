@@ -49,6 +49,15 @@ AssetManager::AssetManager() {
 
     meshes.emplace("Axis", std::make_unique<Mesh>(Mesh(data)));
   }
+
+  {
+    std::vector<vertex::P> vertices = {
+      {{ 1.f, -1.f, 0.f}}, {{ 1.f,  1.f, 0.f}}, {{-1.f,  1.f, 0.f}},
+      {{-1.f,  1.f, 0.f}}, {{-1.f, -1.f, 0.f}}, {{ 1.f, -1.f, 0.f}},
+    };
+
+    meshes.emplace("ScreenRect", std::make_unique<Mesh>(Mesh(MeshData(vertices))));
+  }
 }
 
 std::string AssetManager::createMeshPlane_Triangles(size_t resolution, const std::string& nameSuffix, bool skirts, bool instanced) {
@@ -223,6 +232,15 @@ void AssetManager::addLight(const std::string& name, Light&& light) {
   lights.emplace(name, std::make_unique<Light>(std::move(light)));
 }
 
+void AssetManager::addFBO(const std::string& name, FBO&& fbo) {
+  if (fbos.contains(name)) {
+    warning("[AssetManager::addFBO] FBO ({}) already created", name);
+    return;
+  }
+
+  fbos.emplace(name, std::make_unique<FBO>(std::move(fbo)));
+}
+
 void AssetManager::checkShaders() {
   for (auto& [name, shader] : shaders)
     if (shader->needsReload())
@@ -252,6 +270,11 @@ core::Camera* AssetManager::getCamera(const std::string& name) const {
 Light* AssetManager::getLight(const std::string& name) const {
   assert(contains(lights, name));
   return lights.at(name).get();
+}
+
+FBO* AssetManager::getFBO(const std::string& name) const {
+  assert(contains(fbos, name));
+  return fbos.at(name).get();
 }
 
 bool AssetManager::contains(const auto& map, const std::string& name) {

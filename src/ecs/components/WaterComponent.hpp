@@ -3,10 +3,18 @@
 namespace ecs::component::terrain {
 
 struct WaterComponent {
-  float foamSharpness = 1.f;
-  float heightScaleScale = 0.1f;
-  float tileScale = 1.f;
-  float displacementScale = 1.f;
+  vec3 oceanDeepColorLinear;
+  vec3 oceanShallowColorLinear;
+  float foamSharpness;
+  float heightScaleScale;
+  float tileScale;
+  float displacementScale;
+  float waterDensity;
+  float refractionDistortScale;
+  float normalToScatterScale;
+  float ambient;
+  float diffusePowScale;
+  float specularPowScale;
 };
 
 } // namespace ecs::component::terrain

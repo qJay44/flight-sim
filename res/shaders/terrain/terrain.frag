@@ -2,7 +2,8 @@
 
 #include "terrain.glsl"
 
-out vec4 FragColor;
+layout(location = 0) out vec4 FragColor0;
+layout(location = 1) out vec4 FragColor1;
 
 in vec3 v_worldPos;
 in vec3 v_normal;
@@ -54,8 +55,7 @@ void main() {
 
   vec3 color = surfaceColor * (diffuse + ambient);
 
-  FragColor = vec4(color, 1.f);
-  // FragColor = vec4(terrainNormal, 1.f);
-  // FragColor = vec4(vec3(height), 1.f);
+  FragColor0 = vec4(color, 1.f);
+  FragColor1 = vec4(color, 1.f);
 }
 

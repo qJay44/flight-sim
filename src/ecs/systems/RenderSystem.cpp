@@ -22,7 +22,7 @@ void render(entt::registry& registry) {
   gfx::Light* globalLight = assetManager.getLight("GlobalLight");
   assert(globalLight);
 
-  renderer.newFrame(ctx.getWinSize());
+  renderer.clearFrame({.viewPort = ctx.getWinSize()});
 
   renderer.setGlobalLight(globalLight);
 

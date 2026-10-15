@@ -66,6 +66,11 @@ vec3 Tonemap_ACES(vec3 x) {
   return (x * (a * x + b)) / (x * (c * x + d) + e);
 }
 
+float linearizeDepth(float depth, float near, float far) {
+  float z = depth * 2.f - 1.f;
+  return (2.f * near * far) / (far + near - z * (far - near));
+}
+
 //------------------------------------------------------------------------------
 // Atmosphere
 //------------------------------------------------------------------------------

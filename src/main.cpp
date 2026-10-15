@@ -64,7 +64,7 @@ int main() {
     };
 
     gfx::Renderer renderer;
-    renderer.init(&ctx);
+    renderer.init();
 
     gfx::Shader::setDirectoryLocation("res/shaders");
 
@@ -83,8 +83,6 @@ int main() {
     };
 
     gfx::AssetManager assetManager;
-    assetManager.loadFromObj("res/obj/Cube.obj");
-    assetManager.addShader("DefaultCube", gfx::Shader("PTNC.vert", "test.frag"));
     assetManager.addShader("Axis", gfx::Shader("axis.vert", "axis.frag"));
     assetManager.addShader("FrustumDraw", gfx::Shader("frustum.vert", "frustum.frag"));
     assetManager.addTexture("DebugTexture0", std::move(debugTex0));

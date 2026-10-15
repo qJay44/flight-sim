@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 
-#include "../core/EngineContext.hpp"
 #include "utils/clrp.hpp"
 
 namespace gfx {
@@ -49,10 +48,7 @@ void GLAPIENTRY MessageCallback(
 
 } // namespace
 
-void Renderer::init(const core::EngineContext* ctx) const {
-  ivec2 winSize = ctx->getWinSize();
-
-  glViewport(0, 0, winSize.x, winSize.y);
+void Renderer::init() const {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
@@ -64,15 +60,25 @@ void Renderer::memoryBarrier(GLbitfield barriers) const {
   glMemoryBarrier(barriers);
 }
 
-void Renderer::newFrame(ivec2 viewPort) {
+void Renderer::clearFrame(const ClearCommand& cmd) {
   renderQueue.clear();
   computeQueue.clear();
-  glViewport(0, 0, viewPort.x, viewPort.y);
-  glClearColor(0.f, 0.f, 0.f, 1.f);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  if (cmd.fbo)
+      cmd.fbo->bind();
+  else
+    FBO::unbind();
+
+  glViewport(0, 0, cmd.viewPort.x, cmd.viewPort.y);
+  glClearColor(cmd.clearColor.r, cmd.clearColor.g, cmd.clearColor.b, cmd.clearColor.a);
+  glClear(cmd.clearMask);
 }
 
 void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
+
+void Renderer::setDrawBuffers(const std::vector<GLenum>& drawBuffers) {
+  glDrawBuffers(drawBuffers.size(), drawBuffers.data());
+}
 
 void Renderer::submit(RenderCommand cmd) {
   renderQueue.push_back(std::move(cmd));

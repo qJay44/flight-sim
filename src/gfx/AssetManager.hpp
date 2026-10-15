@@ -5,6 +5,7 @@
 #include "texture/Texture.hpp"
 #include "../core/Camera.hpp"
 #include "../gfx/Light.hpp"
+#include "../gfx/FBO.hpp"
 
 namespace gfx {
 
@@ -29,6 +30,7 @@ public:
   void addTexture(const std::string& name, Texture&& texture);
   void addCamera(const std::string& name, core::Camera&& camera);
   void addLight(const std::string& name, Light&& light);
+  void addFBO(const std::string& name, FBO&& fbo);
 
   void checkShaders();
 
@@ -37,6 +39,7 @@ public:
   Texture* getTexture(const std::string& name) const;
   core::Camera* getCamera(const std::string& name) const;
   Light* getLight(const std::string& name) const;
+  FBO* getFBO(const std::string& name) const;
 
 private:
   std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
@@ -44,6 +47,7 @@ private:
   std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
   std::unordered_map<std::string, std::unique_ptr<core::Camera>> cameras;
   std::unordered_map<std::string, std::unique_ptr<Light>> lights;
+  std::unordered_map<std::string, std::unique_ptr<FBO>> fbos;
 
 private:
   static bool contains(const auto& map, const std::string& name);

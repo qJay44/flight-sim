@@ -1,16 +1,23 @@
 #pragma once
 
+#include "FBO.hpp"
 #include "mesh/Mesh.hpp"
 #include "Shader.hpp"
 #include "Light.hpp"
 #include "texture/ImageDescriptor.hpp"
 #include "texture/Texture.hpp"
-#include "../core/EngineContext.hpp"
 
 namespace gfx {
 
 class Renderer {
 public:
+  struct ClearCommand {
+    FBO* fbo = nullptr;
+    ivec2 viewPort;
+    vec4 clearColor{0.f, 0.f, 0.f, 1.f};
+    GLbitfield clearMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
+  };
+
   struct RenderCommand {
     Shader* shader;
     Mesh* mesh;
@@ -40,12 +47,13 @@ public:
 
   ~Renderer() = default;
 
-  void init(const core::EngineContext *ctx) const;
+  void init() const;
   void memoryBarrier(GLbitfield barriers) const;
 
-  void newFrame(ivec2 viewPort);
+  void clearFrame(const ClearCommand& cmd);
 
   void setGlobalLight(const Light* light);
+  void setDrawBuffers(const std::vector<GLenum>& drawBuffers);
 
   void submit(RenderCommand cmd);
   void submit(ComputeCommand cmd);
