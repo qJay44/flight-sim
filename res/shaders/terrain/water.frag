@@ -10,6 +10,9 @@ in vec3 v_sphereDir;
 in float v_viewDist;
 in flat Ray v_ray;
 
+uniform mat4 u_proj;
+uniform mat4 u_localView;
+uniform mat4 u_localTranslation;
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
 uniform vec3 u_planetCenter;
@@ -61,6 +64,43 @@ vec3 getWaveNormal(vec2 uv) {
   return normal;
 }
 
+vec3 getSSR(vec3 reflDir) {
+  int steps = 16;
+  float stepSize = 5.f;
+  vec3 rayPos = v_worldPos + reflDir * 2.f;
+  vec3 res = vec3(0.f);
+
+  for (int i = 0; i < steps; i++) {
+    rayPos += reflDir * stepSize;
+    vec4 clipSpace = u_proj * (u_localView * (u_localTranslation * vec4(rayPos, 1.f)));
+    vec3 projCoords = clipSpace.xyz / clipSpace.w;
+    projCoords = projCoords * 0.5f + 0.5f;
+
+    if (any(lessThan(projCoords.xy, vec2(0.f))) || any(greaterThan(projCoords.xy, vec2(1.f))))
+      break;
+
+    float C = 0.001;
+    float rayDepth = log(C * clipSpace.w + 1.0) / log(C * u_camFar + 1.0);
+    float sampleDepth = texture(u_texLandDepth, projCoords.xy).r;
+
+    if (rayDepth > sampleDepth && rayDepth < 1.f) {
+      if (rayDepth - sampleDepth < 0.01f) {
+        res = texture(u_texLandColor, projCoords.xy).rgb;
+        // res = vec3(1.f, 0.f, 0.f);
+        return res;
+      }
+    }
+
+    stepSize *= 1.4f;
+  }
+
+  // TODO: If not hit anything in the loop, sample the sky color, atmosphere etc.
+
+  // res = vec3(0.f, 1.f, 0.f);
+
+  return res;
+}
+
 void main() {
   vec2 screenUV = gl_FragCoord.xy / textureSize(u_texLandColor, 0).xy;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
@@ -95,26 +135,34 @@ void main() {
   float NdotL = dot0(normal, u_lightDir);
   float NdotH = dot0(normal, halfwayDir);
 
-  vec3 scatterDir = normalize(u_lightDir + normal * u_normalToScatterScale);
-  float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
-  vec3 scatterCol = u_oceanShallowColor * scatter * 1.f;
-
   float jacobianEquator = texture(u_texTurbulence, equatorUV).r;
   float jacobianPolar = texture(u_texTurbulence, polarUV).r;
   float jacobian = mix(jacobianEquator, jacobianPolar, poleBlend);
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
   foam *= distScale1;
 
-  vec3 waterBase = mix(u_oceanDeepColor, landDataColor.rgb, absorption);
+  vec3 scatterDir = normalize(u_lightDir + normal * u_normalToScatterScale);
+  float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
+  vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
+
+  vec3 reflDir = reflect(-viewDir, normal);
+  vec3 reflColor = getSSR(reflDir);
+  // vec3 reflColor = texture(u_texLandColor, vec2(screenUV.x, 1.f - screenUV.y)).rgb;
+
+  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
+
+  float f0 = 0.02f;
+  float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
 
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
 
   vec3 finalColor = (diffuse + u_ambient) * u_lightColor * waterBase;
+  finalColor = mix(finalColor, reflColor, fresnel);
   finalColor += specular * u_lightColor;
   finalColor += scatterCol;
   finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - waterDepth);
 
-  FragColor = vec4(finalColor, 1.f);
+  FragColor = vec4(reflColor, 1.f);
 }
 

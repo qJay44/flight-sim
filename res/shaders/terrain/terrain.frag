@@ -1,5 +1,6 @@
 #version 460 core
 
+#include "../common.glsl"
 #include "terrain.glsl"
 
 layout(location = 0) out vec4 FragColor0;
@@ -28,7 +29,7 @@ void main() {
   // We check how much the surface normal aligns with the outward radial direction of the planet.
   // dot = 1.0 means perfectly flat ground. dot = 0.0 means a vertical 90-degree cliff wall.
   vec3 radialDir = normalize(v_normal);
-  float flatness = max(0.f, dot(terrainNormal, radialDir));
+  float flatness = dot0(terrainNormal, radialDir);
   float slope = 1.f - flatness;
 
   vec3 surfaceColor = vec3(0.f);
@@ -50,8 +51,8 @@ void main() {
     }
   }
 
-  float diffuse = max(0.f, dot(terrainNormal, u_lightDir));
-  float ambient = 0.1f;
+  float diffuse = dot0(terrainNormal, u_lightDir);
+  float ambient = 0.01f;
 
   vec3 color = surfaceColor * (diffuse + ambient);
 
