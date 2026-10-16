@@ -64,39 +64,18 @@ vec3 getWaveNormal(vec2 uv) {
   return normal;
 }
 
-vec3 getSSR(vec3 reflDir) {
-  int steps = 16;
-  float stepSize = 5.f;
-  vec3 rayPos = v_worldPos + reflDir * 2.f;
-  vec3 res = vec3(0.f);
+vec3 getWaterReflection(vec2 screenUV, vec3 normal) {
+  vec2 flippedScreenUV = vec2(screenUV.x, 1.f - screenUV.y) + normal.xz * 0.04;
+  float landDepthFlipped = texture(u_texLandDepth, flippedScreenUV).r;
+  bool hitSky = any(lessThan(flippedScreenUV, vec2(0.f))) || any(greaterThan(flippedScreenUV, vec2(1.f))) || landDepthFlipped >= 1.f;
+  vec3 res;
 
-  for (int i = 0; i < steps; i++) {
-    rayPos += reflDir * stepSize;
-    vec4 clipSpace = u_proj * (u_localView * (u_localTranslation * vec4(rayPos, 1.f)));
-    vec3 projCoords = clipSpace.xyz / clipSpace.w;
-    projCoords = projCoords * 0.5f + 0.5f;
-
-    if (any(lessThan(projCoords.xy, vec2(0.f))) || any(greaterThan(projCoords.xy, vec2(1.f))))
-      break;
-
-    float C = 0.001;
-    float rayDepth = log(C * clipSpace.w + 1.0) / log(C * u_camFar + 1.0);
-    float sampleDepth = texture(u_texLandDepth, projCoords.xy).r;
-
-    if (rayDepth > sampleDepth && rayDepth < 1.f) {
-      if (rayDepth - sampleDepth < 0.01f) {
-        res = texture(u_texLandColor, projCoords.xy).rgb;
-        // res = vec3(1.f, 0.f, 0.f);
-        return res;
-      }
-    }
-
-    stepSize *= 1.4f;
+  if (hitSky) {
+    // TODO: Atmosphere color;
+    res = vec3(0.0f, 0.0f, 0.0f);
+  } else {
+    res = texture(u_texLandColor, flippedScreenUV).rgb; // Bad with free camera
   }
-
-  // TODO: If not hit anything in the loop, sample the sky color, atmosphere etc.
-
-  // res = vec3(0.f, 1.f, 0.f);
 
   return res;
 }
@@ -145,10 +124,6 @@ void main() {
   float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
   vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
 
-  vec3 reflDir = reflect(-viewDir, normal);
-  vec3 reflColor = getSSR(reflDir);
-  // vec3 reflColor = texture(u_texLandColor, vec2(screenUV.x, 1.f - screenUV.y)).rgb;
-
   vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
 
   float f0 = 0.02f;
@@ -158,11 +133,12 @@ void main() {
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
 
   vec3 finalColor = (diffuse + u_ambient) * u_lightColor * waterBase;
+  vec3 reflColor = getWaterReflection(screenUV, normal);
   finalColor = mix(finalColor, reflColor, fresnel);
   finalColor += specular * u_lightColor;
   finalColor += scatterCol;
   finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - waterDepth);
 
-  FragColor = vec4(reflColor, 1.f);
+  FragColor = vec4(finalColor, 1.f);
 }
 
