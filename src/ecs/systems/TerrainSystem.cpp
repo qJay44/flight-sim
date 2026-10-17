@@ -44,7 +44,7 @@ void createLandEntity(entt::registry& registry) {
   MeshComponent meshComponent{
     .mesh = assetManager.getMesh(meshName),
     .shader = assetManager.getShader("TerrainDrawLand"),
-    .fbo = assetManager.getFBO("TerrainFbo"),
+    .fbo = assetManager.getFBO("TerrainFBO"),
   };
 
   TextureComponent textureComponent{};
@@ -115,7 +115,7 @@ void createWaterEntity(entt::registry& registry) {
   MeshComponent meshComponent{
     .mesh = assetManager.getMesh(meshName),
     .shader = assetManager.getShader("TerrainDrawWater"),
-    .fbo = assetManager.getFBO("TerrainFbo"),
+    .fbo = assetManager.getFBO("TerrainFBO"),
   };
 
   TextureComponent textureComponent{
@@ -123,8 +123,8 @@ void createWaterEntity(entt::registry& registry) {
       &water.getTexDisplacement(),
       &water.getTexDerivatives(),
       &water.getTexTurbulence(),
-      assetManager.getTexture("TerrainFboColor1"),
-      assetManager.getTexture("TerrainFboDepth"),
+      assetManager.getTexture("TerrainColorWater"),
+      assetManager.getTexture("TerrainDepthMain"),
     }
   };
 
@@ -173,12 +173,16 @@ void init(entt::registry& registry) {
   ivec2 winSize = ctx.getWinSize();
 
   gfx::FBO fboTerrain(1);
-  gfx::Texture2D texColor0(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
-  gfx::Texture2D texColor1(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
+  gfx::Texture2D texColorMain(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
+  gfx::Texture2D texColorWater(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
+  gfx::Texture2D texColorWaterHDR(winSize, {.internalFormat = GL_RGB16F, .format = GL_RGB, .type = GL_HALF_FLOAT});
   gfx::Texture2D texColorDepth(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
-  fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texColor0);
-  fboTerrain.attach2D(GL_COLOR_ATTACHMENT1, texColor1);
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texColorMain);
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT1, texColorWater);
+  fboTerrain.attach2D(GL_COLOR_ATTACHMENT2, texColorWaterHDR);
   fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texColorDepth);
+
+  gfx::Blur blurWater(ivec2(512));
 
   assetManager.addCamera("Terrain", {
     .farPlane = 1e6f,
@@ -189,10 +193,12 @@ void init(entt::registry& registry) {
     .cam = assetManager.getCamera("Terrain"),
   };
 
-  assetManager.addFBO("TerrainFbo", std::move(fboTerrain));
-  assetManager.addTexture("TerrainFboColor0", std::move(texColor0));
-  assetManager.addTexture("TerrainFboColor1", std::move(texColor1));
-  assetManager.addTexture("TerrainFboDepth", std::move(texColorDepth));
+  assetManager.addFBO("TerrainFBO", std::move(fboTerrain));
+  assetManager.addTexture("TerrainColorMain", std::move(texColorMain));
+  assetManager.addTexture("TerrainColorWater", std::move(texColorWater));
+  assetManager.addTexture("TerrainColorWaterHDR", std::move(texColorWaterHDR));
+  assetManager.addTexture("TerrainDepthMain", std::move(texColorDepth));
+  assetManager.addBlur("TerrainWaterBlur", std::move(blurWater));
 
   assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));
@@ -305,6 +311,7 @@ void update(entt::registry& registry) {
 void render(entt::registry& registry, gfx::Renderer& renderer) {
   static ProfilerManager::Query queryRenderLand("TerrainRenderLand");
   static ProfilerManager::Query queryRenderWater("TerrainRenderWater");
+  static ProfilerManager::Query queryRenderWaterBlur("TerrainRenderWaterBlur");
 
   auto& ctx          = registry.ctx().get<core::EngineContext>();
   auto& profiler     = registry.ctx().get<ProfilerManager>();
@@ -316,7 +323,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
 
   gfx::Renderer::ClearCommand clearCmd{
-    .fbo = assetManager.getFBO("TerrainFbo"),
+    .fbo = assetManager.getFBO("TerrainFBO"),
     .viewPort = ctx.getWinSize(),
   };
 
@@ -357,6 +364,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .enableCullFace = true,
       .enableDepthTest = true,
       .textures = texComponent.textures,
+      .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1},
       .priority = 1,
     };
 
@@ -393,7 +401,6 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
   {
     auto _task = profiler.startScopedTaskGpu(queryRenderLand);
-    renderer.setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
     renderer.renderFrame();
   }
 
@@ -443,6 +450,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .enableCullFace = false,
       .enableDepthTest = true,
       .textures = texComponent.textures,
+      .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2},
     };
 
     renderer.submit(renderCmdWater);
@@ -450,9 +458,16 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
 
   {
     auto _task = profiler.startScopedTaskGpu(queryRenderWater);
-    renderer.setDrawBuffers({GL_COLOR_ATTACHMENT0});
     renderer.renderFrame();
   }
+
+  // ----- Water specular blur ----------------------------------------------------------------------------------------------------- //
+
+  auto taskBlur = profiler.startScopedTaskGpu(queryRenderWaterBlur);
+  auto* blurWater = assetManager.getBlur("TerrainWaterBlur");
+  auto* texColorWaterHDR = (gfx::Texture2D*)assetManager.getTexture("TerrainColorWaterHDR");
+  auto* texScreenBlurredWaterSpecular = blurWater->blur(renderer, texColorWaterHDR);
+  taskBlur.end();
 
   // ----- Post-process ------------------------------------------------------------------------------------------------------------ //
 
@@ -464,8 +479,10 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     .enableCullFace = false,
     .enableDepthTest = false,
     .textures = {
-      assetManager.getTexture("TerrainFboColor0"),
-      assetManager.getTexture("TerrainFboDepth"),
+      assetManager.getTexture("TerrainColorMain"),
+      assetManager.getTexture("TerrainDepthMain"),
+      texColorWaterHDR,
+      texScreenBlurredWaterSpecular,
     }
   };
 

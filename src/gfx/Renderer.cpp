@@ -1,5 +1,6 @@
 #include "Renderer.hpp"
 
+#include "Blur.hpp"
 #include "utils/clrp.hpp"
 
 namespace gfx {
@@ -48,12 +49,19 @@ void GLAPIENTRY MessageCallback(
 
 } // namespace
 
-void Renderer::init() const {
+void Renderer::init(AssetManager& assetManager) const {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
+
+  assetManager.addShader("BlurExtract", Shader("screen.vert", "blur/extract.frag"));
+  assetManager.addShader("BlurBlur", Shader("screen.vert", "blur/blur.frag"));
+
+  Blur::shaderExtract = assetManager.getShader("BlurExtract");
+  Blur::shaderBlur = assetManager.getShader("BlurBlur");
+  Blur::meshScreen = assetManager.getMesh("ScreenRect");
 }
 
 void Renderer::memoryBarrier(GLbitfield barriers) const {
@@ -75,10 +83,6 @@ void Renderer::clearFrame(const ClearCommand& cmd) {
 }
 
 void Renderer::setGlobalLight(const Light* light) { globalLight = light; }
-
-void Renderer::setDrawBuffers(const std::vector<GLenum>& drawBuffers) {
-  glDrawBuffers(drawBuffers.size(), drawBuffers.data());
-}
 
 void Renderer::submit(RenderCommand cmd) {
   renderQueue.push_back(std::move(cmd));
@@ -109,6 +113,9 @@ void Renderer::renderFrame() {
       currBoundShader->setUniform1f("u_lightSpecular", globalLight->specular);
       currBoundShader->setUniform1f("u_lightIntensity", globalLight->intensity);
       currBoundShader->setUniform1f("u_lightFocus", globalLight->focus);
+
+      if (!command.drawBuffers.empty())
+        glDrawBuffers(command.drawBuffers.size(), command.drawBuffers.data());
     }
 
     if (command.mesh != currBoundMesh) {

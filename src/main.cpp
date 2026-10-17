@@ -63,9 +63,6 @@ int main() {
       .focus = 800.f
     };
 
-    gfx::Renderer renderer;
-    renderer.init();
-
     gfx::Shader::setDirectoryLocation("res/shaders");
 
     gfx::Texture2D debugTex0(
@@ -94,6 +91,9 @@ int main() {
     core::ActiveCamera activeCam{
       .cam = assetManager.getCamera("Default"),
     };
+
+    gfx::Renderer renderer;
+    renderer.init(assetManager);
 
     registry.ctx().emplace<core::EngineContext>(std::move(ctx));
     registry.ctx().emplace<core::ActiveCamera>(std::move(activeCam));

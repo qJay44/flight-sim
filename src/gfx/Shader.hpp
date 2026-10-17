@@ -7,6 +7,8 @@ namespace gfx {
 
 class Shader {
 public:
+  Shader() = default;
+
   Shader(const Shader&) = delete;
   Shader(Shader&& other);
 

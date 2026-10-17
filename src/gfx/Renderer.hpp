@@ -6,6 +6,7 @@
 #include "Light.hpp"
 #include "texture/ImageDescriptor.hpp"
 #include "texture/Texture.hpp"
+#include "AssetManager.hpp"
 
 namespace gfx {
 
@@ -26,6 +27,7 @@ public:
     bool enableBlend = false;
     bool enableDepthMask = true;
     std::vector<Texture*> textures{};
+    std::vector<GLenum> drawBuffers{};
     int priority = 0;
     std::pair<GLenum, GLenum> blendFunc{GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA};
   };
@@ -47,13 +49,12 @@ public:
 
   ~Renderer() = default;
 
-  void init() const;
+  void init(AssetManager& assetManager) const;
   void memoryBarrier(GLbitfield barriers) const;
 
   void clearFrame(const ClearCommand& cmd);
 
   void setGlobalLight(const Light* light);
-  void setDrawBuffers(const std::vector<GLenum>& drawBuffers);
 
   void submit(RenderCommand cmd);
   void submit(ComputeCommand cmd);

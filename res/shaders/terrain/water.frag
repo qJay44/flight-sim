@@ -4,6 +4,7 @@
 #include "terrain.glsl"
 
 layout(location = 0) out vec4 FragColor;
+layout(location = 1) out vec4 FragColorHDR;
 
 in vec3 v_worldPos;
 in vec3 v_sphereDir;
@@ -64,18 +65,9 @@ vec3 getWaveNormal(vec2 uv) {
   return normal;
 }
 
-vec3 getWaterReflection(vec2 screenUV, vec3 normal) {
-  vec2 flippedScreenUV = vec2(screenUV.x, 1.f - screenUV.y) + normal.xz * 0.04;
-  float landDepthFlipped = texture(u_texLandDepth, flippedScreenUV).r;
-  bool hitSky = any(lessThan(flippedScreenUV, vec2(0.f))) || any(greaterThan(flippedScreenUV, vec2(1.f))) || landDepthFlipped >= 1.f;
-  vec3 res;
-
-  if (hitSky) {
-    // TODO: Atmosphere color;
-    res = vec3(0.0f, 0.0f, 0.0f);
-  } else {
-    res = texture(u_texLandColor, flippedScreenUV).rgb; // Bad with free camera
-  }
+vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir) {
+  // TODO: Atmosphere reflection
+  vec3 res = vec3(0.0f, 0.0f, 0.0f);
 
   return res;
 }
@@ -132,13 +124,20 @@ void main() {
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
 
+  vec3 specularColor = specular * u_lightColor;
+  vec3 reflColor = getWaterReflection(screenUV, normal, viewDir);
+  reflColor *= distScale1;
+
+
   vec3 finalColor = (diffuse + u_ambient) * u_lightColor * waterBase;
-  vec3 reflColor = getWaterReflection(screenUV, normal);
   finalColor = mix(finalColor, reflColor, fresnel);
-  finalColor += specular * u_lightColor;
   finalColor += scatterCol;
   finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - waterDepth);
+  finalColor += specularColor;
+
+  vec3 finalColorHDR = specularColor * 2.f;
 
   FragColor = vec4(finalColor, 1.f);
+  FragColorHDR = vec4(finalColorHDR, 1.f);
 }
 
