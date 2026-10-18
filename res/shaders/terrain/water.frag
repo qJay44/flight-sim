@@ -96,11 +96,12 @@ void main() {
   vec4 landDataDepth = texture(u_texLandDepth, distortedUV);
   vec3 seabedColor = landDataColor.rgb;
 
+  float landDepth = landDataDepth.r;
   float waterDepth = gl_FragCoord.z;
-  float landDepthLinear = linearizeDepth(landDataDepth.r, u_camNear, u_camFar);
+  float landDepthLinear = linearizeDepth(landDepth, u_camNear, u_camFar);
   float waterDepthLinear = linearizeDepth(waterDepth, u_camNear, u_camFar);
-  float waterThickness = max(0.f, landDepthLinear - waterDepthLinear);
-  float absorption = exp(-waterThickness * u_waterDensity) * distScale1;
+  float waterThickness = landDepthLinear - waterDepthLinear;
+  float absorption = exp(-max(0.f, waterThickness) * u_waterDensity) * distScale1;
 
   float VdotN = dot0(viewDir, normal);
   float NdotL = dot0(normal, u_lightDir);
@@ -112,10 +113,7 @@ void main() {
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
   foam *= distScale1;
 
-  vec3 scatterDir = normalize(u_lightDir + normal * u_normalToScatterScale);
-  float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
-  vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
-
+  seabedColor = mix(seabedColor, u_oceanShallowColor, absorption);
   vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
 
   float f0 = 0.02f;
@@ -128,12 +126,10 @@ void main() {
   vec3 reflColor = getWaterReflection(screenUV, normal, viewDir);
   reflColor *= distScale1;
 
-
   vec3 finalColor = (diffuse + u_ambient) * u_lightColor * waterBase;
   finalColor = mix(finalColor, reflColor, fresnel);
-  finalColor += scatterCol;
-  finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - waterDepth);
   finalColor += specularColor;
+  finalColor = mix(finalColor, finalColor + vec3(foam), 1.f - waterDepth);
 
   vec3 finalColorHDR = specularColor * 2.f;
 

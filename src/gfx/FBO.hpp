@@ -57,6 +57,12 @@ struct FBO {
     unbind();
   }
 
+  void detach2D(GLenum attachment, const Texture& tex) const {
+    bind();
+    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, tex.getTarget(), 0, 0);
+    unbind();
+  }
+
   void clear() {
     if (id) glDeleteFramebuffers(size, &id);
     id = 0;

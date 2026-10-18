@@ -176,11 +176,11 @@ void init(entt::registry& registry) {
   gfx::Texture2D texColorMain(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
   gfx::Texture2D texColorWater(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
   gfx::Texture2D texColorWaterHDR(winSize, {.internalFormat = GL_RGB16F, .format = GL_RGB, .type = GL_HALF_FLOAT});
-  gfx::Texture2D texColorDepth(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
+  gfx::Texture2D texDepth(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texColorMain);
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT1, texColorWater);
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT2, texColorWaterHDR);
-  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texColorDepth);
+  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texDepth);
 
   gfx::Blur blurWater(ivec2(512));
 
@@ -197,7 +197,7 @@ void init(entt::registry& registry) {
   assetManager.addTexture("TerrainColorMain", std::move(texColorMain));
   assetManager.addTexture("TerrainColorWater", std::move(texColorWater));
   assetManager.addTexture("TerrainColorWaterHDR", std::move(texColorWaterHDR));
-  assetManager.addTexture("TerrainDepthMain", std::move(texColorDepth));
+  assetManager.addTexture("TerrainDepthMain", std::move(texDepth));
   assetManager.addBlur("TerrainWaterBlur", std::move(blurWater));
 
   assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
@@ -426,6 +426,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
     meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
     meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
     meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
+    meshComponent.shader->setUniform3f("u_camForward", activeCam.cam->orientation);
     meshComponent.shader->setUniform3f("u_oceanDeepColor", waterComponent.oceanDeepColorLinear);
     meshComponent.shader->setUniform3f("u_oceanShallowColor", waterComponent.oceanShallowColorLinear);
     meshComponent.shader->setUniform1f("u_camNear", activeCam.cam->nearPlane);
@@ -449,8 +450,11 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
       .mesh = meshComponent.mesh,
       .enableCullFace = false,
       .enableDepthTest = true,
+      .enableBlend = true,
+      .enableDepthMask = false,
       .textures = texComponent.textures,
       .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2},
+      .blendFunc = {GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA},
     };
 
     renderer.submit(renderCmdWater);
