@@ -26,7 +26,7 @@ void render(entt::registry& registry) {
 
   renderer.setGlobalLight(globalLight);
 
-  TerrainSystem::render(registry, renderer);
+  TerrainSystem::render(registry);
 
   // Other stuff
   for (auto entity : registry.view<MeshComponent, TransformComponent, AuxiliaryComponent>()) {

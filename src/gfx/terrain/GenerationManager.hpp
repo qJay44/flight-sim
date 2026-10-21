@@ -33,7 +33,7 @@ public:
   };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
-  GenerationManager(Renderer* renderer, ProfilerManager* profiler, AssetManager& assetManager);
+  GenerationManager(ProfilerManager* profiler, AssetManager& assetManager);
 
   GenerationManager(GenerationManager&&) = default;
   GenerationManager& operator=(GenerationManager&&) = default;
@@ -47,16 +47,15 @@ public:
   size_t getCachedSlots() const;
   bool isSlotCached(u64 nodeKey) const;
 
-  void update(float time, float dt);
+  void update(Renderer& renderer, float time, float dt);
 
   [[nodiscard]] int acquireSlot(u64 nodeKey);
   void freeSlot(u64 nodeKey, int slot);
   void freeSlotAll();
 
-  void generateTexures(size_t nodesCount, size_t offset, const BufferObject& nodes);
+  void generateTexures(Renderer& renderer, size_t nodesCount, size_t offset, const BufferObject& nodes);
 
 private:
-  Renderer* renderer{};
   ProfilerManager* profiler{};
 
   Texture* texArrayNodesDummy;

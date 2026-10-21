@@ -68,7 +68,7 @@ public:
   Tessendorf& operator=(const Tessendorf&) = delete;
 
   Tessendorf() = default;
-  Tessendorf(Renderer* renderer, ProfilerManager* profiler, AssetManager& assetManager);
+  Tessendorf(AssetManager& assetManager);
 
   WaterConfig& getConfig();
 
@@ -76,11 +76,12 @@ public:
   Texture2D& getTexDerivatives();
   Texture2D& getTexTurbulence();
 
-  void updateInitials();
-  void update(float time, float dt);
+  void updateInitials(Renderer& renderer);
+  void update(Renderer& renderer, float time, float dt);
 
   void markForRebuild();
   void markForRebuildShaderCommands();
+  void markForRegenerateInitialSpectrum();
 
 private:
   struct SpectrumSettings {
@@ -98,9 +99,6 @@ private:
   struct {
     BufferObject spectrums;
   } ubo;
-
-  Renderer* renderer{};
-  ProfilerManager* profiler{};
 
   WaterConfig cfg{};
   SpectrumSettings spectrums[2];
@@ -138,13 +136,9 @@ private:
   Renderer::ComputeCommand cmdPermute;
   Renderer::ComputeCommand cmdMerge;
 
-  ProfilerManager::Query querieTimeEvolution{"Time evo pass"};
-  ProfilerManager::Query querieIFFT{"IFFT pass"};
-  ProfilerManager::Query querieMerge{"Merge pass"};
-  ProfilerManager::Query querieDraw{"Draw pass"};
-
   bool rebuild = false;
   bool rebuildShaderCommands = false;
+  bool regenerateInitialSpectrum = false;
 
 NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tessendorf::SpectrumSettingsGUI,
   scale,
@@ -170,7 +164,7 @@ NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tessendorf::WaterConfig,
 );
 
 private:
-  void build();
+  void build(Renderer& renderer);
   void buildShadersCommands();
 
   static float JonswapAlpha(float g, float fetch, float windSpeed);
@@ -178,12 +172,12 @@ private:
 
   void fillSettings(const SpectrumSettingsGUI& display, SpectrumSettings& settings);
 
-  void generateButterfly();
-  void generateNoise();
-  void generateInitialSpectrum();
-  void generateWavesAtTime(float time);
-  void generateIFFT(Texture2D& input, Texture2D& buffer);
-  void generateMerge(float dt);
+  void generateButterfly(Renderer& renderer);
+  void generateNoise(Renderer& renderer);
+  void generateInitialSpectrum(Renderer& renderer);
+  void generateWavesAtTime(Renderer& renderer, float time);
+  void generateIFFT(Renderer& renderer, Texture2D& input, Texture2D& buffer);
+  void generateMerge(Renderer& renderer, float dt);
 };
 
 } // namespace gfx::terrain::water

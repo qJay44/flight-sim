@@ -6,10 +6,10 @@
 
 namespace gfx::terrain::water {
 
-Tessendorf::Tessendorf(Renderer* renderer, ProfilerManager* profiler, AssetManager& assetManager)
-  : renderer(renderer), profiler(profiler)
-{
-  {
+Tessendorf::Tessendorf(AssetManager& assetManager) {
+  static bool loadedShaders = false;
+
+  if (!loadedShaders) {
     Shader _shaderButterfly         { "terrain/water/butterfly.comp"         };
     Shader _shaderNoise             { "terrain/water/noise.comp"             };
     Shader _shaderInitialSpectrum   { "terrain/water/initialSpectrum.comp"   };
@@ -29,6 +29,8 @@ Tessendorf::Tessendorf(Renderer* renderer, ProfilerManager* profiler, AssetManag
     assetManager.addShader("TessendorfIFFT_vertical",     std::move(_shaderIFFT_vertical    ));
     assetManager.addShader("TessendorfPermute",           std::move(_shaderPermute          ));
     assetManager.addShader("TessendorfMerge",             std::move(_shaderMerge            ));
+
+    loadedShaders = true;
   }
 
   shaderButterfly         = assetManager.getShader("TessendorfButterfly");
@@ -43,7 +45,7 @@ Tessendorf::Tessendorf(Renderer* renderer, ProfilerManager* profiler, AssetManag
 
   ubo.spectrums = gfx::BufferObject::createUniformBuffer(true);
   ubo.spectrums.storage(nullptr, sizeof(spectrums), GL_DYNAMIC_STORAGE_BIT);
-  build();
+  markForRebuild();
 
   global::json::loadPreset(cfg, "tessendorf0.json");
 }
@@ -56,25 +58,28 @@ Texture2D& Tessendorf::getTexDisplacement() {return texDisplacement;}
 Texture2D& Tessendorf::getTexDerivatives() {return texDerivatives;}
 Texture2D& Tessendorf::getTexTurbulence() {return texTurbulence;}
 
-void Tessendorf::updateInitials() {
-  generateButterfly();
-  generateNoise();
-  generateInitialSpectrum();
+void Tessendorf::updateInitials(Renderer& renderer) {
+  generateButterfly(renderer);
+  generateNoise(renderer);
+  generateInitialSpectrum(renderer);
 }
 
-void Tessendorf::update(float time, float dt) {
+void Tessendorf::update(Renderer& renderer, float time, float dt) {
   if (rebuild)
-    build();
+    build(renderer);
 
   if (rebuildShaderCommands)
     buildShadersCommands();
 
-  generateWavesAtTime(time);
-  generateIFFT(texDxDz, texBuffer);
-  generateIFFT(texDyDxz, texBuffer);
-  generateIFFT(texDyxDyz, texBuffer);
-  generateIFFT(texDxxDzz, texBuffer);
-  generateMerge(dt);
+  if (regenerateInitialSpectrum)
+    generateInitialSpectrum(renderer);
+
+  generateWavesAtTime(renderer, time);
+  generateIFFT(renderer, texDxDz, texBuffer);
+  generateIFFT(renderer, texDyDxz, texBuffer);
+  generateIFFT(renderer, texDyxDyz, texBuffer);
+  generateIFFT(renderer, texDxxDzz, texBuffer);
+  generateMerge(renderer, dt);
 }
 
 void Tessendorf::markForRebuild() {
@@ -85,7 +90,11 @@ void Tessendorf::markForRebuildShaderCommands() {
   rebuildShaderCommands = true;
 }
 
-void Tessendorf::build() {
+void Tessendorf::markForRegenerateInitialSpectrum() {
+  regenerateInitialSpectrum = true;
+}
+
+void Tessendorf::build(Renderer& renderer) {
   TextureDescriptor descR    { .internalFormat = GL_R32F,    .format = GL_RED,  .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
   TextureDescriptor descRG   { .internalFormat = GL_RG32F,   .format = GL_RG,   .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
   TextureDescriptor descRGBA { .internalFormat = GL_RGBA32F, .format = GL_RGBA, .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
@@ -106,7 +115,7 @@ void Tessendorf::build() {
   texTurbulence      = Texture2D(cfg.size, descR);
 
   buildShadersCommands();
-  updateInitials();
+  updateInitials(renderer);
 
   rebuild = false;
 }
@@ -313,22 +322,22 @@ void Tessendorf::fillSettings(const SpectrumSettingsGUI& display, SpectrumSettin
   settings.shortWavesFade = display.shortWavesFade;
 }
 
-void Tessendorf::generateButterfly() {
+void Tessendorf::generateButterfly(Renderer& renderer) {
   shaderButterfly->setUniform1i("u_size", cfg.size);
-  renderer->submit(cmdButterfly);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdButterfly);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Tessendorf::generateNoise() {
+void Tessendorf::generateNoise(Renderer& renderer) {
   shaderNoise->setUniform1f("u_seed1", cfg.seed1);
   shaderNoise->setUniform1f("u_seed2", cfg.seed2);
-  renderer->submit(cmdNoise);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdNoise);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Tessendorf::generateInitialSpectrum() {
+void Tessendorf::generateInitialSpectrum(Renderer& renderer) {
   fillSettings(cfg.local, spectrums[0]);
   fillSettings(cfg.swell, spectrums[1]);
   ubo.spectrums.updateSubData(spectrums, sizeof(spectrums));
@@ -339,35 +348,33 @@ void Tessendorf::generateInitialSpectrum() {
   shaderInitialSpectrum->setUniform1f("u_g", cfg.g);
   shaderInitialSpectrum->setUniform1f("u_depth", cfg.depth);
   shaderInitialSpectrum->setUniform1f("u_lengthScale", cfg.lengthScale);
-  renderer->submit(cmdSpectrumInit);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdSpectrumInit);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  renderer->submit(cmdSpectrumConjugate);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdSpectrumConjugate);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+  regenerateInitialSpectrum = false;
 }
 
-void Tessendorf::generateWavesAtTime(float time) {
-  auto _task = profiler->startScopedTaskGpu(querieTimeEvolution);
-
+void Tessendorf::generateWavesAtTime(Renderer& renderer, float time) {
   shaderTimeSpectrum->setUniform1f("u_time", time);
-  renderer->submit(cmdSpectrumTimeEvo);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdSpectrumTimeEvo);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Tessendorf::generateIFFT(Texture2D& input, Texture2D& buffer) {
-  auto _task = profiler->startScopedTaskGpu(querieIFFT);
-
+void Tessendorf::generateIFFT(Renderer& renderer, Texture2D& input, Texture2D& buffer) {
   cmdIFFT_horizontal.images[1].texture = &input;
   cmdIFFT_horizontal.images[2].texture = &buffer;
 
   for (int i = 0; i < cfg.logSize; i++) {
     shaderIFFT_horizontal->setUniform1i("u_step", i);
-    renderer->submit(cmdIFFT_horizontal);
-    renderer->dispatch();
-    renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    renderer.submit(cmdIFFT_horizontal);
+    renderer.dispatch();
+    renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     std::swap(cmdIFFT_horizontal.images[1], cmdIFFT_horizontal.images[2]);
   }
 
@@ -376,26 +383,24 @@ void Tessendorf::generateIFFT(Texture2D& input, Texture2D& buffer) {
 
   for (int i = 0; i < cfg.logSize; i++) {
     shaderIFFT_vertical->setUniform1i("u_step", i);
-    renderer->submit(cmdIFFT_vertical);
-    renderer->dispatch();
-    renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    renderer.submit(cmdIFFT_vertical);
+    renderer.dispatch();
+    renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
     std::swap(cmdIFFT_vertical.images[1], cmdIFFT_vertical.images[2]);
   }
 
   cmdPermute.images[0].texture = cmdIFFT_vertical.images[1].texture;
-  renderer->submit(cmdPermute);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdPermute);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
-void Tessendorf::generateMerge(float dt) {
-  auto _task = profiler->startScopedTaskGpu(querieMerge);
-
+void Tessendorf::generateMerge(Renderer& renderer, float dt) {
   shaderMerge->setUniform1f("u_lambda", cfg.lambda);
   shaderMerge->setUniform1f("u_dt", dt);
-  renderer->submit(cmdMerge);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(cmdMerge);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 } // namespace gfx::terrain::water

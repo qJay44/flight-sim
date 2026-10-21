@@ -1,7 +1,6 @@
 {
   "depth": 500.0,
-  "g": 9.8100004196167,
-  "lambda": 1.0,
+  "g": 9.8100004196167, "lambda": 1.0,
   "lengthScale": 705.8820190429688,
   "local": {
     "fetch": 569411.75,
@@ -25,6 +24,5 @@
     "windDir": 0.0,
     "windSpeed": 1.0
   },
-  "worldSize": 953.7509765625,
-  "foamSharpness": 1.3
+  "worldSize": 953.7509765625
 }

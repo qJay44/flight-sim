@@ -162,6 +162,55 @@ void render(entt::registry& registry) {
       }
 
       ImGui::SeparatorText("Waters");
+      {
+        auto& general = gm.getWater();
+        auto& fft = general.getConfig();
+        bool u = false;
+
+        u |= ImGui::SliderFloat("G", &fft.g, 0.f, 100.f);
+        u |= ImGui::SliderFloat("Depth", &fft.depth, 0.f, 100.f);
+        u |= ImGui::SliderFloat("Lambda", &fft.lambda, 0.f, 1.f);
+        u |= ImGui::SliderFloat("Length scale", &fft.lengthScale, 0.f, 1000.f);
+
+        if (ImGui::TreeNode("Local spectrum settings")) {
+          auto& settings = fft.local;
+          u |= ImGui::SliderFloat("Scale", &settings.scale, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Wind speed", &settings.windSpeed, 0.f, 100.f);
+          u |= ImGui::SliderAngle("Wind direction", &settings.windDir, 0.f);
+          u |= ImGui::SliderFloat("Fetch", &settings.fetch, 0.f, 1e6f);
+          u |= ImGui::SliderFloat("Spread blend", &settings.spreadBlend, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Swell", &settings.swell, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Peak enhancement", &settings.peakEnhancemnt, 0.f, 100.f);
+          u |= ImGui::SliderFloat("Short waves fade", &settings.shortWavesFade, 0.f, 2.f);
+
+          ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Swell spectrum settings")) {
+          auto& settings = fft.swell;
+          u |= ImGui::SliderFloat("Scale##2", &settings.scale, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Wind speed##2", &settings.windSpeed, 0.f, 100.f);
+          u |= ImGui::SliderAngle("Wind direction##2", &settings.windDir, 0.f);
+          u |= ImGui::SliderFloat("Fetch##2", &settings.fetch, 0.f, 1e6f);
+          u |= ImGui::SliderFloat("Spread blend##2", &settings.spreadBlend, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Swell##2", &settings.swell, 0.f, 1.f);
+          u |= ImGui::SliderFloat("Peak enhancement##2", &settings.peakEnhancemnt, 0.f, 100.f);
+          u |= ImGui::SliderFloat("Short waves fade##2", &settings.shortWavesFade, 0.f, 2.f);
+
+          ImGui::TreePop();
+        }
+
+        if (u)
+          general.markForRegenerateInitialSpectrum();
+
+        ImGui::SeparatorText("Load/Save");
+        static LoaderWidget lw("tessendorf1");
+        if (lw.render(fft))
+          general.markForRebuild();
+      }
+
+      ImGui::Separator();
+
       for (auto entity : registry.view<terrain::WaterComponent, MeshComponent>()) {
         size_t id = static_cast<size_t>(entity);
         ImGui::PushID(id);

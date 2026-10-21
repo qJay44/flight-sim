@@ -10,6 +10,7 @@
 #define sq(x) ((x)*(x))
 #define dot0(x, y) max(0.0, dot(x, y))
 #define clamp01(x) clamp(x, 0.0, 1.0)
+#define max0(x) max(0.0, x)
 #define smoothstep_inv(e0, e1, x) (1.f - smoothstep(e1, e0, x))
 
 struct Ray {
@@ -39,6 +40,15 @@ RayHitInfo raySphere(vec3 center, float radius, Ray ray) {
   }
 
   return RayHitInfo(FLOAT_MAX, 0.f);
+}
+
+vec3 calcViewVec(vec2 uv, mat4 pvInv) {
+  vec2 ndc = uv * 2.f - 1.f;
+  vec4 clipPos = vec4(ndc, -1.f, 1.f);
+  vec4 worldPos = pvInv * clipPos;
+  worldPos /= worldPos.w;
+
+  return worldPos.xyz;
 }
 
 vec2 complexMultiply(vec2 n1, vec2 n2) {

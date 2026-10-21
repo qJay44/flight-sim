@@ -8,14 +8,12 @@ namespace gfx::terrain {
 
 #define TEXTURE_MAX_SLOTS TERRAIN_MAX_NODES
 
-GenerationManager::GenerationManager(Renderer* renderer, ProfilerManager* profiler, AssetManager& assetManager)
- : renderer(renderer), profiler(profiler)
-{
+GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& assetManager) : profiler(profiler) {
   constexpr uvec2 localSize(16);
   constexpr ivec2 textureRes(160);
   constexpr ivec2 textureResDummy = textureRes + 2;
 
-  water = water::Tessendorf(renderer, profiler, assetManager);
+  water = water::Tessendorf(assetManager);
   water.markForRebuild();
 
   gfx::TextureDescriptor texDesc{
@@ -96,9 +94,9 @@ bool GenerationManager::isSlotCached(u64 nodeKey) const {
   return cachedSlots.contains(nodeKey);
 }
 
-void GenerationManager::update(float time, float dt) {
+void GenerationManager::update(Renderer& renderer, float time, float dt) {
   ubo.terrainConfig.updateSubData(&cfgTerrain, sizeof(TerrainConfig));
-  water.update(time, dt);
+  water.update(renderer, time, dt);
 }
 
 int GenerationManager::acquireSlot(u64 nodeKey) {
@@ -137,7 +135,7 @@ void GenerationManager::freeSlotAll() {
   cachedSlots.clear();
 }
 
-void GenerationManager::generateTexures(size_t nodesCount, size_t offset, const BufferObject& nodes) {
+void GenerationManager::generateTexures(Renderer& renderer, size_t nodesCount, size_t offset, const BufferObject& nodes) {
   computeCommandHeight.numWorkGroups.z = nodesCount;
   computeCommandNormals.numWorkGroups.z = nodesCount;
 
@@ -150,13 +148,13 @@ void GenerationManager::generateTexures(size_t nodesCount, size_t offset, const 
   ubo.terrainConfig.bindBase(0);
   nodes.bindBase(1);
 
-  renderer->submit(computeCommandHeight);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+  renderer.submit(computeCommandHeight);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  renderer->submit(computeCommandNormals);
-  renderer->dispatch();
-  renderer->memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
+  renderer.submit(computeCommandNormals);
+  renderer.dispatch();
+  renderer.memoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 } // terrain

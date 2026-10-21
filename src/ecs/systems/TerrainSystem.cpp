@@ -11,6 +11,7 @@
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
+#include "../../gfx/Renderer.hpp"
 #include "../../core/ActiveCamera.hpp"
 #include "../../core/EngineContext.hpp"
 #include "../../core/math/frustum/Frustum.hpp"
@@ -167,8 +168,7 @@ void init(entt::registry& registry) {
   auto& ctx          = registry.ctx().get<core::EngineContext>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler     = registry.ctx().get<ProfilerManager>();
-  auto& renderer     = registry.ctx().get<gfx::Renderer>();
-  auto gm = GenerationManager(&renderer, &profiler, assetManager);
+  auto gm = GenerationManager(&profiler, assetManager);
   auto& terrainConfig = gm.getConfig();
   ivec2 winSize = ctx.getWinSize();
 
@@ -217,11 +217,17 @@ void init(entt::registry& registry) {
 }
 
 void update(entt::registry& registry) {
-  auto& gm = registry.ctx().get<GenerationManager>();
-  auto& profiler  = registry.ctx().get<ProfilerManager>();
-  auto& ctx = registry.ctx().get<core::EngineContext>();
+  auto& gm       = registry.ctx().get<GenerationManager>();
+  auto& profiler = registry.ctx().get<ProfilerManager>();
+  auto& ctx      = registry.ctx().get<core::EngineContext>();
+  auto& renderer = registry.ctx().get<gfx::Renderer>();
   const auto& terrainConfig = gm.getConfig();
-  gm.update(ctx.time, ctx.dt);
+
+  {
+    static ProfilerManager::Query query("WaterUpdate");
+    auto _task = profiler.startScopedTaskGpu(query);
+    gm.update(renderer, ctx.time, ctx.dt);
+  }
 
   for (auto entity : registry.view<TerrainComponent, CameraComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
@@ -299,16 +305,18 @@ void update(entt::registry& registry) {
     }
 
     terrain.ubo.nodesData.updateSubData(terrain.leafs.data(), terrain.activeLeafs * sizeof(NodeData));
-
-    static ProfilerManager::Query queryQt("QuatreeComputePass");
-    auto _taskQtCS = profiler.startScopedTaskGpu(queryQt);
+    taskLeafsPush.end();
 
     // Generate textures for deferred nodes
-    gm.generateTexures(terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, terrain.ubo.nodesData);
+    {
+      static ProfilerManager::Query query("QuatreeComputePass");
+      auto _task = profiler.startScopedTaskGpu(query);
+      gm.generateTexures(renderer, terrain.activeLeafs - nodesToGenerateIdxOffset, nodesToGenerateIdxOffset, terrain.ubo.nodesData);
+    }
   }
 }
 
-void render(entt::registry& registry, gfx::Renderer& renderer) {
+void render(entt::registry& registry) {
   static ProfilerManager::Query queryRenderLand("TerrainRenderLand");
   static ProfilerManager::Query queryRenderWater("TerrainRenderWater");
   static ProfilerManager::Query queryRenderWaterBlur("TerrainRenderWaterBlur");
@@ -318,6 +326,7 @@ void render(entt::registry& registry, gfx::Renderer& renderer) {
   auto& gm           = registry.ctx().get<GenerationManager>();
   auto& activeCam    = registry.ctx().get<core::ActiveCamera>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  auto& renderer     = registry.ctx().get<gfx::Renderer>();
   const auto& terrainConfig = gm.getConfig();
   auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
