@@ -34,7 +34,6 @@ struct image2D {
   void* pixels = nullptr;
 
   fspath path{};
-  bool flipVertically = false;
 
   void load(fspath path, const LoadDescriptor& desc = {false, LOAD_STB, 0});
 
@@ -43,8 +42,8 @@ struct image2D {
 private:
   GLenum loadType = LOAD_NO;
 
-  void load_STB();
-  void load_STBF();
+  void load_STB(const LoadDescriptor& desc);
+  void load_STBF(const LoadDescriptor& desc);
 };
 
 } // namespace gfx

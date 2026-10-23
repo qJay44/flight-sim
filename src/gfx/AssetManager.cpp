@@ -250,6 +250,15 @@ void AssetManager::addBlur(const std::string& name, Blur&& blur) {
   blurs.emplace(name, std::make_unique<Blur>(std::move(blur)));
 }
 
+void AssetManager::addMaterial(const std::string& name, Material&& material) {
+  if (materials.contains(name)) {
+    warning("[AssetManager::addMaterial] Material ({}) already created", name);
+    return;
+  }
+
+  materials.emplace(name, std::make_unique<Material>(std::move(material)));
+}
+
 void AssetManager::checkShaders() {
   for (auto& [name, shader] : shaders)
     if (shader->needsReload())
@@ -289,6 +298,11 @@ FBO* AssetManager::getFBO(const std::string& name) const {
 Blur* AssetManager::getBlur(const std::string& name) const {
   assert(contains(blurs, name));
   return blurs.at(name).get();
+}
+
+Material* AssetManager::getMaterial(const std::string& name) const {
+  assert(contains(materials, name));
+  return materials.at(name).get();
 }
 
 bool AssetManager::contains(const auto& map, const std::string& name) {

@@ -31,6 +31,11 @@ void createLandEntity(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
+  gfx::Material* sand  = assetManager.getMaterial("TerrainSand");
+  gfx::Material* grass = assetManager.getMaterial("TerrainGrass");
+  gfx::Material* rocks = assetManager.getMaterial("TerrainRocks");
+  gfx::Material* snow  = assetManager.getMaterial("TerrainSnow");
+
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
   // NOTE: The mesh resolution is the same as [MESH_RESOLUTION] in the shader
@@ -48,8 +53,21 @@ void createLandEntity(entt::registry& registry) {
     .fbo = assetManager.getFBO("TerrainFBO"),
   };
 
-  TextureComponent textureComponent{};
-  textureComponent.textures.push_back(assetManager.getTexture("TerrainNodes"));
+  TextureComponent textureComponent{{
+    assetManager.getTexture("TerrainNodes"),
+    &sand->texAlbedo,
+    &sand->texNormal,
+    &sand->texORMH,
+    &grass->texAlbedo,
+    &grass->texNormal,
+    &grass->texORMH,
+    &rocks->texAlbedo,
+    &rocks->texNormal,
+    &rocks->texORMH,
+    &snow->texAlbedo,
+    &snow->texNormal,
+    &snow->texORMH,
+  }};
 
   CameraComponent cameraComponent{
     .cam = assetManager.getCamera("Terrain"),
@@ -199,6 +217,10 @@ void init(entt::registry& registry) {
   assetManager.addTexture("TerrainColorWaterHDR", std::move(texColorWaterHDR));
   assetManager.addTexture("TerrainDepthMain", std::move(texDepth));
   assetManager.addBlur("TerrainWaterBlur", std::move(blurWater));
+  assetManager.addMaterial("TerrainSand", gfx::Material("sand"));
+  assetManager.addMaterial("TerrainGrass", gfx::Material("grass"));
+  assetManager.addMaterial("TerrainRocks", gfx::Material("rocks"));
+  assetManager.addMaterial("TerrainSnow", gfx::Material("snow"));
 
   assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));

@@ -66,7 +66,7 @@ int main() {
     gfx::Shader::setDirectoryLocation("res/shaders");
 
     gfx::Texture2D debugTex0(
-      gfx::image2D("res/tex/debug/uvChecker.jpg", true),
+      gfx::image2D("res/tex/debug/uvChecker.jpg", {.flipVertically = true}),
       {
         .minFilter = GL_NEAREST,
         .magFilter = GL_NEAREST,

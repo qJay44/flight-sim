@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Blur.hpp"
+#include "Material.hpp"
 #include "mesh/Mesh.hpp"
 #include "Shader.hpp"
 #include "texture/Texture.hpp"
@@ -33,6 +34,7 @@ public:
   void addLight(const std::string& name, Light&& light);
   void addFBO(const std::string& name, FBO&& fbo);
   void addBlur(const std::string& name, Blur&& blur);
+  void addMaterial(const std::string& name, Material&& material);
 
   void checkShaders();
 
@@ -43,6 +45,7 @@ public:
   Light* getLight(const std::string& name) const;
   FBO* getFBO(const std::string& name) const;
   Blur* getBlur(const std::string& name) const;
+  Material* getMaterial(const std::string& name) const;
 
 private:
   std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
@@ -52,6 +55,7 @@ private:
   std::unordered_map<std::string, std::unique_ptr<Light>> lights;
   std::unordered_map<std::string, std::unique_ptr<FBO>> fbos;
   std::unordered_map<std::string, std::unique_ptr<Blur>> blurs;
+  std::unordered_map<std::string, std::unique_ptr<Material>> materials;
 
 private:
   static bool contains(const auto& map, const std::string& name);

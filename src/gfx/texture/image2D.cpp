@@ -21,7 +21,6 @@ image2D::image2D(image2D&& other) {
   channels = other.channels;
   pixels = other.pixels;
   path = other.path;
-  flipVertically = other.flipVertically;
   loadType = other.loadType;
 
   other.pixels = nullptr;
@@ -36,7 +35,6 @@ image2D& image2D::operator=(image2D&& other) {
     channels = other.channels;
     pixels = other.pixels;
     path = other.path;
-    flipVertically = other.flipVertically;
     loadType = other.loadType;
 
     other.pixels = nullptr;
@@ -67,27 +65,27 @@ void image2D::load(fspath path, const LoadDescriptor& desc) {
       error("[image2D::load] What?");
       break;
     case LOAD_STB:
-      load_STB();
+      load_STB(desc);
       break;
     case LOAD_STBF:
-      load_STBF();
+      load_STBF(desc);
       break;
     default:
       error("[image2D::load] Unexpected loadType ({})", loadType);
   }
 
   if (!pixels)
-    error(std::format("[image2D::load] Didn't load image [{}]", path.string()));
+    error("[image2D::load] Didn't load image [{}]", path.string());
 }
 
-void image2D::load_STB() {
-  stbi_set_flip_vertically_on_load(flipVertically);
-  pixels = stbi_load(path.string().c_str(), &width, &height, &channels, 0);
+void image2D::load_STB(const LoadDescriptor& desc) {
+  stbi_set_flip_vertically_on_load(desc.flipVertically);
+  pixels = stbi_load(path.string().c_str(), &width, &height, &channels, desc.desiredChannels);
 }
 
-void image2D::load_STBF() {
-  stbi_set_flip_vertically_on_load(flipVertically);
-  pixels = stbi_loadf(path.string().c_str(), &width, &height, &channels, 0);
+void image2D::load_STBF(const LoadDescriptor& desc) {
+  stbi_set_flip_vertically_on_load(desc.flipVertically);
+  pixels = stbi_loadf(path.string().c_str(), &width, &height, &channels, desc.desiredChannels);
 }
 
 void image2D::clear() {

@@ -1,6 +1,7 @@
 #version 460 core
 
 #include "../common.glsl"
+#include "../common-fs.glsl"
 #include "terrain.glsl"
 
 layout(location = 0) out vec4 FragColor;
@@ -43,29 +44,16 @@ layout(binding = 2) uniform sampler2D u_texTurbulence;
 layout(binding = 3) uniform sampler2D u_texLandColor;
 layout(binding = 4) uniform sampler2D u_texLandDepth;
 
-mat3 getTBN(vec3 localNormal, vec2 uv) {
-  vec3 q1 = dFdx(v_worldPos);
-  vec3 q2 = dFdy(v_worldPos);
-  vec2 st1 = dFdx(uv);
-  vec2 st2 = dFdy(uv);
-
-  vec3 N = localNormal;
-  vec3 T = normalize(q1 * st2.t - q2 * st1.t);
-  vec3 B = -normalize(cross(N, T));
-
-  return mat3(T, B, N);
-}
-
 vec3 getWaveNormal(vec2 equatorUV, vec2 polarUV, float poleBlend) {
   vec4 derivatives = texture(u_texDerivatives, equatorUV);
   vec2 slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
   vec3 tangentNormal = normalize(vec3(-slope.x, -slope.y, 1.f));
-  vec3 normalEquator = normalize(getTBN(v_sphereDir, equatorUV) * tangentNormal);
+  vec3 normalEquator = normalize(getTBN(v_sphereDir, v_worldPos, equatorUV) * tangentNormal);
 
   derivatives = texture(u_texDerivatives, polarUV);
   slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
   tangentNormal = normalize(vec3(-slope.x, -slope.y, 1.f));
-  vec3 normalPolar = normalize(getTBN(v_sphereDir, polarUV) * tangentNormal);
+  vec3 normalPolar = normalize(getTBN(v_sphereDir, v_worldPos, polarUV) * tangentNormal);
 
   return mix(normalEquator, normalPolar, poleBlend);
 }
