@@ -1,6 +1,7 @@
 Build/
 .cache/
-res/tex/hud
 compile_commands.json
+res/tex/hud
 res/tex/Cubemaps
+res/tex/pbr
 imgui.ini

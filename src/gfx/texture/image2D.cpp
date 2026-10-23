@@ -6,9 +6,13 @@
 
 namespace gfx {
 
-void image2D::write(const std::string& path, uvec2 size, u8 channels, byte* buf) {
+void info(fspath path, int& width, int& height, int& channels) {
+  stbi_info(path.string().c_str(), &width, &height, &channels);
+}
+
+void image2D::write(fspath path, uvec2 size, u8 channels, byte* buf) {
   stbi_flip_vertically_on_write(true);
-  stbi_write_png(path.c_str(), size.x, size.y, channels, buf, size.x * channels);
+  stbi_write_png(path.string().c_str(), size.x, size.y, channels, buf, size.x * channels);
 }
 
 image2D::image2D(image2D&& other) {
@@ -21,7 +25,7 @@ image2D::image2D(image2D&& other) {
   loadType = other.loadType;
 
   other.pixels = nullptr;
-  other.loadType = IMAGE2D_LOAD_NO;
+  other.loadType = LOAD_NO;
 }
 
 image2D& image2D::operator=(image2D&& other) {
@@ -36,7 +40,7 @@ image2D& image2D::operator=(image2D&& other) {
     loadType = other.loadType;
 
     other.pixels = nullptr;
-    other.loadType = IMAGE2D_LOAD_NO;
+    other.loadType = LOAD_NO;
   }
 
   return *this;
@@ -44,29 +48,28 @@ image2D& image2D::operator=(image2D&& other) {
 
 image2D::image2D(int width, int height) : width(width), height(height) {}
 
-image2D::image2D(fspath path, bool flipVertically, GLenum loadType) {
-  load(path, flipVertically, loadType);
+image2D::image2D(fspath path, const LoadDescriptor& desc) {
+  load(path, desc);
 }
 
 image2D::~image2D() {
   clear();
 }
 
-void image2D::load(fspath path, bool flipVertically, GLenum loadType) {
+void image2D::load(fspath path, const LoadDescriptor& desc) {
   clear();
 
   this->path = path;
-  this->loadType = loadType;
-  this->flipVertically = flipVertically;
+  this->loadType = desc.loadType;
 
   switch (loadType) {
-    case IMAGE2D_LOAD_NO:
+    case LOAD_NO:
       error("[image2D::load] What?");
       break;
-    case IMAGE2D_LOAD_STB:
+    case LOAD_STB:
       load_STB();
       break;
-    case IMAGE2D_LOAD_STBF:
+    case LOAD_STBF:
       load_STBF();
       break;
     default:
@@ -89,19 +92,19 @@ void image2D::load_STBF() {
 
 void image2D::clear() {
   switch (loadType) {
-    case IMAGE2D_LOAD_NO:
+    case LOAD_NO:
       if (pixels)
         error("[image2D::clear] pixels is not nullptr");
       break;
-    case IMAGE2D_LOAD_STB:
-    case IMAGE2D_LOAD_STBF:
+    case LOAD_STB:
+    case LOAD_STBF:
       stbi_image_free(pixels);
       break;
     default:
       error("[image2D::clear] Should never happen [{}]", loadType);
   }
   pixels = nullptr;
-  loadType = IMAGE2D_LOAD_NO;
+  loadType = LOAD_NO;
 }
 
 } // namespace gfx
