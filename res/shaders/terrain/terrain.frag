@@ -12,19 +12,10 @@ in vec3 v_sphereDir;
 in vec2 v_uv;
 in flat int v_texLayer;
 
-layout(binding = 0 ) uniform sampler2DArray u_texComputeData;
-layout(binding = 1 ) uniform sampler2D u_texSandAlbedo;
-layout(binding = 2 ) uniform sampler2D u_texSandNormal;
-layout(binding = 3 ) uniform sampler2D u_texSandORMH;
-layout(binding = 4 ) uniform sampler2D u_texGrassAlbedo;
-layout(binding = 5 ) uniform sampler2D u_texGrassNormal;
-layout(binding = 6 ) uniform sampler2D u_texGrassORMH;
-layout(binding = 7 ) uniform sampler2D u_texRocksAlbedo;
-layout(binding = 8 ) uniform sampler2D u_texRocksNormal;
-layout(binding = 9 ) uniform sampler2D u_texRocksORMH;
-layout(binding = 10) uniform sampler2D u_texSnowAlbedo;
-layout(binding = 11) uniform sampler2D u_texSnowNormal;
-layout(binding = 12) uniform sampler2D u_texSnowORMH;
+layout(binding = 0) uniform sampler2DArray u_texArrayComputeData;
+layout(binding = 1) uniform sampler2DArray u_texArrayAlbedo;
+layout(binding = 2) uniform sampler2DArray u_texArrayNormal;
+layout(binding = 3) uniform sampler2DArray u_texArrayORMH;
 
 uniform vec3 u_lightDir;
 uniform float u_planetRadius;
@@ -33,12 +24,12 @@ uniform float u_sandThreshold;
 uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
-Material getMaterial(sampler2D texAlbedo, sampler2D texNormal, sampler2D texORMH, vec2 uv, mat3 tbn) {
-  vec4 ormh = texture(texORMH, uv);
+Material getMaterial(vec2 uv, int slot, mat3 tbn) {
+  vec4 ormh = texture(u_texArrayORMH, vec3(uv, slot));
 
   Material m;
-  m.albedo = texture(texAlbedo, uv).rgb;
-  m.normal = normalize(tbn * texture(texNormal, uv).rgb);
+  m.albedo = texture(u_texArrayAlbedo, vec3(uv, slot)).rgb;
+  m.normal = normalize(tbn * texture(u_texArrayNormal, vec3(uv, slot)).rgb);
   m.ao = ormh.r;
   m.roughness = ormh.g;
   m.metallic = ormh.b;
@@ -59,15 +50,15 @@ Material materialMix(Material m1, Material m2, float t) {
 }
 
 void main() {
-  vec4 terrainData = texture(u_texComputeData, vec3(v_uv, v_texLayer));
+  vec4 terrainData = texture(u_texArrayComputeData, vec3(v_uv, v_texLayer));
   float height = terrainData.a / u_heightScale;
   vec3 computeNormal = terrainData.rgb;
 
   mat3 tbn = getTBN(computeNormal, v_worldPos, v_uv);
-  Material sand  = getMaterial(u_texSandAlbedo,  u_texSandNormal,  u_texSandORMH,  v_uv, tbn);
-  Material grass = getMaterial(u_texGrassAlbedo, u_texGrassNormal, u_texGrassORMH, v_uv, tbn);
-  Material rocks = getMaterial(u_texRocksAlbedo, u_texRocksNormal, u_texRocksORMH, v_uv, tbn);
-  Material snow  = getMaterial(u_texSnowAlbedo,  u_texSnowNormal,  u_texSnowORMH,  v_uv, tbn);
+  Material sand  = getMaterial(v_uv, 0, tbn);
+  Material grass = getMaterial(v_uv, 1, tbn);
+  Material rocks = getMaterial(v_uv, 2, tbn);
+  Material snow  = getMaterial(v_uv, 3, tbn);
 
   // Calculate slope (steepness)
   // We check how much the surface normal aligns with the outward radial direction of the planet.

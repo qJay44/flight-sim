@@ -31,10 +31,7 @@ void createLandEntity(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
-  gfx::Material* sand  = assetManager.getMaterial("TerrainSand");
-  gfx::Material* grass = assetManager.getMaterial("TerrainGrass");
-  gfx::Material* rocks = assetManager.getMaterial("TerrainRocks");
-  gfx::Material* snow  = assetManager.getMaterial("TerrainSnow");
+  gfx::Materials* materials  = assetManager.getMaterials("TerrainMaterials");
 
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
@@ -55,18 +52,9 @@ void createLandEntity(entt::registry& registry) {
 
   TextureComponent textureComponent{{
     assetManager.getTexture("TerrainNodes"),
-    &sand->texAlbedo,
-    &sand->texNormal,
-    &sand->texORMH,
-    &grass->texAlbedo,
-    &grass->texNormal,
-    &grass->texORMH,
-    &rocks->texAlbedo,
-    &rocks->texNormal,
-    &rocks->texORMH,
-    &snow->texAlbedo,
-    &snow->texNormal,
-    &snow->texORMH,
+    &materials->texAlbedo,
+    &materials->texNormal,
+    &materials->texORMH,
   }};
 
   CameraComponent cameraComponent{
@@ -202,6 +190,14 @@ void init(entt::registry& registry) {
 
   gfx::Blur blurWater(ivec2(512));
 
+  ivec3 materialsInfo;
+  gfx::image2D::info("res/tex/pbr/sand/ao.png", materialsInfo.x, materialsInfo.y, materialsInfo.z);
+  gfx::Materials materials(materialsInfo, 4);
+  materials.add("snow");
+  materials.add("rocks");
+  materials.add("grass");
+  materials.add("sand");
+
   assetManager.addCamera("Terrain", {
     .farPlane = 1e6f,
     .position = {0.f, 0.f, terrainConfig.planetRadius + 25.f},
@@ -217,10 +213,7 @@ void init(entt::registry& registry) {
   assetManager.addTexture("TerrainColorWaterHDR", std::move(texColorWaterHDR));
   assetManager.addTexture("TerrainDepthMain", std::move(texDepth));
   assetManager.addBlur("TerrainWaterBlur", std::move(blurWater));
-  assetManager.addMaterial("TerrainSand", gfx::Material("sand"));
-  assetManager.addMaterial("TerrainGrass", gfx::Material("grass"));
-  assetManager.addMaterial("TerrainRocks", gfx::Material("rocks"));
-  assetManager.addMaterial("TerrainSnow", gfx::Material("snow"));
+  assetManager.addMaterials("TerrainMaterials", std::move(materials));
 
   assetManager.addShader("TerrainDrawLand", gfx::Shader("terrain/terrain.vert", "terrain/terrain.frag"));
   assetManager.addShader("TerrainDrawWater", gfx::Shader("terrain/water.vert", "terrain/water.frag"));

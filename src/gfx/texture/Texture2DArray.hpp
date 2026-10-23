@@ -13,14 +13,9 @@ public:
   Texture2DArray(GLint slots, ivec2 size, const TextureDescriptor& desc);
   Texture2DArray(GLint slots, int size, const TextureDescriptor& desc);
 
-  const GLint& getSlots() const;
-  const ivec2& getSize() const;
+  GLint getSlots(GLint lod) const;
 
-  void upload(GLint slot, const void* pixels, GLenum format, GLenum type) const;
-
-private:
-  GLint slots{};
-  ivec2 size{};
+  void upload(GLint slot, ivec2 size, const void* pixels, GLenum format, GLenum type) const;
 };
 
 } // namespace gfx

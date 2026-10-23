@@ -19,7 +19,7 @@ uniform float u_camFar;
 uniform float u_planetRadius;
 uniform int u_baseVertexCount;
 
-layout(binding = 0) uniform sampler2DArray u_texComputeData;
+layout(binding = 0) uniform sampler2DArray u_texArrayComputeData;
 
 layout(std140, binding = 0) uniform NodesDataBlock {
   NodeData nodesData[TERRAIN_MAX_NODES];
@@ -32,7 +32,7 @@ void main() {
   vec2 uv = a_pos.xz * 0.5f + 0.5f;
   vec3 sphereDir = normalize(cubeToSphere(nodePos, node.faceIdx));
 
-  vec4 terrainData = texture(u_texComputeData, vec3(uv, node.texLayerIdx));
+  vec4 terrainData = texture(u_texArrayComputeData, vec3(uv, node.texLayerIdx));
   float height = terrainData.a;
 
   float sign = gl_VertexID >= BASE_VERTEX_COUNT ? -1.f : 1.f;

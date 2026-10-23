@@ -6,7 +6,7 @@
 
 namespace gfx {
 
-void info(fspath path, int& width, int& height, int& channels) {
+void image2D::info(fspath path, int& width, int& height, int& channels) {
   stbi_info(path.string().c_str(), &width, &height, &channels);
 }
 
