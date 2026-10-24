@@ -1,7 +1,6 @@
 #version 460 core
 
 #include "../common.glsl"
-#include "../common-fs.glsl"
 #include "terrain.glsl"
 
 layout(location = 0) out vec4 FragColor;
@@ -43,6 +42,19 @@ layout(binding = 1) uniform sampler2D u_texDerivatives;
 layout(binding = 2) uniform sampler2D u_texTurbulence;
 layout(binding = 3) uniform sampler2D u_texLandColor;
 layout(binding = 4) uniform sampler2D u_texLandDepth;
+
+mat3 getTBN(vec3 localNormal, vec3 worldPos, vec2 uv) {
+  vec3 q1 = dFdx(worldPos);
+  vec3 q2 = dFdy(worldPos);
+  vec2 st1 = dFdx(uv);
+  vec2 st2 = dFdy(uv);
+
+  vec3 N = localNormal;
+  vec3 T = normalize(q1 * st2.t - q2 * st1.t);
+  vec3 B = -normalize(cross(N, T));
+
+  return mat3(T, B, N);
+}
 
 vec3 getWaveNormal(vec2 equatorUV, vec2 polarUV, float poleBlend) {
   vec4 derivatives = texture(u_texDerivatives, equatorUV);

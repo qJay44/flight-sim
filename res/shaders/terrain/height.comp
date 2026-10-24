@@ -188,7 +188,8 @@ void main() {
   vec2 pixelUV = vec2(texCoord) / vec2(size - 3) * 2.f - 1.f;
   vec2 nodeUV = pixelUV * node.extents + node.center;
 
-  vec3 sphereDir = normalize(cubeToSphere(nodeUV, node.faceIdx));
+  vec3 localNormal;
+  vec3 sphereDir = normalize(cubeToSphere(nodeUV, node.faceIdx, localNormal));
   float height = evaluateHeight(sphereDir) * u_heightScale;
   vec3 pos = sphereDir * (cfg.planetRadius + height);
 

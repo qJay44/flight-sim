@@ -34,18 +34,18 @@ struct Config {
   int terraceSteps;
 };
 
-vec3 cubeToSphere(vec2 pos, int faceIdx) {
+vec3 cubeToSphere(vec2 pos, int faceIdx, out vec3 outLocalNormal) {
   float u = pos.x;
   float v = pos.y;
   vec3 p;
 
   switch (faceIdx) {
-    case 0: p = vec3( 1,  v,  u); break; // Right
-    case 1: p = vec3(-1,  v, -u); break; // Left
-    case 2: p = vec3( u,  1,  v); break; // Top
-    case 3: p = vec3(-u, -1,  v); break; // Bottom
-    case 4: p = vec3(-u,  v,  1); break; // Front
-    case 5: p = vec3( u,  v, -1); break; // Back
+    case 0: p = vec3( 1,  v,  u); outLocalNormal = vec3( 1.f,  0.f,  0.f); break; // Right
+    case 1: p = vec3(-1,  v, -u); outLocalNormal = vec3(-1.f,  0.f,  0.f); break; // Left
+    case 2: p = vec3( u,  1,  v); outLocalNormal = vec3( 0.f,  1.f,  0.f); break; // Top
+    case 3: p = vec3(-u, -1,  v); outLocalNormal = vec3( 0.f, -1.f,  0.f); break; // Bottom
+    case 4: p = vec3(-u,  v,  1); outLocalNormal = vec3( 0.f,  0.f,  1.f); break; // Front
+    case 5: p = vec3( u,  v, -1); outLocalNormal = vec3( 0.f,  0.f, -1.f); break; // Back
   }
 
   return p;
