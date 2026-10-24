@@ -122,7 +122,7 @@ float Quadnode::calculateSplitPriority() {
   float distance = glm::distance(g.camPos, elevatedCenter);
   float seaLevelRadius = extents * g.planetRadius * 1.4141f; // sqrt(2), diagonal length of the square
 
-  float frustumRadius = glm::max(g.planetRadius, seaLevelRadius) + g.heightScale * 0.5f;
+  float frustumRadius = g.planetRadius + g.heightScale * 0.5f;
   auto frustumSphere = frustum::volume::Sphere(elevatedCenter, frustumRadius);
   onFrustum = frustumSphere.isOnFrustum(*g.frustum);
 

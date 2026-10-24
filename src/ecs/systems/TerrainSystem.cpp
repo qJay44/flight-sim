@@ -374,7 +374,7 @@ void render(entt::registry& registry) {
     meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
     meshComponent.shader->setUniformMatrix4f("u_localView", localView);
     meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
-    meshComponent.shader->setUniform3f("u_planetCameraOffset", planetCameraOffset);
+    meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
