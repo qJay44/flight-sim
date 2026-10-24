@@ -26,8 +26,6 @@ uniform float u_heightScale;
 uniform int u_baseVertexCount;
 
 layout(binding = 0) uniform sampler2DArray u_texArrayComputeData;
-layout(binding = 2) uniform sampler2DArray u_texArrayNormal;
-layout(binding = 3) uniform sampler2DArray u_texArrayORMH;
 
 layout(std140, binding = 0) uniform NodesDataBlock {
   NodeData nodesData[TERRAIN_MAX_NODES];

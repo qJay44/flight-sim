@@ -26,10 +26,11 @@ uniform float u_heightScale;
 
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
   vec4 ormh = texture(u_texArrayORMH, vec3(uv, slot));
+  vec3 normal = texture(u_texArrayNormal, vec3(uv, slot)).rgb * 2.f - 1.f;
 
   Material m;
   m.albedo    = texture(u_texArrayAlbedo, vec3(uv, slot)).rgb;
-  m.normal    = normalize(tbn * texture(u_texArrayNormal, vec3(uv, slot)).rgb);
+  m.normal    = normalize(tbn * normal);
   m.ao        = ormh.r;
   m.roughness = ormh.g;
   m.metallic  = ormh.b;
@@ -38,20 +39,18 @@ Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
   return m;
 }
 
-Material materialMix(Material m1, Material m2, float t) {
-  m1.albedo    = mix(m1.albedo,    m2.albedo,    t);
-  m1.normal    = mix(m1.normal,    m2.normal,    t);
-  m1.ao        = mix(m1.ao,        m2.ao,        t);
-  m1.roughness = mix(m1.roughness, m2.roughness, t);
-  m1.metallic  = mix(m1.metallic,  m2.metallic,  t);
-  m1.height    = mix(m1.height,    m2.height,    t);
-
-  return m1;
+void materialMix(inout Material m1, in Material m2, float t) {
+  m1.albedo    += m2.albedo    * t;
+  m1.normal    += m2.normal    * t;
+  m1.ao        += m2.ao        * t;
+  m1.roughness += m2.roughness * t;
+  m1.metallic  += m2.metallic  * t;
+  m1.height    += m2.height    * t;
 }
 
 mat3 getTBN(vec3 normal) {
-  vec3 N = normalize(v_sphereDir);
-  vec3 T = normalize(normal - dot(normal, N) * N);
+  vec3 N = normalize(normal);
+  vec3 T = normalize(v_faceTangent - dot(v_faceTangent, N) * N);
   vec3 B = normalize(cross(T, N));
 
   return mat3(T, B, N);
@@ -70,17 +69,19 @@ void main() {
   float flatness = dot0(computeNormal, radialDir);
   float slope = 1.f - flatness;
 
-  float sandToGrassWeight = smoothstep(u_seaThreshold, u_sandThreshold, height);
+  float sandWeight = 1.f - smoothstep(u_seaThreshold, u_sandThreshold, height);
+  float grassWeight = smoothstep(u_seaThreshold, u_sandThreshold, height);
   float slopeWeight = smoothstep(0.15f, 0.3f, slope);
   float snowWeight = smoothstep(u_mountainThreshold, 0.90f, height);
-  float weights[4] = float[4](0.f, sandToGrassWeight, slopeWeight, snowWeight);
+  float weights[4] = float[4](sandWeight, grassWeight * (1.f - slopeWeight), slopeWeight * (1.f - snowWeight), snowWeight);
 
-  Material surfaceMaterial = materialUnpack(v_uv, 0, tbn);
+  Material surfaceMaterial = materialInit;
 
-  for (int i = 1; i < 4; i++)
+  for (int i = 0; i < 4; i++)
     if (weights[i] > 0.f)
-      surfaceMaterial = materialMix(surfaceMaterial, materialUnpack(v_uv, i, tbn), weights[i]);
+      materialMix(surfaceMaterial, materialUnpack(v_uv, i, tbn), weights[i]);
 
+  surfaceMaterial.normal = normalize(surfaceMaterial.normal);
   float diffuse = dot0(surfaceMaterial.normal, u_lightDir);
   float ambient = 0.01f;
 

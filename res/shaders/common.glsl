@@ -31,6 +31,14 @@ struct Material {
   float metallic;
   float height;
 };
+const Material materialInit = Material(
+  vec3(0.f),
+  vec3(0.f),
+  0.f,
+  0.f,
+  0.f,
+  0.f
+);
 
 RayHitInfo raySphere(vec3 center, float radius, Ray ray) {
   vec3 offset = ray.origin - center;
