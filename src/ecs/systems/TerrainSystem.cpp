@@ -40,7 +40,10 @@ void createLandEntity(entt::registry& registry) {
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
-  TerrainComponent terrainComponent{};
+  TerrainComponent terrainComponent{
+    .qtSplitThreshold = 0.8f
+  };
+
   terrainComponent.ubo.nodesData = gfx::BufferObject::createUniformBuffer(true);
   terrainComponent.ubo.nodesData.storage(nullptr, TERRAIN_MAX_NODES * sizeof(NodeData), GL_DYNAMIC_STORAGE_BIT);
 
@@ -474,11 +477,9 @@ void render(entt::registry& registry) {
       .mesh = meshComponent.mesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      .enableBlend = true,
       .enableDepthMask = false,
       .textures = texComponent.textures,
       .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2},
-      .blendFunc = {GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA},
     };
 
     renderer.submit(renderCmdWater);

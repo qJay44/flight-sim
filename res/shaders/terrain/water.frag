@@ -128,8 +128,8 @@ void main() {
   float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
   vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
 
-  seabedColor = mix(seabedColor, u_oceanShallowColor, 1.f - waterDepth);
-  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
+  seabedColor = mix(seabedColor, u_oceanShallowColor, absorption);
+  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, waterDepth);
 
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
@@ -148,9 +148,8 @@ void main() {
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
 
   vec3 finalColorHDR = specularColor * 2.f;
-  float alpha = exp(-absorption * 0.1f);
 
-  FragColor = vec4(finalColor, alpha);
+  FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);
 }
 

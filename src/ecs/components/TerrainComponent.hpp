@@ -16,7 +16,7 @@ struct TerrainComponent {
   int qtMaxDepth = 8;
   float qtSplitThreshold = 0.5f;
 
-  std::array<NodeData, TERRAIN_MAX_NODES> leafs;
+  std::array<NodeData, TERRAIN_MAX_NODES> leafs{};
   std::array<Quadnode, 6> quadtrees{
     Quadnode::Right,
     Quadnode::Left,
@@ -31,7 +31,7 @@ struct TerrainComponent {
 
   struct {
     gfx::BufferObject nodesData;
-  } ubo;
+  } ubo{};
 };
 
 } // namespace ecs::component::terrain

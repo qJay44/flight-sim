@@ -28,11 +28,12 @@ uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
-  vec4 ormh = texture(u_texArrayORMH, vec3(uv, slot));
-  vec3 normal = texture(u_texArrayNormal, vec3(uv, slot)).rgb * 2.f - 1.f;
+  vec3 P = vec3(uv, slot);
+  vec4 ormh = texture(u_texArrayORMH, P);
+  vec3 normal = texture(u_texArrayNormal, P).rgb * 2.f - 1.f;
 
   Material m  = materialInit;
-  m.albedo    = texture(u_texArrayAlbedo, vec3(uv, slot)).rgb;
+  m.albedo    = texture(u_texArrayAlbedo, P).rgb;
   m.normal    = normalize(tbn * normal);
   m.ao        = ormh.r;
   m.roughness = ormh.g;
@@ -74,7 +75,7 @@ void main() {
   float grassWeight = smoothstep(u_seaThreshold, u_sandThreshold, height);
   float slopeWeight = smoothstep(0.15f, 0.3f, slope);
   float snowWeight = smoothstep(u_mountainThreshold, 0.90f, height);
-  float distWeight = min(0.35f, smoothstep(0.f, u_planetRadius * 0.25f, dist)); // Supposed to be anti-grain...
+  float distWeight = min(0.35f, smoothstep(0.f, u_planetRadius * 0.25f, dist));
   float weights[4] = float[4](sandWeight, grassWeight * (1.f - height), slopeWeight * (1.f - snowWeight), snowWeight);
 
   Material surfaceMaterial = materialInit;
@@ -82,7 +83,7 @@ void main() {
   for (int i = 0; i < 4; i++) {
     if (weights[i] > 0.f) {
       Material m = materialUnpack(v_uv, i, tbn);
-      m.normal = mix(m.normal, radialDir, distWeight);
+      m.normal = mix(m.normal, radialDir, distWeight); // Supposed to be anti-grain...
       materialMix(surfaceMaterial, m, weights[i]);
     }
   }

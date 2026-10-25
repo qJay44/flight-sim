@@ -48,7 +48,7 @@ void main() {
   vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
   vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
   vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
-  vec3 displacementFinal = displacementPolar;
+  vec3 displacementFinal = displacement;
   // vec3 displacementFinal = displacementPolar * u_displacementScale * distFactor;
   worldPos += sphereDir * displacementFinal;
 
