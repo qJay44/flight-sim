@@ -129,11 +129,12 @@ void main() {
   vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
 
   seabedColor = mix(seabedColor, u_oceanShallowColor, absorption);
-  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, waterDepth);
+  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, 1.f - waterDepth);
 
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
 
+  // float diffuse = NdotL;
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
 

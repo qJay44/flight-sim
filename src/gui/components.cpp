@@ -126,8 +126,7 @@ void drawTerrainComponent(terrain::TerrainComponent& component) {
 
     ImGui::Spacing();
 
-    ImGui::SliderFloat("Sea threshold", &component.seaThreshold, 0.f, 1.f);
-    ImGui::SliderFloat("Sand threshold", &component.sandThreshold, 0.f, 1.f);
+    ImGui::SliderFloat("Grass threshold", &component.grassThreshold, 0.f, 1.f);
     ImGui::SliderFloat("Moutain threshold", &component.mountainThreshold, 0.f, 1.f);
     ImGui::SliderInt("Quadtree max depth", &component.qtMaxDepth, 1, 20);
     ImGui::SliderFloat("Quadtree split threshold", &component.qtSplitThreshold, 0.f, 1.f);

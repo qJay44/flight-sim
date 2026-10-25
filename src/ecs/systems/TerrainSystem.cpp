@@ -36,12 +36,15 @@ void createLandEntity(entt::registry& registry) {
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
   // NOTE: The mesh resolution is the same as [MESH_RESOLUTION] in the shader
-  std::string meshName = assetManager.createMeshPlane_Triangles(128, "TerrainLand", true, true);
+  std::string meshName = assetManager.createMeshPlane_Triangles(64, "TerrainLand", true, true);
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
   TerrainComponent terrainComponent{
-    .qtSplitThreshold = 0.8f
+    .grassThreshold = 0.115f,
+    .mountainThreshold = 0.5f,
+    .qtMaxDepth = 5,
+    .qtSplitThreshold = 0.5f,
   };
 
   terrainComponent.ubo.nodesData = gfx::BufferObject::createUniformBuffer(true);
@@ -197,7 +200,7 @@ void init(entt::registry& registry) {
   gfx::image2D::info("res/tex/pbr/sand/ao.png", materialsInfo.x, materialsInfo.y, materialsInfo.z);
   gfx::Materials materials(materialsInfo, 4);
   materials.add("snow");
-  materials.add("rocks");
+  materials.add("rocks2");
   materials.add("grass");
   materials.add("sand");
 
@@ -381,9 +384,9 @@ void render(entt::registry& registry) {
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
-    meshComponent.shader->setUniform1f("u_seaThreshold", terrainComponent.seaThreshold);
-    meshComponent.shader->setUniform1f("u_sandThreshold", terrainComponent.sandThreshold);
+    meshComponent.shader->setUniform1f("u_grassThreshold", terrainComponent.grassThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);
+    meshComponent.shader->setUniform1f("u_splitThreshold", terrainComponent.qtSplitThreshold);
 
     gfx::Renderer::RenderCommand renderCmd{
       .shader = meshComponent.shader,

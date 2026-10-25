@@ -9,9 +9,9 @@ namespace ecs::component::terrain {
 using namespace core::math::terrain;
 
 struct TerrainComponent {
-  float seaThreshold = 0.05f;     // Percentage of [heightScale]
-  float sandThreshold = 0.08f;    // Percentage of [heightScale]
-  float mountainThreshold = 0.6f; // Percentage of [heightScale]
+  // Percentages of [heightScale]
+  float grassThreshold = 0.05f;
+  float mountainThreshold = 0.6f;
 
   int qtMaxDepth = 8;
   float qtSplitThreshold = 0.5f;

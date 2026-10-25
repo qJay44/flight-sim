@@ -22,8 +22,8 @@ uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
 uniform float u_lightIntensity;
 uniform float u_planetRadius;
-uniform float u_seaThreshold;
 uniform float u_sandThreshold;
+uniform float u_grassThreshold;
 uniform float u_mountainThreshold;
 uniform float u_heightScale;
 
@@ -61,32 +61,28 @@ mat3 getTBN(vec3 normal) {
 }
 
 void main() {
-  vec4 terrainData = texture(u_texArrayComputeData, vec3(v_uv, v_texLayer));
+  vec3 radialDir = normalize(v_sphereDir);
+  vec2 uv = v_uv;
+
+  vec4 terrainData = texture(u_texArrayComputeData, vec3(uv, v_texLayer));
   float height = terrainData.a / u_heightScale;
   float dist = length(u_camPos - v_worldPos);
   vec3 computeNormal = terrainData.rgb;
   mat3 tbn = getTBN(computeNormal);
 
-  vec3 radialDir = normalize(v_sphereDir);
   float flatness = dot0(computeNormal, radialDir);
   float slope = 1.f - flatness;
 
-  float sandWeight = 1.f - smoothstep(u_seaThreshold, u_sandThreshold, height);
-  float grassWeight = smoothstep(u_seaThreshold, u_sandThreshold, height);
-  float slopeWeight = smoothstep(0.15f, 0.3f, slope);
-  float snowWeight = smoothstep(u_mountainThreshold, 0.90f, height);
-  float distWeight = min(0.35f, smoothstep(0.f, u_planetRadius * 0.25f, dist));
-  float weights[4] = float[4](sandWeight, grassWeight * (1.f - height), slopeWeight * (1.f - snowWeight), snowWeight);
+  float grassWeight = smoothstep(0.f, u_grassThreshold, height);
+  float snowWeight = smoothstep(u_mountainThreshold, 1.f, height);
+  float slopeWeight = max(snowWeight, smoothstep(0.15f, 0.3f, slope)); // Less grass for snow
+  float weights[4] = float[4](1.f, grassWeight, slopeWeight, snowWeight);
 
   Material surfaceMaterial = materialInit;
 
-  for (int i = 0; i < 4; i++) {
-    if (weights[i] > 0.f) {
-      Material m = materialUnpack(v_uv, i, tbn);
-      m.normal = mix(m.normal, radialDir, distWeight); // Supposed to be anti-grain...
-      materialMix(surfaceMaterial, m, weights[i]);
-    }
-  }
+  for (int i = 0; i < 4; i++)
+    if (weights[i] > 0.f)
+      materialMix(surfaceMaterial, materialUnpack(uv, i, tbn), weights[i]);
 
   surfaceMaterial.normal = normalize(surfaceMaterial.normal);
 
@@ -96,10 +92,10 @@ void main() {
   vec3 H = normalize(V + L);
   float geomSmith = GeometrySmith_Direct(surfaceMaterial.roughness, surfaceMaterial.normal, V, L);
 
-  float ambient = 0.001f;
+  float ambient = 0.1f;
   vec3 brdf = BRDF_CookTorrance(surfaceMaterial, V, L, H, geomSmith);
   vec3 Lo = brdf * radiance * dot0(surfaceMaterial.normal, L);
-  vec3 color = Lo * surfaceMaterial.ao + ambient + surfaceMaterial.emissivity;
+  vec3 color = Lo * (surfaceMaterial.ao + ambient) + surfaceMaterial.emissivity;
   color /= color + 1.f;
 
   FragColor0 = vec4(color, 1.f);

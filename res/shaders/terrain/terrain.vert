@@ -3,7 +3,7 @@
 #include "../common.glsl"
 #include "terrain.glsl"
 
-#define MESH_RESOLUTION 128
+#define MESH_RESOLUTION 64
 #define BASE_VERTEX_COUNT (MESH_RESOLUTION*MESH_RESOLUTION)
 
 layout(location = 0) in vec3 a_pos;
@@ -17,13 +17,9 @@ out flat int v_texLayer;
 uniform mat4 u_proj;
 uniform mat4 u_localView;
 uniform mat4 u_localTranslation;
+uniform vec3 u_camPos;
 uniform float u_camFar;
 uniform float u_planetRadius;
-uniform float u_seaThreshold;
-uniform float u_sandThreshold;
-uniform float u_mountainThreshold;
-uniform float u_heightScale;
-uniform int u_baseVertexCount;
 
 layout(binding = 0) uniform sampler2DArray u_texArrayComputeData;
 
