@@ -21,7 +21,7 @@ public:
   GLenum getTarget() const;
   GLenum getInternalFormat() const;
 
-  ivec2 getSize(GLint mipLevel) const;
+  ivec2 getSize(GLint mipLevel = 0) const;
 
 protected:
   GLenum target = 0;

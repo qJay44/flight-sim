@@ -50,9 +50,6 @@ void main() {
   v_texLayer = node.texLayerIdx;
 
 	gl_Position = u_proj * (u_localView * (u_localTranslation * worldPos));
-
-  float C = 0.001;
-  float distNorm = log(C * gl_Position.w + 1.0) / log(C * u_camFar + 1.0);
-  gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
+  gl_Position.z = linearDepthToLogDepth(gl_Position.w, u_camFar);
 }
 

@@ -53,10 +53,7 @@ void main() {
   worldPos += sphereDir * displacementFinal;
 
 	gl_Position = u_proj * (u_localView * (u_localTranslation * vec4(worldPos, 1.f)));
-
-  float C = 0.001;
-  float distNorm = log(C * gl_Position.w + 1.0) / log(C * u_camFar + 1.0);
-  gl_Position.z = (distNorm * 2.0 - 1.0) * gl_Position.w;
+  gl_Position.z = linearDepthToLogDepth(gl_Position.w, u_camFar);
 
   v_worldPos = worldPos;
   v_sphereDir = sphereDir;

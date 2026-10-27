@@ -113,7 +113,10 @@ void main() {
   float waterDepth = gl_FragCoord.z;
   float landDepthLinear = linearizeDepth(landDepth, u_camNear, u_camFar);
   float waterDepthLinear = linearizeDepth(waterDepth, u_camNear, u_camFar);
+  // float landDepthLinear = logDepthToLinearDepth(landDepth, u_camFar);
+  // float waterDepthLinear = logDepthToLinearDepth(waterDepth, u_camFar);
   float waterThickness = landDepthLinear - waterDepthLinear;
+  // float depthWeight = smoothstep(0.f, 2.f, exp(-max0(landDepthLinear)*0.7f));
   float absorption = exp(-max0(waterThickness) * u_waterDensity) * distScale1;
 
   float VdotN = dot0(viewDir, normal);
@@ -128,13 +131,12 @@ void main() {
   float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
   vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
 
-  seabedColor = mix(seabedColor, u_oceanShallowColor, absorption);
-  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, 1.f - waterDepth);
+  seabedColor = mix(seabedColor, u_oceanShallowColor, 1.f - waterDepth);
+  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
 
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
 
-  // float diffuse = NdotL;
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
 
@@ -150,6 +152,7 @@ void main() {
 
   vec3 finalColorHDR = specularColor * 2.f;
 
+ // finalColor = vec3(seabedColor);
   FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);
 }

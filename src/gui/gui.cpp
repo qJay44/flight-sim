@@ -104,7 +104,7 @@ void render(entt::registry& registry) {
 
   if (ImGui::CollapsingHeader("Terrain")) {
     auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
-    auto& cfg = gm.getConfig();
+    auto& cfg = gm.getTerrainConfig();
     vec3 dirToCenter = glm::normalize(activeCam.cam->position);
 
     ImGui::Text("Height scale: [%.2f]", cfg.planetRadius * cfg.planetRadiusPercent);
@@ -161,7 +161,7 @@ void render(entt::registry& registry) {
         ImGui::PopID();
       }
 
-      ImGui::SeparatorText("Waters");
+      ImGui::SeparatorText("Water");
       {
         auto& general = gm.getWater();
         auto& fft = general.getConfig();
@@ -230,6 +230,25 @@ void render(entt::registry& registry) {
         ImGui::PopID();
       }
     }
+  }
+
+  if (ImGui::CollapsingHeader("Atmosphere")) {
+    auto& gm = registry.ctx().get<gfx::terrain::GenerationManager>();
+    auto& cfg = gm.getAtmosphereConfig();
+    bool us = false;
+
+    us |= ImGui::DragFloat3("Wave lengths", glm::value_ptr(cfg.waveLengths));
+    us |= ImGui::SliderFloat("Scattering strength", &cfg.scatteringStrength, 0.f, 0.1f);
+
+    ImGui::SliderFloat("Height scale", &cfg.heightScale, 1.f, 2.f);
+    ImGui::SliderFloat("Density falloff", &cfg.densityFalloff, 0.f, 100.f);
+    ImGui::SliderInt("Scattering points", &cfg.scatteringPoints, 0, 100);
+
+    if (ImGui::SliderInt("Optical depth points", &cfg.opticalDepthPoints, 0, 100))
+      gm.markBakeOpticalDepth();
+
+    if (us)
+      gm.recalcScatteringCoefficients();
   }
 
   ImGui::End();

@@ -1,0 +1,59 @@
+#version 460 core
+
+#include "../common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(r32f, binding = 0) writeonly uniform image2D imageWrite;
+
+uniform vec3 u_planetCenter;
+uniform float u_planetRadius;
+uniform float u_atmosphereRadius;
+uniform float u_densityFalloff;
+uniform int u_opticalDepthPoints;
+
+float densityAtPoint(vec2 densitySamplePoint) {
+  float heightAboveSurface = length(densitySamplePoint - u_planetCenter.xy) - u_planetRadius;
+  float heightNorm = heightAboveSurface / (u_atmosphereRadius - u_planetRadius);
+  float localDensity = exp(-heightNorm * u_densityFalloff) * (1.f - heightNorm);
+
+  return localDensity;
+}
+
+float opticalDepth(vec2 rayOrigin, vec2 rayDir, float rayLength) {
+  vec2 densitySamplePoint = rayOrigin;
+  float stepSize = rayLength / (u_opticalDepthPoints - 1);
+  float res = 0.f;
+
+  for (int i = 0; i < u_opticalDepthPoints; i++) {
+    float localDensity = densityAtPoint(densitySamplePoint);
+    res += localDensity * stepSize;
+    densitySamplePoint += rayDir * stepSize;
+  }
+
+  return res;
+}
+
+void main() {
+  ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 imgSize = imageSize(imageWrite);
+
+  vec2 uv = vec2(texCoord) / imgSize;
+  float heightNorm = uv.y;
+  float angle = uv.x * PI;
+  vec2 dir = vec2(sin(angle), cos(angle));
+  float y = uv.x * 2.f - 1.f;
+  float x = sin(acos(y));
+  dir = vec2(x, y);
+
+  vec2 inPoint = vec2(0.f, mix(u_planetRadius, u_atmosphereRadius, heightNorm));
+  Ray ray = Ray(vec3(inPoint, 0.f), vec3(dir, 0.f));
+
+  float dstThroughAtmosphere = raySphere(u_planetCenter, u_atmosphereRadius, ray).distThroughSphere;
+
+  vec2 outPoint = inPoint + dir * dstThroughAtmosphere;
+  float outScattering = opticalDepth(inPoint + dir * 0.01f, dir, dstThroughAtmosphere);
+
+  imageStore(imageWrite, texCoord, vec4(outScattering));
+}
+

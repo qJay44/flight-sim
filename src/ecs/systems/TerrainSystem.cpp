@@ -8,6 +8,7 @@
 #include "../components/VelocityComponent.hpp"
 #include "../components/InputComponent.hpp"
 #include "../components/WaterComponent.hpp"
+#include "../components/PostProcessComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
@@ -174,6 +175,37 @@ void createWaterEntity(entt::registry& registry) {
   registry.emplace<InputComponent>(entity, inputComponent);
 }
 
+void createPostProcessEntity(entt::registry& registry) {
+  entt::entity entity = registry.create();
+
+  auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  auto& gm           = registry.ctx().get<GenerationManager>();
+
+  PostProcessComponent ppComponent{
+    .bakeOpticalDepth = true,
+  };
+
+  MeshComponent meshComponent{
+    .mesh = assetManager.getMesh("ScreenRect"),
+    .shader = assetManager.getShader("TerrainPP"),
+  };
+
+  TextureComponent texComponent{
+    .textures = {
+      assetManager.getTexture("TerrainColorMain"),
+      assetManager.getTexture("TerrainDepthMain"),
+      assetManager.getTexture("TerrainColorWaterHDR"),
+      assetManager.getTexture("TerrainOpticalDepth"),
+    }
+  };
+
+  registry.emplace<PostProcessComponent>(entity, ppComponent);
+  registry.emplace<MeshComponent>(entity, meshComponent);
+  registry.emplace<TextureComponent>(entity, texComponent);
+
+  gm.recalcScatteringCoefficients();
+}
+
 } // namespace
 
 void init(entt::registry& registry) {
@@ -181,7 +213,7 @@ void init(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler     = registry.ctx().get<ProfilerManager>();
   auto gm = GenerationManager(&profiler, assetManager);
-  auto& terrainConfig = gm.getConfig();
+  auto& terrainConfig = gm.getTerrainConfig();
   ivec2 winSize = ctx.getWinSize();
 
   gfx::FBO fboTerrain(1);
@@ -235,6 +267,7 @@ void init(entt::registry& registry) {
 
   createLandEntity(registry);
   createWaterEntity(registry);
+  createPostProcessEntity(registry);
 }
 
 void update(entt::registry& registry) {
@@ -242,7 +275,7 @@ void update(entt::registry& registry) {
   auto& profiler = registry.ctx().get<ProfilerManager>();
   auto& ctx      = registry.ctx().get<core::EngineContext>();
   auto& renderer = registry.ctx().get<gfx::Renderer>();
-  const auto& terrainConfig = gm.getConfig();
+  const auto& terrainConfig = gm.getTerrainConfig();
 
   {
     static ProfilerManager::Query query("WaterUpdate");
@@ -348,7 +381,7 @@ void render(entt::registry& registry) {
   auto& activeCam    = registry.ctx().get<core::ActiveCamera>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& renderer     = registry.ctx().get<gfx::Renderer>();
-  const auto& terrainConfig = gm.getConfig();
+  const auto& terrainConfig = gm.getTerrainConfig();
   auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
 
@@ -356,6 +389,8 @@ void render(entt::registry& registry) {
     .fbo = assetManager.getFBO("TerrainFBO"),
     .viewPort = ctx.getWinSize(),
   };
+
+  mat4 pvInvLocal;
 
   renderer.clearFrame(clearCmd);
 
@@ -448,7 +483,7 @@ void render(entt::registry& registry) {
     vec3 planetCameraOffset = vec3(0.f) - activeCam.cam->position; // Planet always at the center (0,0,0)
     mat4 localView = activeCam.cam->getLocalView(vec3(0.f));
     mat4 localTranslation = glm::translate(mat4(1.f), planetCameraOffset);
-    mat4 pvInvLocal = glm::inverse(activeCam.cam->cachedProj * localView);
+    pvInvLocal = glm::inverse(activeCam.cam->cachedProj * localView);
 
     meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
     meshComponent.shader->setUniformMatrix4f("u_localView", localView);
@@ -503,22 +538,46 @@ void render(entt::registry& registry) {
 
   // ----- Post-process ------------------------------------------------------------------------------------------------------------ //
 
-  renderer.clearFrame({.viewPort = ctx.getWinSize()});
+  auto& atmosphereConfig = gm.getAtmosphereConfig();
 
-  gfx::Renderer::RenderCommand renderCmd{
-    .shader = assetManager.getShader("TerrainPP"),
-    .mesh = assetManager.getMesh("ScreenRect"),
-    .enableCullFace = false,
-    .enableDepthTest = false,
-    .textures = {
-      assetManager.getTexture("TerrainColorMain"),
-      assetManager.getTexture("TerrainDepthMain"),
-      texColorWaterHDR,
-      texScreenBlurredWaterSpecular,
-    }
-  };
+  renderer.clearFrame({
+    .viewPort = ctx.getWinSize(),
+    .clearMask = GL_COLOR_BUFFER_BIT,
+  });
 
-  renderer.submit(renderCmd);
+  for (auto entity : registry.view<PostProcessComponent, MeshComponent, TextureComponent>()) {
+    auto& meshComponent = registry.get<MeshComponent>(entity);
+    auto& texComponent = registry.get<TextureComponent>(entity);
+
+    meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
+    meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
+    meshComponent.shader->setUniform3f("u_camForward", activeCam.cam->orientation);
+    meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
+    meshComponent.shader->setUniform3f("u_scatteringCoefficients", atmosphereConfig.scatteringCoefficients);
+    meshComponent.shader->setUniform1f("u_camNear", activeCam.cam->nearPlane);
+    meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
+    meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
+    meshComponent.shader->setUniform1f("u_densityFalloff", atmosphereConfig.densityFalloff);
+    meshComponent.shader->setUniform1f("u_atmosphereRadius", terrainConfig.planetRadius * atmosphereConfig.heightScale);
+    meshComponent.shader->setUniform1i("u_scatteringPoints", atmosphereConfig.scatteringPoints);
+
+    std::vector<gfx::Texture*> textures;
+    textures.reserve(texComponent.textures.size() + 1);
+
+    std::ranges::copy(texComponent.textures, std::back_inserter(textures));
+    textures.push_back(texScreenBlurredWaterSpecular);
+
+    gfx::Renderer::RenderCommand renderCmd{
+      .shader = meshComponent.shader,
+      .mesh = meshComponent.mesh,
+      .enableCullFace = false,
+      .enableDepthTest = false,
+      .textures = textures,
+    };
+
+    renderer.submit(renderCmd);
+  }
+
   renderer.renderFrame();
 
   // --------------------------------------------------------------------------------------------------------------------------------- //

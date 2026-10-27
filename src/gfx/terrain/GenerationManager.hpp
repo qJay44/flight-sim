@@ -33,6 +33,18 @@ public:
   };
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
+  struct AtmosphereConfig {
+    vec3 scatteringCoefficients = vec3(1.f);
+    vec3 waveLengths{700.f, 530.f, 440.f};
+    float heightScale = 1.1f;
+    float densityFalloff = 20.f;
+    float scatteringStrength = 0.02f;
+    int scatteringPoints = 40;
+    int opticalDepthPoints = 50;
+    float _pad[1];
+  };
+  static_assert(sizeof(AtmosphereConfig) % 16 == 0);
+
   GenerationManager(ProfilerManager* profiler, AssetManager& assetManager);
 
   GenerationManager(GenerationManager&&) = default;
@@ -41,12 +53,15 @@ public:
   GenerationManager(const GenerationManager&) = delete;
   GenerationManager& operator=(const GenerationManager&) = delete;
 
-  TerrainConfig& getConfig();
+  TerrainConfig& getTerrainConfig();
+  AtmosphereConfig& getAtmosphereConfig();
+
   water::Tessendorf& getWater();
   size_t getFreeSlots() const;
   size_t getCachedSlots() const;
   bool isSlotCached(u64 nodeKey) const;
 
+  void markBakeOpticalDepth();
   void update(Renderer& renderer, float time, float dt);
 
   [[nodiscard]] int acquireSlot(u64 nodeKey);
@@ -54,23 +69,28 @@ public:
   void freeSlotAll();
 
   void generateTexures(Renderer& renderer, size_t nodesCount, size_t offset, const BufferObject& nodes);
+  void recalcScatteringCoefficients();
 
 private:
   ProfilerManager* profiler{};
 
   Texture* texArrayNodesDummy;
   Texture* texArrayNodes;
+  Texture* texOpticalDepth;
 
-  Shader* heightShader{};
-  Shader* normalsShader{};
+  Shader* shaderHeight{};
+  Shader* shaderNormals{};
+  Shader* shaderOpticalDepth{};
 
   std::stack<int> freeSlots;
   std::unordered_map<u64, int> cachedSlots;
 
   Renderer::ComputeCommand computeCommandHeight;
   Renderer::ComputeCommand computeCommandNormals;
+  Renderer::ComputeCommand computeCommandOpticalDepth;
 
   TerrainConfig cfgTerrain;
+  AtmosphereConfig cfgAtmosphere;
   water::Tessendorf water;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(TerrainConfig,
@@ -96,6 +116,11 @@ private:
   struct {
     BufferObject terrainConfig;
   } ubo;
+
+  bool rebakeOpticalDepth = true;
+
+private:
+  void bakeOpticalDepth(Renderer& renderer);
 };
 
 } // terrain

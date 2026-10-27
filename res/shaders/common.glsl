@@ -66,36 +66,23 @@ vec2 complexExp(vec2 a) {
   return vec2(cos(a.y), sin(a.y)) * exp(a.x);
 }
 
-vec3 Tonemap_ACES(vec3 x) {
-  // Narkowicz 2015, "ACES Filmic Tone Mapping Curve"
-  const float a = 2.51;
-  const float b = 0.03;
-  const float c = 2.43;
-  const float d = 0.59;
-  const float e = 0.14;
-  return (x * (a * x + b)) / (x * (c * x + d) + e);
-}
-
 float linearizeDepth(float depth, float near, float far) {
   float z = depth * 2.f - 1.f;
   return (2.f * near * far) / (far + near - z * (far - near));
 }
 
-//------------------------------------------------------------------------------
-// Atmosphere
-//------------------------------------------------------------------------------
+float linearDepthToLogDepth(float w, float far) {
+  float C = 0.001f;
+  float distNorm = log(C * w + 1.f) / log(C * far + 1.f);
+  float logDepth = (distNorm * 2.f - 1.f) * w;
 
-#define C_RAYLEIGH (vec3(5.802, 13.558, 33.100) * 1e-6)
-#define C_MIE (vec3(3.996) * 1e-6)
-
-float PhaseRayleigh(float costh) {
-  return 3.0 * (1.0 + costh * costh) / (16.0 * PI);
+  return logDepth;
 }
 
-float PhaseMie(float costh, float g) {
-  g = min(g, 0.9381);
-  float k = 1.55 * g - 0.55 * g * g * g;
-  float kcosth = k * costh;
-  return (1.0 - k * k) / ((4.0 * PI) * (1.0 - kcosth) * (1.0 - kcosth));
+float logDepthToLinearDepth(float d, float far) {
+  float C = 0.001f;
+  float linearDepth = (pow(C * far + 1.f, d) - 1.f) / C;
+
+  return linearDepth;
 }
 
