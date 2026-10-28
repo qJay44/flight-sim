@@ -101,7 +101,6 @@ void createWaterEntity(entt::registry& registry) {
   entt::entity entity = registry.create();
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
   auto& gm = registry.ctx().get<GenerationManager>();
   auto& water = gm.getWater();
 
@@ -139,40 +138,15 @@ void createWaterEntity(entt::registry& registry) {
       &water.getTexTurbulence(),
       assetManager.getTexture("TerrainColorWater"),
       assetManager.getTexture("TerrainDepthMain"),
+      assetManager.getTexture("TerrainOpticalDepth"),
     }
   };
-
-  CameraComponent cameraComponent{
-    .cam = assetManager.getCamera("Terrain"),
-    .isDetached = true,
-  };
-
-  // NOTE: Just for camera movement //
-
-  TransformComponent transComponent{
-    .pos = activeCam.cam->position
-  };
-
-  VelocityComponent velComponent{
-    .scale = 1e4f
-  };
-
-  InputComponent inputComponent{
-    .shiftMultiplier = 10.f
-  };
-
-  ////////////////////////////////////
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
 
   registry.emplace<MeshComponent>(entity, meshComponent);
   registry.emplace<WaterComponent>(entity, waterComponent);
   registry.emplace<TextureComponent>(entity, textureComponent);
-  registry.emplace<CameraComponent>(entity, cameraComponent);
-
-  registry.emplace<TransformComponent>(entity, transComponent);
-  registry.emplace<VelocityComponent>(entity, velComponent);
-  registry.emplace<InputComponent>(entity, inputComponent);
 }
 
 void createPostProcessEntity(entt::registry& registry) {
@@ -381,9 +355,12 @@ void render(entt::registry& registry) {
   auto& activeCam    = registry.ctx().get<core::ActiveCamera>();
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& renderer     = registry.ctx().get<gfx::Renderer>();
+
   const auto& terrainConfig = gm.getTerrainConfig();
+  const auto& atmosphereConfig = gm.getAtmosphereConfig();
+
   auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
-  auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent, CameraComponent>();
+  auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent>();
 
   gfx::Renderer::ClearCommand clearCmd{
     .fbo = assetManager.getFBO("TerrainFBO"),
@@ -475,7 +452,6 @@ void render(entt::registry& registry) {
     const auto& waterComponent = registry.get<WaterComponent>(entity);
     const auto& meshComponent = registry.get<MeshComponent>(entity);
     const auto& texComponent = registry.get<TextureComponent>(entity);
-    // const auto& camComponent = registry.get<CameraComponent>(entity);
 
     if (meshComponent.disabled)
       continue;
@@ -538,8 +514,6 @@ void render(entt::registry& registry) {
 
   // ----- Post-process ------------------------------------------------------------------------------------------------------------ //
 
-  auto& atmosphereConfig = gm.getAtmosphereConfig();
-
   renderer.clearFrame({
     .viewPort = ctx.getWinSize(),
     .clearMask = GL_COLOR_BUFFER_BIT,
@@ -578,7 +552,11 @@ void render(entt::registry& registry) {
     renderer.submit(renderCmd);
   }
 
-  renderer.renderFrame();
+  {
+    static ProfilerManager::Query query("PostProcess");
+    auto _task = profiler.startScopedTaskGpu(query);
+    renderer.renderFrame();
+  }
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
 }
