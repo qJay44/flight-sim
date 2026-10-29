@@ -157,8 +157,6 @@ void drawWaterComponent(terrain::WaterComponent& component) {
 
     ImGui::SliderFloat("Foam sharpness", &component.foamSharpness, 0.f, 20.f);
     ImGui::SliderFloat("Scale of height scale", &component.heightScaleScale, 0.f, 1.f);
-    ImGui::SliderFloat("Tile scale", &component.tileScale, 0.f, 50.f);
-    ImGui::SliderFloat("Displacement scale", &component.displacementScale, 1.f, 10.f);
     ImGui::SliderFloat("Water density", &component.waterDensity, 0.f, 200.f);
     ImGui::SliderFloat("Refraction UV distort scale", &component.refractionDistortScale, 0.f, 1.f);
     ImGui::SliderFloat("Ambient", &component.ambient, 0.f, 1.f);

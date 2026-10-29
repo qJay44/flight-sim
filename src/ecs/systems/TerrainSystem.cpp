@@ -17,6 +17,7 @@
 #include "../../core/EngineContext.hpp"
 #include "../../core/math/frustum/Frustum.hpp"
 #include "ProfilerManager.hpp"
+#include <entt/entity/fwd.hpp>
 
 namespace ecs::TerrainSystem {
 
@@ -26,7 +27,7 @@ using namespace terrain;
 
 namespace {
 
-void createLandEntity(entt::registry& registry) {
+  entt::entity createLandEntity(entt::registry& registry, entt::entity waterLink) {
   entt::entity entity = registry.create();
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
@@ -42,6 +43,7 @@ void createLandEntity(entt::registry& registry) {
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
   TerrainComponent terrainComponent{
+    .waterLink = waterLink,
     .grassThreshold = 0.115f,
     .mountainThreshold = 0.5f,
     .qtMaxDepth = 5,
@@ -95,9 +97,11 @@ void createLandEntity(entt::registry& registry) {
   registry.emplace<TransformComponent>(entity, transComponent);
   registry.emplace<VelocityComponent>(entity, velComponent);
   registry.emplace<InputComponent>(entity, inputComponent);
+
+  return entity;
 }
 
-void createWaterEntity(entt::registry& registry) {
+entt::entity createWaterEntity(entt::registry& registry) {
   entt::entity entity = registry.create();
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
@@ -114,15 +118,14 @@ void createWaterEntity(entt::registry& registry) {
     .oceanDeepColorLinear = vec3(0.02f, 0.1f, 0.2f),
     .oceanShallowColorLinear = vec3(0.f, 0.4f, 0.4f),
     .foamSharpness = 2.f,
-    .heightScaleScale = 0.03f,
-    .tileScale = 50.f,
-    .displacementScale = 3.f,
-    .waterDensity = 200.f,
-    .refractionDistortScale = 0.12f,
-    .normalToScatterScale = 0.4f,
+    .heightScaleScale = 0.13f,
+    .waterDensity = 1000.f,
+    .refractionDistortScale = 0.015f,
     .ambient = 0.1f,
     .diffusePowScale = 80.f,
     .specularPowScale = 256.f,
+    .triplanarSharpness = 5.f,
+    .triplanarScale = 0.002f,
   };
 
   MeshComponent meshComponent{
@@ -147,9 +150,11 @@ void createWaterEntity(entt::registry& registry) {
   registry.emplace<MeshComponent>(entity, meshComponent);
   registry.emplace<WaterComponent>(entity, waterComponent);
   registry.emplace<TextureComponent>(entity, textureComponent);
+
+  return entity;
 }
 
-void createPostProcessEntity(entt::registry& registry) {
+entt::entity createPostProcessEntity(entt::registry& registry) {
   entt::entity entity = registry.create();
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
@@ -178,6 +183,8 @@ void createPostProcessEntity(entt::registry& registry) {
   registry.emplace<TextureComponent>(entity, texComponent);
 
   gm.recalcScatteringCoefficients();
+
+  return entity;
 }
 
 } // namespace
@@ -239,8 +246,8 @@ void init(entt::registry& registry) {
   registry.ctx().emplace<GenerationManager>(std::move(gm));
   registry.ctx().insert_or_assign<core::ActiveCamera>(std::move(activeCam));
 
-  createLandEntity(registry);
-  createWaterEntity(registry);
+  auto waterEntity = createWaterEntity(registry);
+  createLandEntity(registry, waterEntity);
   createPostProcessEntity(registry);
 }
 
@@ -396,6 +403,7 @@ void render(entt::registry& registry) {
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
+    meshComponent.shader->setUniform1f("u_heightScaleScale", registry.get<WaterComponent>(terrainComponent.waterLink).heightScaleScale);
     meshComponent.shader->setUniform1f("u_grassThreshold", terrainComponent.grassThreshold);
     meshComponent.shader->setUniform1f("u_mountainThreshold", terrainComponent.mountainThreshold);
     meshComponent.shader->setUniform1f("u_splitThreshold", terrainComponent.qtSplitThreshold);
@@ -476,14 +484,13 @@ void render(entt::registry& registry) {
     meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
     meshComponent.shader->setUniform1f("u_heightScaleScale",       waterComponent.heightScaleScale);
     meshComponent.shader->setUniform1f("u_foamSharpness",          waterComponent.foamSharpness);
-    meshComponent.shader->setUniform1f("u_tileScale",              waterComponent.tileScale);
-    meshComponent.shader->setUniform1f("u_displacementScale",      waterComponent.displacementScale);
     meshComponent.shader->setUniform1f("u_waterDensity",           waterComponent.waterDensity);
     meshComponent.shader->setUniform1f("u_refractionDistortScale", waterComponent.refractionDistortScale);
-    meshComponent.shader->setUniform1f("u_normalToScatterScale",   waterComponent.normalToScatterScale);
     meshComponent.shader->setUniform1f("u_ambient",                waterComponent.ambient);
     meshComponent.shader->setUniform1f("u_diffusePowScale",        waterComponent.diffusePowScale);
     meshComponent.shader->setUniform1f("u_specularPowScale",       waterComponent.specularPowScale);
+    meshComponent.shader->setUniform1f("u_triplanarSharpness",     waterComponent.triplanarSharpness);
+    meshComponent.shader->setUniform1f("u_triplanarScale",         waterComponent.triplanarScale);
     meshComponent.shader->setUniform1f("u_time", ctx.time);
 
     gfx::Renderer::RenderCommand renderCmdWater{
@@ -491,7 +498,7 @@ void render(entt::registry& registry) {
       .mesh = meshComponent.mesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      .enableDepthMask = false,
+      // .enableDepthMask = false,
       .textures = texComponent.textures,
       .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2},
     };

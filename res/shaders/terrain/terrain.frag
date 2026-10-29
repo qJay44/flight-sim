@@ -26,6 +26,7 @@ uniform float u_sandThreshold;
 uniform float u_grassThreshold;
 uniform float u_mountainThreshold;
 uniform float u_heightScale;
+uniform float u_heightScaleScale;
 
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
   vec3 P = vec3(uv, slot);
@@ -85,6 +86,15 @@ void main() {
       materialMix(surfaceMaterial, materialUnpack(uv, i, tbn), weights[i]);
 
   surfaceMaterial.normal = normalize(surfaceMaterial.normal);
+
+  // HACK: Refraction scattering for the water pass
+  float waterScale = u_heightScale * u_heightScaleScale;
+  float waterRadius = u_planetRadius + waterScale;
+  float waterHeight = waterRadius - length(v_worldPos);
+  float waterStep = step(-0.f, waterHeight);
+  float waterDepth = exp(waterHeight * -0.0005f) * waterStep;
+
+  surfaceMaterial.albedo = mix(surfaceMaterial.albedo, vec3(0.f, 0.4f, 0.4f), waterDepth);
 
   vec3 radiance = u_lightColor * u_lightIntensity;
   vec3 V = normalize(u_camPos - v_worldPos);

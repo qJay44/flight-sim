@@ -28,14 +28,14 @@ uniform float u_heightScaleScale;
 uniform float u_foamSharpness;
 uniform float u_lightIntensity;
 uniform float u_lightFocus;
-uniform float u_tileScale;
 uniform float u_time;
 uniform float u_waterDensity;
 uniform float u_refractionDistortScale;
-uniform float u_normalToScatterScale;
 uniform float u_ambient;
 uniform float u_diffusePowScale;
 uniform float u_specularPowScale;
+uniform float u_triplanarSharpness;
+uniform float u_triplanarScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 layout(binding = 1) uniform sampler2D u_texDerivatives;
@@ -56,29 +56,53 @@ mat3 getTBN(vec3 localNormal, vec3 worldPos, vec2 uv) {
   return mat3(T, B, N);
 }
 
-vec3 getWaveNormal(vec2 equatorUV, vec2 polarUV, float poleBlend) {
-  vec4 derivatives = texture(u_texDerivatives, equatorUV);
+vec3 derivativesToNormal(vec4 derivatives) {
   vec2 slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
-  vec3 tangentNormal = normalize(vec3(-slope.x, -slope.y, 1.f));
-  vec3 normalEquator = normalize(getTBN(v_sphereDir, v_worldPos, equatorUV) * tangentNormal);
+  vec3 normal = normalize(vec3(-slope.x, -slope.y, 1.f));
 
-  derivatives = texture(u_texDerivatives, polarUV);
-  slope = vec2(derivatives.x / (1.f + derivatives.z), derivatives.y / (1.f + derivatives.w));
-  tangentNormal = normalize(vec3(-slope.x, -slope.y, 1.f));
-  vec3 normalPolar = normalize(getTBN(v_sphereDir, v_worldPos, polarUV) * tangentNormal);
-
-  return mix(normalEquator, normalPolar, poleBlend);
+  return normal;
 }
 
-float getJacobian(vec2 equatorUV, vec2 polarUV, float poleBlend) {
-  float jacobianEquator = texture(u_texTurbulence, equatorUV).r;
-  float jacobianPolar = texture(u_texTurbulence, polarUV).r;
-  float jacobian = mix(jacobianEquator, jacobianPolar, poleBlend);
+vec3 getWaveNormal() {
+  vec3 absNormal = abs(v_sphereDir);
+  vec3 weights = pow(absNormal, vec3(u_triplanarSharpness));
+  weights /= (weights.x + weights.y + weights.z);
 
-  return jacobian;
+  vec3 scaledWorldPos = v_worldPos * u_triplanarScale;
+  vec4 derivativesX = texture(u_texDerivatives, scaledWorldPos.zy);
+  vec4 derivativesY = texture(u_texDerivatives, scaledWorldPos.xz);
+  vec4 derivativesZ = texture(u_texDerivatives, scaledWorldPos.xy);
+
+  vec3 tangentNormalX = derivativesToNormal(derivativesX);
+  vec3 tangentNormalY = derivativesToNormal(derivativesY);
+  vec3 tangentNormalZ = derivativesToNormal(derivativesZ);
+
+  vec3 axisSign = sign(v_sphereDir);
+  tangentNormalX.xy *= axisSign.x;
+  tangentNormalY.xy *= axisSign.y;
+  tangentNormalZ.xy *= axisSign.z;
+
+  vec3 worldX = vec3(v_sphereDir.x, tangentNormalX.yx);
+  vec3 worldY = vec3(tangentNormalY.x, v_sphereDir.y, tangentNormalY.y);
+  vec3 worldZ = vec3(tangentNormalZ.xy, v_sphereDir.z);
+
+  return normalize(worldX * weights.x + worldY * weights.y + worldZ * weights.z);
 }
 
-vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir, float depth) {
+float getJacobian() {
+  vec3 absNormal = abs(v_sphereDir);
+  vec3 weights = pow(absNormal, vec3(u_triplanarSharpness));
+  weights /= (weights.x + weights.y + weights.z);
+
+  vec3 scaledWorldPos = v_worldPos * u_triplanarScale;
+  float jacobianX = texture(u_texTurbulence, scaledWorldPos.zy).r;
+  float jacobianY = texture(u_texTurbulence, scaledWorldPos.xz).r;
+  float jacobianZ = texture(u_texTurbulence, scaledWorldPos.xy).r;
+
+  return jacobianX * weights.x + jacobianY * weights.y + jacobianZ * weights.z;
+}
+
+vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir) {
   vec3 reflNormal = reflect(-viewDir, normal);
   vec3 ambient = u_oceanDeepColor * 0.1f;
   return max(ambient, u_oceanDeepColor * dot0(reflNormal, u_lightDir)); // same as ocean color...
@@ -87,68 +111,52 @@ vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir, float depth) {
 void main() {
   vec2 screenUV = gl_FragCoord.xy / textureSize(u_texLandColor, 0).xy;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
-  float waterRadius = u_planetRadius + u_heightScale * u_heightScaleScale;
+  float waterScale = u_heightScale * u_heightScaleScale;
+  float waterRadius = u_planetRadius + waterScale;
 
-  float distScale = smoothstep(0.f, u_planetRadius - u_heightScale * u_heightScaleScale, max0(v_viewDist));
-  float distScale1 = 1.f - distScale;
+  float dist = max0(v_viewDist);
+  float distScale = exp(-dist / u_heightScale);
 
-  float uvScale = u_tileScale;
-  vec2 equatorUV = vec2(atan(v_sphereDir.z, v_sphereDir.x), asin(v_sphereDir.y)) * uvScale;
-  vec2 polarUV = v_sphereDir.xz * uvScale;
-  float poleBlend = smoothstep(0.6f, 0.8f, abs(v_sphereDir.y));
-
-  vec3 normal = getWaveNormal(equatorUV, polarUV, poleBlend);
+  vec3 normal = mix(getWaveNormal(), v_sphereDir, 1.f - distScale);
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
-
-  normal = mix(normal, v_sphereDir, exp(-v_viewDist));
+  distScale = 1.f - distScale;
 
   vec2 distortedUV = screenUV + normal.xz * u_refractionDistortScale;
-  vec4 landDataColor = texture(u_texLandColor, distortedUV);
   vec4 landDataDepth = texture(u_texLandDepth, distortedUV);
-  vec3 seabedColor = landDataColor.rgb;
+  vec3 seabedColor = texture(u_texLandColor, distortedUV).rgb;
 
   float landDepth = landDataDepth.r;
-  float waterDepth = gl_FragCoord.z;
   float landDepthLinear = logDepthToLinearDepth(landDepth, u_camFar);
-  float waterDepthLinear = logDepthToLinearDepth(waterDepth, u_camFar);
-  float waterThickness = landDepthLinear - waterDepthLinear;
-  // float absorption = exp(-max0(waterThickness) * u_waterDensity) * distScale1;
-  float absorption = (1.f - smoothstep(0.f, u_waterDensity, waterThickness)) * distScale1;
 
   float VdotN = dot0(viewDir, normal);
   float NdotL = dot0(normal, u_lightDir);
   float NdotH = dot0(normal, halfwayDir);
 
-  float jacobian = getJacobian(equatorUV, polarUV, poleBlend);
+  float jacobian = getJacobian();
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
-  foam *= distScale1;
+  foam *= pow(1.f - gl_FragCoord.z, 5.f);
 
-  vec3 scatterDir = normalize(u_lightDir + normal * u_normalToScatterScale);
-  float scatter = pow(dot0(-viewDir, scatterDir), 3.f);
-  vec3 scatterCol = u_oceanShallowColor * scatter * jacobian * distScale1;
+  float depthT = smoothstep(0.f, waterRadius, landDepthLinear * 0.5f);
+  depthT = exp(-depthT * u_waterDensity);
 
-  seabedColor = mix(seabedColor, u_oceanShallowColor, absorption);
-  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, absorption);
+  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, depthT);
 
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
 
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
-  float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale1;
+  float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale;
 
   vec3 specularColor = specular * u_lightColor;
-  vec3 reflColor = getWaterReflection(screenUV, normal, viewDir, absorption);
-  reflColor *= distScale1;
+  vec3 reflColor = getWaterReflection(screenUV, normal, viewDir);
+  reflColor *= distScale;
 
-  vec3 finalColor = (diffuse + u_ambient) * u_lightColor * waterBase;
+  vec3 finalColor = NdotL * u_lightColor * waterBase;
   finalColor = mix(finalColor, reflColor, fresnel);
-  finalColor += scatterCol * dot0(v_sphereDir, u_lightDir);
   finalColor += specularColor;
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
 
   vec3 finalColorHDR = specularColor * 2.f;
-
-  // finalColor = vec3(NdotH);
   FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);
 }

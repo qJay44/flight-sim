@@ -58,7 +58,7 @@ void main() {
   g_atmosphere.planetRadius           = u_planetRadius;
   g_atmosphere.scatteringPoints       = u_scatteringPoints;
 
-  // finalColor = Atmosphere_getColor(ray, hitInfo, sceneDepth, u_texOpticalDepth);
+  finalColor = Atmosphere_getColor(ray, hitInfo, sceneDepth, u_texOpticalDepth);
 
   float sunDot = dot0(ray.dir, u_lightDir);
   float sun = pow(sunDot, u_lightFocus) * u_lightIntensity;

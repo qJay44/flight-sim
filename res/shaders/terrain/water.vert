@@ -19,12 +19,25 @@ uniform float u_camFar;
 uniform float u_planetRadius;
 uniform float u_heightScale;
 uniform float u_heightScaleScale;
-uniform float u_tileScale;
-uniform float u_displacementScale;
+uniform float u_triplanarSharpness;
+uniform float u_triplanarScale;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 
 const float gridScale = 1.5f; // Prevent cutting grid at the screen edges
+
+vec3 getDisplacement(vec3 worldPos, vec3 worldNormal) {
+  vec3 absNormal = abs(worldNormal);
+  vec3 weights = pow(absNormal, vec3(u_triplanarSharpness));
+  weights /= (weights.x + weights.y + weights.z);
+
+  vec3 scaledWorldPos = worldPos * u_triplanarScale;
+  vec3 x = texture(u_texDisplacement, scaledWorldPos.zy).rgb;
+  vec3 y = texture(u_texDisplacement, scaledWorldPos.xz).rgb;
+  vec3 z = texture(u_texDisplacement, scaledWorldPos.xy).rgb;
+
+  return x * weights.x + y * weights.y + z * weights.z;
+}
 
 void main() {
   vec2 uv = a_pos.xy * gridScale * 0.5f + 0.5f;
@@ -41,15 +54,8 @@ void main() {
   // float fadeEnd = 7000.f;
   // float distFactor = 1.f - smoothstep(fadeStart, fadeEnd, viewDist);
 
-  vec2 equatorUV = vec2(atan(sphereDir.z, sphereDir.x), asin(sphereDir.y)) * u_tileScale;
-  vec2 polarUV = sphereDir.xz * u_tileScale;
-  float poleBlend = smoothstep(0.6f, 0.8f, abs(sphereDir.y));
-
-  vec3 displacementEquator = texture(u_texDisplacement, equatorUV).rgb;
-  vec3 displacementPolar = texture(u_texDisplacement, polarUV).rgb;
-  vec3 displacement = mix(displacementEquator, displacementPolar, poleBlend);
+  vec3 displacement = getDisplacement(worldPos, sphereDir);
   vec3 displacementFinal = displacement;
-  // vec3 displacementFinal = displacementPolar * u_displacementScale * distFactor;
   worldPos += sphereDir * displacementFinal;
 
 	gl_Position = u_proj * (u_localView * (u_localTranslation * vec4(worldPos, 1.f)));

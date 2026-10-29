@@ -9,6 +9,8 @@ namespace ecs::component::terrain {
 using namespace core::math::terrain;
 
 struct TerrainComponent {
+  entt::entity waterLink; // ...
+
   // Percentages of [heightScale]
   float grassThreshold = 0.05f;
   float mountainThreshold = 0.6f;
