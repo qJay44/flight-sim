@@ -28,18 +28,27 @@ uniform float u_mountainThreshold;
 uniform float u_heightScale;
 uniform float u_heightScaleScale;
 
+const vec3 cl[] = vec3[](
+vec3(0.5789, 0.4854, 0.2684),
+vec3(0.0358, 0.1726, 0.0230),
+vec3(0.1332, 0.1190, 0.1056),
+vec3(0.8933, 0.8933, 0.8933),
+vec3(0.4420, 0.6814, 1.0000)
+    );
+
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
-  vec3 P = vec3(uv, slot);
-  vec4 ormh = texture(u_texArrayORMH, P);
-  vec3 normal = texture(u_texArrayNormal, P).rgb * 2.f - 1.f;
+  vec3 P = vec3(uv * 2.f, slot);
+  // vec4 ormh = texture(u_texArrayORMH, P);
+  // vec3 normal = texture(u_texArrayNormal, P).rgb * 2.f - 1.f;
 
   Material m  = materialInit;
-  m.albedo    = texture(u_texArrayAlbedo, P).rgb;
-  m.normal    = normalize(tbn * normal);
-  m.ao        = ormh.r;
-  m.roughness = ormh.g;
-  m.metallic  = ormh.b;
-  m.height    = ormh.a;
+  m.albedo    = cl[slot];
+  // m.albedo    = texture(u_texArrayAlbedo, P).rgb;
+  // m.normal    = normalize(tbn * normal);
+  // m.ao        = ormh.r;
+  // m.roughness = ormh.g;
+  // m.metallic  = ormh.b;
+  // m.height    = ormh.a;
 
   return m;
 }
@@ -85,7 +94,8 @@ void main() {
     if (weights[i] > 0.f)
       materialMix(surfaceMaterial, materialUnpack(uv, i, tbn), weights[i]);
 
-  surfaceMaterial.normal = normalize(surfaceMaterial.normal);
+  // surfaceMaterial.normal = normalize(surfaceMaterial.normal);
+  surfaceMaterial.normal = computeNormal;
 
   // HACK: Refraction scattering for the water pass
   float waterScale = u_heightScale * u_heightScaleScale;
@@ -96,18 +106,23 @@ void main() {
 
   surfaceMaterial.albedo = mix(surfaceMaterial.albedo, vec3(0.f, 0.4f, 0.4f), waterDepth);
 
-  vec3 radiance = u_lightColor * u_lightIntensity;
-  vec3 V = normalize(u_camPos - v_worldPos);
-  vec3 L = u_lightDir;
-  vec3 H = normalize(V + L);
-  float geomSmith = GeometrySmith_Direct(surfaceMaterial.roughness, surfaceMaterial.normal, V, L);
+//   vec3 radiance = u_lightColor * u_lightIntensity;
+//   vec3 V = normalize(u_camPos - v_worldPos);
+//   vec3 L = u_lightDir;
+//   vec3 H = normalize(V + L);
+//   float geomSmith = GeometrySmith_Direct(surfaceMaterial.roughness, surfaceMaterial.normal, V, L);
 
-  float ambient = 0.1f;
-  vec3 brdf = BRDF_CookTorrance(surfaceMaterial, V, L, H, geomSmith);
-  vec3 Lo = brdf * radiance * dot0(surfaceMaterial.normal, L);
-  vec3 color = Lo * (surfaceMaterial.ao + ambient) + surfaceMaterial.emissivity;
-  color /= color + 1.f;
+//   float ambient = 0.1f;
+//   vec3 brdf = BRDF_CookTorrance(surfaceMaterial, V, L, H, geomSmith);
+//   vec3 Lo = brdf * radiance * dot0(surfaceMaterial.normal, L);
+//   vec3 color = Lo + surfaceMaterial.emissivity;
+//   color /= color + 1.f;
 
+  float diffuse = dot0(surfaceMaterial.normal, u_lightDir);
+  float ambient = 0.01f;
+  vec3 color = (diffuse + ambient) * surfaceMaterial.albedo * u_lightColor;
+
+  // color = vec3(d);
   FragColor0 = vec4(color, 1.f);
   FragColor1 = vec4(color, 1.f);
 }

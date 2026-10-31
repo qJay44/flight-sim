@@ -18,13 +18,15 @@ uniform vec3 u_lightDir;
 uniform vec3 u_camPos;
 uniform vec3 u_camForward;
 uniform vec3 u_planetCenter;
-uniform vec3 u_scatteringCoefficients;
+uniform vec3 u_scatteringCoefficientsR;
+uniform vec3 u_scatteringCoefficientsM;
 uniform float u_lightIntensity;
 uniform float u_lightFocus;
 uniform float u_camNear;
 uniform float u_camFar;
 uniform float u_planetRadius;
-uniform float u_densityFalloff;
+uniform float u_densityFalloffR;
+uniform float u_densityFalloffM;
 uniform float u_atmosphereRadius;
 uniform int u_scatteringPoints;
 
@@ -48,15 +50,17 @@ void main() {
   float eyeDepth = logDepthToLinearDepth(logDepth, u_camFar);
   float sceneDepth = eyeDepth / dot(ray.dir, u_camForward);
 
-  g_atmosphere.originalColor          = finalColor;
-  g_atmosphere.lightDir               = u_lightDir;
-  g_atmosphere.scatteringCoefficients = u_scatteringCoefficients;
-  g_atmosphere.planetCenter           = u_planetCenter;
-  g_atmosphere.lightIntensity         = u_lightIntensity;
-  g_atmosphere.atmosphereRadius       = u_atmosphereRadius;
-  g_atmosphere.densityFalloff         = u_densityFalloff;
-  g_atmosphere.planetRadius           = u_planetRadius;
-  g_atmosphere.scatteringPoints       = u_scatteringPoints;
+  g_atmosphere.originalColor           = finalColor;
+  g_atmosphere.lightDir                = u_lightDir;
+  g_atmosphere.scatteringCoefficientsR = u_scatteringCoefficientsR;
+  g_atmosphere.scatteringCoefficientsM = u_scatteringCoefficientsM;
+  g_atmosphere.planetCenter            = u_planetCenter;
+  g_atmosphere.lightIntensity          = u_lightIntensity;
+  g_atmosphere.atmosphereRadius        = u_atmosphereRadius;
+  g_atmosphere.densityFalloffR         = u_densityFalloffR;
+  g_atmosphere.densityFalloffM         = u_densityFalloffM;
+  g_atmosphere.planetRadius            = u_planetRadius;
+  g_atmosphere.scatteringPoints        = u_scatteringPoints;
 
   finalColor = Atmosphere_getColor(ray, hitInfo, sceneDepth, u_texOpticalDepth);
 

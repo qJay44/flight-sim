@@ -3,7 +3,7 @@
 #include "../common.glsl"
 #include "terrain.glsl"
 
-#define MESH_RESOLUTION 64
+#define MESH_RESOLUTION 30
 #define BASE_VERTEX_COUNT (MESH_RESOLUTION*MESH_RESOLUTION)
 
 layout(location = 0) in vec3 a_pos;

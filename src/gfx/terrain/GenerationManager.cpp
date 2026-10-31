@@ -29,7 +29,7 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
 
   assetManager.addTexture("TerrainNodes", Texture2DArray(TEXTURE_MAX_SLOTS, textureResNodes, texDescNodes));
   assetManager.addTexture("TerrainNodesDummy", Texture2DArray(TEXTURE_MAX_SLOTS, textureResNodesDummy, texDescNodes));
-  assetManager.addTexture("TerrainOpticalDepth", Texture2D(textureResOpticalDepth, {.internalFormat = GL_R32F, .format = GL_RED}));
+  assetManager.addTexture("TerrainOpticalDepth", Texture2D(textureResOpticalDepth, {.internalFormat = GL_RG32F, .format = GL_RG}));
 
   shaderHeight  = assetManager.getShader("TerrainComputeHeight");
   shaderNormals = assetManager.getShader("TerrainComputeNormals");
@@ -42,7 +42,11 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
   for (int i = 0; i < TEXTURE_MAX_SLOTS; i++)
     freeSlots.push(i);
 
-  cfgAtmosphere.scatteringStrength = 0.0001f;
+  cfgAtmosphere.scatteringStrengthR = 0.002f;
+  cfgAtmosphere.scatteringStrengthM = 0.0001f;
+  cfgAtmosphere.heightScale = 2.f;
+  cfgAtmosphere.densityFalloffR = 27.f;
+  cfgAtmosphere.densityFalloffM = 44.f;
 
   ubo.terrainConfig = gfx::BufferObject::createUniformBuffer(true);
   ubo.terrainConfig.storage(&cfgTerrain, sizeof(TerrainConfig), GL_DYNAMIC_STORAGE_BIT);
@@ -89,12 +93,12 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
       ImageDescriptor{
         .texture = texOpticalDepth,
         .access = GL_WRITE_ONLY,
-        .format = GL_R32F,
+        .format = GL_RG32F,
       }
     }
   };
 
-  global::json::loadPreset(cfgTerrain, "heightmap0.json");
+  global::json::loadPreset(cfgTerrain, "heightmap4.json");
 }
 
 GenerationManager::TerrainConfig& GenerationManager::getTerrainConfig() {
@@ -192,14 +196,16 @@ void GenerationManager::generateTexures(Renderer& renderer, size_t nodesCount, s
 }
 
 void GenerationManager::recalcScatteringCoefficients() {
-  cfgAtmosphere.scatteringCoefficients = glm::pow(400.f / cfgAtmosphere.waveLengths, vec3(4.f)) * cfgAtmosphere.scatteringStrength;
+  cfgAtmosphere.scatteringCoefficientsR = glm::pow(400.f / cfgAtmosphere.waveLengths, vec3(4.f)) * cfgAtmosphere.scatteringStrengthR;
+  cfgAtmosphere.scatteringCoefficientsM = glm::pow(400.f / cfgAtmosphere.waveLengths, vec3(4.f)) * cfgAtmosphere.scatteringStrengthM;
 }
 
 void GenerationManager::bakeOpticalDepth(Renderer& renderer) {
   shaderOpticalDepth->setUniform3f("u_planetCenter", vec3(0.f));
   shaderOpticalDepth->setUniform1f("u_planetRadius", cfgTerrain.planetRadius);
   shaderOpticalDepth->setUniform1f("u_atmosphereRadius", cfgTerrain.planetRadius * cfgAtmosphere.heightScale);
-  shaderOpticalDepth->setUniform1f("u_densityFalloff", cfgAtmosphere.densityFalloff);
+  shaderOpticalDepth->setUniform1f("u_densityFalloffR", cfgAtmosphere.densityFalloffR);
+  shaderOpticalDepth->setUniform1f("u_densityFalloffM", cfgAtmosphere.densityFalloffM);
   shaderOpticalDepth->setUniform1i("u_opticalDepthPoints", cfgAtmosphere.opticalDepthPoints);
 
   renderer.submit(computeCommandOpticalDepth);

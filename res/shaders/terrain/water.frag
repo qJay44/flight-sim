@@ -156,7 +156,7 @@ void main() {
   finalColor += specularColor;
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
 
-  vec3 finalColorHDR = specularColor * 2.f;
+  vec3 finalColorHDR = specularColor * 10.f;
   FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);
 }

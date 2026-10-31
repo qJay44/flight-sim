@@ -10,7 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/Run)
 project(MyProject VERSION 1.0)
 
 find_package(glfw3 REQUIRED)
-find_package(Freetype REQUIRED)
+# find_package(Freetype REQUIRED)
 
 # ===== GLAD ====================================================== #
 
@@ -31,25 +31,6 @@ add_library(ImGui_GLFW_OpenGL STATIC
 target_include_directories(ImGui_GLFW_OpenGL PUBLIC
   ${IMGUI_PATH}
 )
-
-# ===== ufbx ====================================================== #
-
-include(FetchContent)
-
-FetchContent_Declare(
-  ufbx_external
-  GIT_REPOSITORY https://github.com/ufbx/ufbx
-  GIT_TAG        master
-)
-
-FetchContent_MakeAvailable(ufbx_external)
-
-add_library(ufbx STATIC
-  ${ufbx_external_SOURCE_DIR}/ufbx.c
-  ${ufbx_external_SOURCE_DIR}/ufbx.h
-)
-
-target_include_directories(ufbx PUBLIC ${ufbx_external_SOURCE_DIR})
 
 # ===== My utils ================================================== #
 
@@ -86,5 +67,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL ufbx Utils Freetype::Freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL Utils)
 

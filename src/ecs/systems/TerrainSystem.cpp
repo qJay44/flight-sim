@@ -26,7 +26,6 @@ using namespace gfx::terrain;
 using namespace terrain;
 
 namespace {
-
   entt::entity createLandEntity(entt::registry& registry, entt::entity waterLink) {
   entt::entity entity = registry.create();
 
@@ -38,7 +37,7 @@ namespace {
   // ----- Add to the asset manager ------------------------------------------------------------------------------------------------ //
 
   // NOTE: The mesh resolution is the same as [MESH_RESOLUTION] in the shader
-  std::string meshName = assetManager.createMeshPlane_Triangles(64, "TerrainLand", true, true);
+  std::string meshName = assetManager.createMeshPlane_Triangles(30, "TerrainLand", true, true);
 
   // ----- Components -------------------------------------------------------------------------------------------------------------- //
 
@@ -530,15 +529,19 @@ void render(entt::registry& registry) {
     auto& meshComponent = registry.get<MeshComponent>(entity);
     auto& texComponent = registry.get<TextureComponent>(entity);
 
+    meshComponent.mesh->setPolygonMode(GL_FILL);
+
     meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
     meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
     meshComponent.shader->setUniform3f("u_camForward", activeCam.cam->orientation);
     meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
-    meshComponent.shader->setUniform3f("u_scatteringCoefficients", atmosphereConfig.scatteringCoefficients);
+    meshComponent.shader->setUniform3f("u_scatteringCoefficientsR", atmosphereConfig.scatteringCoefficientsR);
+    meshComponent.shader->setUniform3f("u_scatteringCoefficientsM", atmosphereConfig.scatteringCoefficientsM);
     meshComponent.shader->setUniform1f("u_camNear", activeCam.cam->nearPlane);
     meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
     meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
-    meshComponent.shader->setUniform1f("u_densityFalloff", atmosphereConfig.densityFalloff);
+    meshComponent.shader->setUniform1f("u_densityFalloffR", atmosphereConfig.densityFalloffR);
+    meshComponent.shader->setUniform1f("u_densityFalloffM", atmosphereConfig.densityFalloffM);
     meshComponent.shader->setUniform1f("u_atmosphereRadius", terrainConfig.planetRadius * atmosphereConfig.heightScale);
     meshComponent.shader->setUniform1i("u_scatteringPoints", atmosphereConfig.scatteringPoints);
 

@@ -34,14 +34,17 @@ public:
   static_assert(sizeof(TerrainConfig) % 16 == 0);
 
   struct AtmosphereConfig {
-    vec3 scatteringCoefficients = vec3(1.f);
+    vec3 scatteringCoefficientsR = vec3(1.f);
+    vec3 scatteringCoefficientsM = vec3(1.f);
     vec3 waveLengths{700.f, 530.f, 440.f};
     float heightScale = 1.1f;
-    float densityFalloff = 20.f;
-    float scatteringStrength = 0.02f;
+    float densityFalloffR = 20.f;
+    float densityFalloffM = 20.f;
+    float scatteringStrengthR = 0.02f;
+    float scatteringStrengthM = 0.02f;
     int scatteringPoints = 40;
     int opticalDepthPoints = 50;
-    float _pad[1];
+    float _pad[0];
   };
   static_assert(sizeof(AtmosphereConfig) % 16 == 0);
 
