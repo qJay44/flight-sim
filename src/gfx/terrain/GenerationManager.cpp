@@ -43,10 +43,11 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
     freeSlots.push(i);
 
   cfgAtmosphere.scatteringStrengthR = 0.002f;
-  cfgAtmosphere.scatteringStrengthM = 0.0001f;
+  cfgAtmosphere.scatteringStrengthM = 0.00004f;
   cfgAtmosphere.heightScale = 2.f;
-  cfgAtmosphere.densityFalloffR = 100.f;
-  cfgAtmosphere.densityFalloffM = 44.f;
+  cfgAtmosphere.densityFalloffR = 1000.f;
+  cfgAtmosphere.densityFalloffM = 63.f;
+  cfgAtmosphere.scatteringPoints = 20;
 
   ubo.terrainConfig = gfx::BufferObject::createUniformBuffer(true);
   ubo.terrainConfig.storage(&cfgTerrain, sizeof(TerrainConfig), GL_DYNAMIC_STORAGE_BIT);

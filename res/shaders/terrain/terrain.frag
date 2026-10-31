@@ -37,14 +37,14 @@ const vec3 cl[] = vec3[](
 );
 
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
-  vec3 P = vec3(uv * 2.f, slot);
+  vec3 P = vec3(uv * 1.f, slot);
   // vec4 ormh = texture(u_texArrayORMH, P);
-  // vec3 normal = texture(u_texArrayNormal, P).rgb * 2.f - 1.f;
+  vec3 normal = texture(u_texArrayNormal, P).rgb * 2.f - 1.f;
 
   Material m  = materialInit;
-  m.albedo    = cl[slot];
-  // m.albedo    = texture(u_texArrayAlbedo, P).rgb;
-  // m.normal    = normalize(tbn * normal);
+  // m.albedo    = cl[slot];
+  m.albedo    = texture(u_texArrayAlbedo, P).rgb;
+  m.normal    = normalize(tbn * normal);
   // m.ao        = ormh.r;
   // m.roughness = ormh.g;
   // m.metallic  = ormh.b;
@@ -94,8 +94,8 @@ void main() {
     if (weights[i] > 0.f)
       materialMix(surfaceMaterial, materialUnpack(uv, i, tbn), weights[i]);
 
-  // surfaceMaterial.normal = normalize(surfaceMaterial.normal);
-  surfaceMaterial.normal = computeNormal;
+  surfaceMaterial.normal = normalize(surfaceMaterial.normal);
+  // surfaceMaterial.normal = computeNormal;
 
   // HACK: Refraction scattering for the water pass
   float waterScale = u_heightScale * u_heightScaleScale;

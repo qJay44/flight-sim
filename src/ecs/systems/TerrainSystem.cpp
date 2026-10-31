@@ -353,9 +353,9 @@ void update(entt::registry& registry) {
 }
 
 void render(entt::registry& registry) {
-  static ProfilerManager::Query queryRenderLand("TerrainRenderLand");
-  static ProfilerManager::Query queryRenderWater("TerrainRenderWater");
-  static ProfilerManager::Query queryRenderWaterBlur("TerrainRenderWaterBlur");
+  static ProfilerManager::Query queryRenderLand("Land");
+  static ProfilerManager::Query queryRenderWater("Water");
+  static ProfilerManager::Query queryRenderWaterBlur("WaterBlur");
 
   auto& ctx          = registry.ctx().get<core::EngineContext>();
   auto& profiler     = registry.ctx().get<ProfilerManager>();
@@ -461,6 +461,7 @@ void render(entt::registry& registry) {
     const auto& waterComponent = registry.get<WaterComponent>(entity);
     const auto& meshComponent = registry.get<MeshComponent>(entity);
     const auto& texComponent = registry.get<TextureComponent>(entity);
+    gfx::Shader& shader = *meshComponent.shader;
 
     if (meshComponent.disabled)
       continue;
@@ -470,29 +471,34 @@ void render(entt::registry& registry) {
     mat4 localTranslation = glm::translate(mat4(1.f), planetCameraOffset);
     pvInvLocal = glm::inverse(activeCam.cam->cachedProj * localView);
 
-    meshComponent.shader->setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
-    meshComponent.shader->setUniformMatrix4f("u_localView", localView);
-    meshComponent.shader->setUniformMatrix4f("u_localTranslation", localTranslation);
-    meshComponent.shader->setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
-    meshComponent.shader->setUniform3f("u_planetCenter", vec3(0.f));
-    meshComponent.shader->setUniform3f("u_camPos", activeCam.cam->position);
-    meshComponent.shader->setUniform3f("u_camForward", activeCam.cam->orientation);
-    meshComponent.shader->setUniform3f("u_oceanDeepColor", waterComponent.oceanDeepColorLinear);
-    meshComponent.shader->setUniform3f("u_oceanShallowColor", waterComponent.oceanShallowColorLinear);
-    meshComponent.shader->setUniform1f("u_camNear", activeCam.cam->nearPlane);
-    meshComponent.shader->setUniform1f("u_camFar", activeCam.cam->farPlane);
-    meshComponent.shader->setUniform1f("u_planetRadius", terrainConfig.planetRadius);
-    meshComponent.shader->setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
-    meshComponent.shader->setUniform1f("u_heightScaleScale",       waterComponent.heightScaleScale);
-    meshComponent.shader->setUniform1f("u_foamSharpness",          waterComponent.foamSharpness);
-    meshComponent.shader->setUniform1f("u_waterDensity",           waterComponent.waterDensity);
-    meshComponent.shader->setUniform1f("u_refractionDistortScale", waterComponent.refractionDistortScale);
-    meshComponent.shader->setUniform1f("u_ambient",                waterComponent.ambient);
-    meshComponent.shader->setUniform1f("u_diffusePowScale",        waterComponent.diffusePowScale);
-    meshComponent.shader->setUniform1f("u_specularPowScale",       waterComponent.specularPowScale);
-    meshComponent.shader->setUniform1f("u_triplanarSharpness",     waterComponent.triplanarSharpness);
-    meshComponent.shader->setUniform1f("u_triplanarScale",         waterComponent.triplanarScale);
-    meshComponent.shader->setUniform1f("u_time", ctx.time);
+    shader.setUniformMatrix4f("u_proj", activeCam.cam->cachedProj);
+    shader.setUniformMatrix4f("u_localView", localView);
+    shader.setUniformMatrix4f("u_localTranslation", localTranslation);
+    shader.setUniformMatrix4f("u_pvInvLocal", pvInvLocal);
+    shader.setUniform3f("u_planetCenter", vec3(0.f));
+    shader.setUniform3f("u_camPos", activeCam.cam->position);
+    shader.setUniform3f("u_camForward", activeCam.cam->orientation);
+    shader.setUniform3f("u_oceanDeepColor", waterComponent.oceanDeepColorLinear);
+    shader.setUniform3f("u_oceanShallowColor", waterComponent.oceanShallowColorLinear);
+    shader.setUniform3f("u_scatteringCoefficientsR", atmosphereConfig.scatteringCoefficientsR);
+    shader.setUniform3f("u_scatteringCoefficientsM", atmosphereConfig.scatteringCoefficientsM);
+    shader.setUniform1f("u_camNear", activeCam.cam->nearPlane);
+    shader.setUniform1f("u_camFar", activeCam.cam->farPlane);
+    shader.setUniform1f("u_planetRadius", terrainConfig.planetRadius);
+    shader.setUniform1f("u_heightScale", terrainConfig.planetRadius * terrainConfig.planetRadiusPercent);
+    shader.setUniform1f("u_heightScaleScale",       waterComponent.heightScaleScale);
+    shader.setUniform1f("u_foamSharpness",          waterComponent.foamSharpness);
+    shader.setUniform1f("u_waterDensity",           waterComponent.waterDensity);
+    shader.setUniform1f("u_refractionDistortScale", waterComponent.refractionDistortScale);
+    shader.setUniform1f("u_ambient",                waterComponent.ambient);
+    shader.setUniform1f("u_diffusePowScale",        waterComponent.diffusePowScale);
+    shader.setUniform1f("u_specularPowScale",       waterComponent.specularPowScale);
+    shader.setUniform1f("u_triplanarSharpness",     waterComponent.triplanarSharpness);
+    shader.setUniform1f("u_triplanarScale",         waterComponent.triplanarScale);
+    shader.setUniform1f("u_densityFalloffR", atmosphereConfig.densityFalloffR);
+    shader.setUniform1f("u_densityFalloffM", atmosphereConfig.densityFalloffM);
+    shader.setUniform1f("u_atmosphereRadius", terrainConfig.planetRadius * atmosphereConfig.heightScale);
+    shader.setUniform1i("u_scatteringPoints", atmosphereConfig.scatteringPoints / 4);
 
     gfx::Renderer::RenderCommand renderCmdWater{
       .shader = meshComponent.shader,

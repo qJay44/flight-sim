@@ -33,7 +33,7 @@ float _Atmosphere_RayleighPhase(vec3 rayDir) {
 }
 
 float _Atmosphere_MiePhase(vec3 rayDir) {
-  const float g = 0.99f;
+  const float g = 0.16f;
   const float gg = g * g;
   float cosAngle = dot(rayDir, g_atmosphere.lightDir);
 
@@ -91,10 +91,10 @@ vec3 _Atmosphere_calcLight(Ray ray, float rayLength, sampler2D texOpticalDepth) 
 
     vec2 sunRayOpticalDepth = _Atmosphere_opticalDepthLookUp(p, ray.dir, texOpticalDepth);
 
-    vec3 transmittance = exp(
-      -(sunRayOpticalDepth.r + viewRayOpticalDepthR) * g_atmosphere.scatteringCoefficientsR +
-      -(sunRayOpticalDepth.g + viewRayOpticalDepthM) * g_atmosphere.scatteringCoefficientsM
-    );
+    vec3 transmittance = exp(-(
+      (sunRayOpticalDepth.r + viewRayOpticalDepthR) * g_atmosphere.scatteringCoefficientsR +
+      (sunRayOpticalDepth.g + viewRayOpticalDepthM) * g_atmosphere.scatteringCoefficientsM
+    ));
 
     totalR += densityR * transmittance;
     totalM += densityM * transmittance;

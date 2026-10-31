@@ -1,6 +1,6 @@
 #version 460 core
 
-#include "../common.glsl"
+#include "../atmosphere.glsl"
 #include "terrain.glsl"
 
 layout(location = 0) out vec4 FragColor;
@@ -20,6 +20,8 @@ uniform vec3 u_planetCenter;
 uniform vec3 u_camPos;
 uniform vec3 u_oceanDeepColor;
 uniform vec3 u_oceanShallowColor;
+uniform vec3 u_scatteringCoefficientsR;
+uniform vec3 u_scatteringCoefficientsM;
 uniform float u_camNear;
 uniform float u_camFar;
 uniform float u_planetRadius;
@@ -36,12 +38,17 @@ uniform float u_diffusePowScale;
 uniform float u_specularPowScale;
 uniform float u_triplanarSharpness;
 uniform float u_triplanarScale;
+uniform float u_densityFalloffR;
+uniform float u_densityFalloffM;
+uniform float u_atmosphereRadius;
+uniform int u_scatteringPoints;
 
 layout(binding = 0) uniform sampler2D u_texDisplacement;
 layout(binding = 1) uniform sampler2D u_texDerivatives;
 layout(binding = 2) uniform sampler2D u_texTurbulence;
 layout(binding = 3) uniform sampler2D u_texLandColor;
 layout(binding = 4) uniform sampler2D u_texLandDepth;
+layout(binding = 5) uniform sampler2D u_texOpticalDepth;
 
 mat3 getTBN(vec3 localNormal, vec3 worldPos, vec2 uv) {
   vec3 q1 = dFdx(worldPos);
@@ -102,17 +109,19 @@ float getJacobian() {
   return jacobianX * weights.x + jacobianY * weights.y + jacobianZ * weights.z;
 }
 
-vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir) {
-  vec3 reflNormal = reflect(-viewDir, normal);
-  vec3 ambient = u_oceanDeepColor * 0.1f;
-  return max(ambient, u_oceanDeepColor * dot0(reflNormal, u_lightDir)); // same as ocean color...
+vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir, float depth) {
+  vec3 reflDir = reflect(-viewDir, normal);
+  Ray ray = Ray(v_worldPos, reflDir);
+  RayHitInfo hitInfo = raySphere(u_planetCenter, u_atmosphereRadius, ray);
+
+  vec3 color = Atmosphere_getColor(ray, hitInfo, depth, u_texOpticalDepth);
+
+  return color;
 }
 
 void main() {
   vec2 screenUV = gl_FragCoord.xy / textureSize(u_texLandColor, 0).xy;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
-  float waterScale = u_heightScale * u_heightScaleScale;
-  float waterRadius = u_planetRadius + waterScale;
 
   float dist = max0(v_viewDist);
   float distScale = exp(-dist / u_heightScale);
@@ -126,6 +135,7 @@ void main() {
 
   float landDepth = texture(u_texLandDepth, distortedUV).r;
   float landDepthLinear = logDepthToLinearDepth(landDepth, u_camFar);
+  float waterDepthLinear = logDepthToLinearDepth(gl_FragCoord.z, u_camFar);
 
   float VdotN = dot0(viewDir, normal);
   float NdotL = dot0(normal, u_lightDir);
@@ -136,7 +146,7 @@ void main() {
   foam *= pow(1.f - gl_FragCoord.z, 5.f);
 
   float depthT = clamp01(exp(-landDepthLinear * 0.0005f) * 5.f);
-  vec3 waterBase = mix(u_oceanDeepColor, seabedColor, depthT);
+  vec3 waterBaseColor = mix(u_oceanDeepColor, seabedColor, depthT);
 
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
@@ -144,14 +154,29 @@ void main() {
   float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale;
 
-  vec3 specularColor = specular * u_lightColor;
-  vec3 reflColor = getWaterReflection(screenUV, normal, viewDir);
-  reflColor *= distScale;
+  vec3 diffuseColor = diffuse * waterBaseColor * u_lightColor;
 
-  vec3 finalColor = diffuse * u_lightColor * waterBase;
+  g_atmosphere.originalColor           = diffuseColor;
+  g_atmosphere.lightDir                = u_lightDir;
+  g_atmosphere.scatteringCoefficientsR = u_scatteringCoefficientsR;
+  g_atmosphere.scatteringCoefficientsM = u_scatteringCoefficientsM;
+  g_atmosphere.planetCenter            = u_planetCenter;
+  g_atmosphere.lightIntensity          = u_lightIntensity;
+  g_atmosphere.atmosphereRadius        = u_atmosphereRadius;
+  g_atmosphere.densityFalloffR         = u_densityFalloffR;
+  g_atmosphere.densityFalloffM         = u_densityFalloffM;
+  g_atmosphere.planetRadius            = u_planetRadius;
+  g_atmosphere.scatteringPoints        = u_scatteringPoints;
+
+  vec3 reflColor = getWaterReflection(screenUV, normal, viewDir, waterDepthLinear);
+  vec3 specularColor = specular * u_lightColor;
+  // reflColor *= distScale;
+
+  vec3 finalColor = diffuseColor;
   finalColor = mix(finalColor, reflColor, fresnel);
   finalColor += specularColor;
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
+  // finalColor = reflColor;
 
   vec3 finalColorHDR = specularColor * 10.f;
 
