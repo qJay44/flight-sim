@@ -42,6 +42,16 @@ void Texture::swap(Texture& other) {
   std::swap(id, other.id);
 }
 
+void Texture::copySubDataTo(Texture* other) const {
+  ivec2 size = getSize();
+
+  glCopyImageSubData(
+    getId()       , getTarget()       , 0, 0, 0, 0,
+    other->getId(), other->getTarget(), 0, 0, 0, 0,
+    size.x, size.y, 1
+  );
+}
+
 void Texture::clear() {
   if (id) glDeleteTextures(1, &id);
   target = 0;

@@ -29,12 +29,12 @@ uniform float u_heightScale;
 uniform float u_heightScaleScale;
 
 const vec3 cl[] = vec3[](
-vec3(0.5789, 0.4854, 0.2684),
-vec3(0.0358, 0.1726, 0.0230),
-vec3(0.1332, 0.1190, 0.1056),
-vec3(0.8933, 0.8933, 0.8933),
-vec3(0.4420, 0.6814, 1.0000)
-    );
+  vec3(0.5789, 0.4854, 0.2684),
+  vec3(0.0358, 0.1726, 0.0230),
+  vec3(0.1332, 0.1190, 0.1056),
+  vec3(0.8933, 0.8933, 0.8933),
+  vec3(0.4420, 0.6814, 1.0000)
+);
 
 Material materialUnpack(vec2 uv, int slot, mat3 tbn) {
   vec3 P = vec3(uv * 2.f, slot);
@@ -105,18 +105,6 @@ void main() {
   float waterDepth = exp(waterHeight * -0.0005f) * waterStep;
 
   surfaceMaterial.albedo = mix(surfaceMaterial.albedo, vec3(0.f, 0.4f, 0.4f), waterDepth);
-
-//   vec3 radiance = u_lightColor * u_lightIntensity;
-//   vec3 V = normalize(u_camPos - v_worldPos);
-//   vec3 L = u_lightDir;
-//   vec3 H = normalize(V + L);
-//   float geomSmith = GeometrySmith_Direct(surfaceMaterial.roughness, surfaceMaterial.normal, V, L);
-
-//   float ambient = 0.1f;
-//   vec3 brdf = BRDF_CookTorrance(surfaceMaterial, V, L, H, geomSmith);
-//   vec3 Lo = brdf * radiance * dot0(surfaceMaterial.normal, L);
-//   vec3 color = Lo + surfaceMaterial.emissivity;
-//   color /= color + 1.f;
 
   float diffuse = dot0(surfaceMaterial.normal, u_lightDir);
   float ambient = 0.01f;

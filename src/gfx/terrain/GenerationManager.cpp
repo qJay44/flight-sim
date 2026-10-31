@@ -45,7 +45,7 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
   cfgAtmosphere.scatteringStrengthR = 0.002f;
   cfgAtmosphere.scatteringStrengthM = 0.0001f;
   cfgAtmosphere.heightScale = 2.f;
-  cfgAtmosphere.densityFalloffR = 27.f;
+  cfgAtmosphere.densityFalloffR = 100.f;
   cfgAtmosphere.densityFalloffM = 44.f;
 
   ubo.terrainConfig = gfx::BufferObject::createUniformBuffer(true);

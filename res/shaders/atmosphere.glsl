@@ -33,7 +33,7 @@ float _Atmosphere_RayleighPhase(vec3 rayDir) {
 }
 
 float _Atmosphere_MiePhase(vec3 rayDir) {
-  const float g = 0.76f;
+  const float g = 0.99f;
   const float gg = g * g;
   float cosAngle = dot(rayDir, g_atmosphere.lightDir);
 

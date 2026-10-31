@@ -64,9 +64,9 @@ void main() {
 
   finalColor = Atmosphere_getColor(ray, hitInfo, sceneDepth, u_texOpticalDepth);
 
-  float sunDot = dot0(ray.dir, u_lightDir);
-  float sun = pow(sunDot, u_lightFocus) * u_lightIntensity;
-  finalColor += sun * u_lightColor;
+  // float sunDot = dot0(ray.dir, u_lightDir);
+  // float sun = pow(sunDot, u_lightFocus) * u_lightIntensity;
+  // finalColor += sun * u_lightColor;
 
   finalColor = pow(finalColor, vec3(1.f / gamma));
 

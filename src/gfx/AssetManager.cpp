@@ -265,6 +265,17 @@ void AssetManager::checkShaders() {
       shader->reload();
 }
 
+void AssetManager::shutdown() {
+  meshes.clear();
+  shaders.clear();
+  textures.clear();
+  cameras.clear();
+  lights.clear();
+  fbos.clear();
+  blurs.clear();
+  materials.clear();
+}
+
 Mesh* AssetManager::getMesh(const std::string& name) const {
   assert(contains(meshes, name));
   return meshes.at(name).get();

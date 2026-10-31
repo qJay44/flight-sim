@@ -121,7 +121,7 @@ entt::entity createWaterEntity(entt::registry& registry) {
     .waterDensity = 1000.f,
     .refractionDistortScale = 0.015f,
     .ambient = 0.1f,
-    .diffusePowScale = 80.f,
+    .diffusePowScale = 3.5f,
     .specularPowScale = 256.f,
     .triplanarSharpness = 5.f,
     .triplanarScale = 0.002f,
@@ -139,7 +139,7 @@ entt::entity createWaterEntity(entt::registry& registry) {
       &water.getTexDerivatives(),
       &water.getTexTurbulence(),
       assetManager.getTexture("TerrainColorWater"),
-      assetManager.getTexture("TerrainDepthMain"),
+      assetManager.getTexture("TerrainDepthMainRead"),
       assetManager.getTexture("TerrainOpticalDepth"),
     }
   };
@@ -171,7 +171,7 @@ entt::entity createPostProcessEntity(entt::registry& registry) {
   TextureComponent texComponent{
     .textures = {
       assetManager.getTexture("TerrainColorMain"),
-      assetManager.getTexture("TerrainDepthMain"),
+      assetManager.getTexture("TerrainDepthMainWrite"),
       assetManager.getTexture("TerrainColorWaterHDR"),
       assetManager.getTexture("TerrainOpticalDepth"),
     }
@@ -200,11 +200,12 @@ void init(entt::registry& registry) {
   gfx::Texture2D texColorMain(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
   gfx::Texture2D texColorWater(winSize, {.internalFormat = GL_RGBA16, .format = GL_RGBA});
   gfx::Texture2D texColorWaterHDR(winSize, {.internalFormat = GL_RGB16F, .format = GL_RGB, .type = GL_HALF_FLOAT});
-  gfx::Texture2D texDepth(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
+  gfx::Texture2D texDepthRead(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
+  gfx::Texture2D texDepthWrite(winSize, {.internalFormat = GL_DEPTH24_STENCIL8, .format = GL_DEPTH_STENCIL, .type = GL_UNSIGNED_INT_24_8});
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT0, texColorMain);
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT1, texColorWater);
   fboTerrain.attach2D(GL_COLOR_ATTACHMENT2, texColorWaterHDR);
-  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texDepth);
+  fboTerrain.attach2D(GL_DEPTH_ATTACHMENT, texDepthWrite);
 
   gfx::Blur blurWater(ivec2(512));
 
@@ -229,7 +230,8 @@ void init(entt::registry& registry) {
   assetManager.addTexture("TerrainColorMain", std::move(texColorMain));
   assetManager.addTexture("TerrainColorWater", std::move(texColorWater));
   assetManager.addTexture("TerrainColorWaterHDR", std::move(texColorWaterHDR));
-  assetManager.addTexture("TerrainDepthMain", std::move(texDepth));
+  assetManager.addTexture("TerrainDepthMainRead", std::move(texDepthRead));
+  assetManager.addTexture("TerrainDepthMainWrite", std::move(texDepthWrite));
   assetManager.addBlur("TerrainWaterBlur", std::move(blurWater));
   assetManager.addMaterials("TerrainMaterials", std::move(materials));
 
@@ -368,14 +370,12 @@ void render(entt::registry& registry) {
   auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent>();
 
-  gfx::Renderer::ClearCommand clearCmd{
-    .fbo = assetManager.getFBO("TerrainFBO"),
-    .viewPort = ctx.getWinSize(),
-  };
-
   mat4 pvInvLocal;
 
-  renderer.clearFrame(clearCmd);
+  renderer.clearFrame({
+    .fbo = assetManager.getFBO("TerrainFBO"),
+    .viewPort = ctx.getWinSize(),
+  });
 
   // ----- Land -------------------------------------------------------------------------------------------------------------------- //
 
@@ -453,6 +453,8 @@ void render(entt::registry& registry) {
     renderer.renderFrame();
   }
 
+  assetManager.getTexture("TerrainDepthMainWrite")->copySubDataTo(assetManager.getTexture("TerrainDepthMainRead"));
+
   // ----- Water ------------------------------------------------------------------------------------------------------------------- //
 
   for (auto entity : terrainWaterView) {
@@ -497,7 +499,7 @@ void render(entt::registry& registry) {
       .mesh = meshComponent.mesh,
       .enableCullFace = false,
       .enableDepthTest = true,
-      // .enableDepthMask = false,
+      .enableDepthMask = true,
       .textures = texComponent.textures,
       .drawBuffers = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT2},
     };

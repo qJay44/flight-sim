@@ -122,10 +122,9 @@ void main() {
   distScale = 1.f - distScale;
 
   vec2 distortedUV = screenUV + normal.xz * u_refractionDistortScale;
-  vec4 landDataDepth = texture(u_texLandDepth, distortedUV);
   vec3 seabedColor = texture(u_texLandColor, distortedUV).rgb;
 
-  float landDepth = landDataDepth.r;
+  float landDepth = texture(u_texLandDepth, distortedUV).r;
   float landDepthLinear = logDepthToLinearDepth(landDepth, u_camFar);
 
   float VdotN = dot0(viewDir, normal);
@@ -136,9 +135,7 @@ void main() {
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
   foam *= pow(1.f - gl_FragCoord.z, 5.f);
 
-  float depthT = smoothstep(0.f, waterRadius, landDepthLinear * 0.5f);
-  depthT = exp(-depthT * u_waterDensity);
-
+  float depthT = clamp01(exp(-landDepthLinear * 0.0005f) * 5.f);
   vec3 waterBase = mix(u_oceanDeepColor, seabedColor, depthT);
 
   float f0 = 0.02f;
@@ -151,12 +148,13 @@ void main() {
   vec3 reflColor = getWaterReflection(screenUV, normal, viewDir);
   reflColor *= distScale;
 
-  vec3 finalColor = NdotL * u_lightColor * waterBase;
+  vec3 finalColor = diffuse * u_lightColor * waterBase;
   finalColor = mix(finalColor, reflColor, fresnel);
   finalColor += specularColor;
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
 
   vec3 finalColorHDR = specularColor * 10.f;
+
   FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);
 }

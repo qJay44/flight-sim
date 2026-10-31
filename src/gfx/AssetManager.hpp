@@ -37,6 +37,7 @@ public:
   void addMaterials(const std::string& name, Materials&& mats);
 
   void checkShaders();
+  void shutdown();
 
   Mesh* getMesh(const std::string& name) const;
   Shader* getShader(const std::string& name) const;

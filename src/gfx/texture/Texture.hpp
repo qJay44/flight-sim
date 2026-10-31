@@ -15,6 +15,7 @@ public:
   void bind(GLuint unit) const;
   void unbind() const;
   void swap(Texture& other);
+  void copySubDataTo(Texture* other)const ;
   void clear();
 
   GLuint getId() const;

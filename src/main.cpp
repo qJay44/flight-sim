@@ -189,6 +189,9 @@ int main() {
     glfwPollEvents();
   }
 
+  assetManager.shutdown();
+  registry.clear();
+  registry.ctx().clear();
   gui::shutdown();
   glfwTerminate();
 
