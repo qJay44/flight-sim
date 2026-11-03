@@ -13,7 +13,7 @@
   "lacunarity": 2.6419999599456787,
   "lacunarityDetail": 1.6299999952316284,
   "octavesDisplace": 2,
-  "planetRadius": 100000.0,
+  "planetRadius": 1000000.0,
   "planetRadiusPercent": 0.07000000029802322,
   "terraceSteps": 7
 }

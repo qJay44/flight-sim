@@ -124,11 +124,11 @@ void main() {
   vec3 viewDir = normalize(u_camPos - v_worldPos);
 
   float dist = max0(v_viewDist);
-  float distScale = exp(-dist / u_heightScale);
+  float distScale = exp(-dist * pow(gl_FragCoord.z, 7.f));
+  float distScale1 = 1.f - distScale;
 
-  vec3 normal = mix(getWaveNormal(), v_sphereDir, 1.f - distScale);
+  vec3 normal = mix(getWaveNormal(), v_sphereDir, distScale1);
   vec3 halfwayDir = normalize(u_lightDir + viewDir);
-  distScale = 1.f - distScale;
 
   vec2 distortedUV = screenUV + normal.xz * u_refractionDistortScale;
   vec3 seabedColor = texture(u_texLandColor, distortedUV).rgb;
@@ -151,7 +151,7 @@ void main() {
   float f0 = 0.02f;
   float fresnel = f0 + (1.f - f0) * pow(1.f - VdotN, 5.f);
 
-  float diffuse = pow(NdotL * 0.4f + 0.6f, u_diffusePowScale);
+  float diffuse = NdotL;
   float specular = pow(NdotH, u_specularPowScale) * u_lightIntensity * distScale;
 
   vec3 diffuseColor = diffuse * waterBaseColor * u_lightColor;
@@ -170,15 +170,14 @@ void main() {
 
   vec3 reflColor = getWaterReflection(screenUV, normal, viewDir, waterDepthLinear);
   vec3 specularColor = specular * u_lightColor;
-  // reflColor *= distScale;
+  reflColor *= distScale;
 
   vec3 finalColor = diffuseColor;
   finalColor = mix(finalColor, reflColor, fresnel);
   finalColor += specularColor;
   finalColor = mix(finalColor, finalColor + vec3(1.f), foam);
-  // finalColor = reflColor;
 
-  vec3 finalColorHDR = specularColor * 10.f;
+  vec3 finalColorHDR = specularColor * 2.f;
 
   FragColor = vec4(finalColor, 1.f);
   FragColorHDR = vec4(finalColorHDR, 1.f);

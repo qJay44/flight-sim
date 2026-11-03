@@ -17,7 +17,6 @@
 #include "../../core/EngineContext.hpp"
 #include "../../core/math/frustum/Frustum.hpp"
 #include "ProfilerManager.hpp"
-#include <entt/entity/fwd.hpp>
 
 namespace ecs::TerrainSystem {
 
@@ -43,9 +42,9 @@ namespace {
 
   TerrainComponent terrainComponent{
     .waterLink = waterLink,
-    .grassThreshold = 0.115f,
-    .mountainThreshold = 0.5f,
-    .qtMaxDepth = 5,
+    .grassThreshold = 0.235f,
+    .mountainThreshold = 0.375f,
+    .qtMaxDepth = 9,
     .qtSplitThreshold = 0.5f,
   };
 
@@ -210,12 +209,13 @@ void init(entt::registry& registry) {
   gfx::Blur blurWater(ivec2(512));
 
   ivec3 materialsInfo;
-  gfx::image2D::info("res/tex/pbr/sand/ao.png", materialsInfo.x, materialsInfo.y, materialsInfo.z);
+  gfx::image2D::info("res/tex/pbr/sand/albedo.png", materialsInfo.x, materialsInfo.y, materialsInfo.z);
   gfx::Materials materials(materialsInfo, 4);
   materials.add("snow");
   materials.add("rocks2");
   materials.add("grass");
   materials.add("sand");
+  materials.generateMipmaps();
 
   assetManager.addCamera("Terrain", {
     .farPlane = 1e6f,

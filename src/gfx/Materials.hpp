@@ -14,6 +14,7 @@ struct Materials {
   Materials(int size, int count);
 
   void add(const std::string& name);
+  void generateMipmaps();
 };
 
 } // namespace gfx

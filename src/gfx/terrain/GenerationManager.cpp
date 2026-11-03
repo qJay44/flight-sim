@@ -43,9 +43,9 @@ GenerationManager::GenerationManager(ProfilerManager* profiler, AssetManager& as
     freeSlots.push(i);
 
   cfgAtmosphere.scatteringStrengthR = 0.002f;
-  cfgAtmosphere.scatteringStrengthM = 0.00004f;
+  cfgAtmosphere.scatteringStrengthM = 0.00001f;
   cfgAtmosphere.heightScale = 2.f;
-  cfgAtmosphere.densityFalloffR = 1000.f;
+  cfgAtmosphere.densityFalloffR = 10000.f;
   cfgAtmosphere.densityFalloffM = 63.f;
   cfgAtmosphere.scatteringPoints = 20;
 

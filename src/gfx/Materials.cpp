@@ -7,9 +7,25 @@
 namespace gfx {
 
 Materials::Materials(ivec2 size, int count) : nextWriteSlot(count - 1) {
-  TextureDescriptor descAlbedo {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_SRGB8, .format = GL_RGB , .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
-  TextureDescriptor descNormal {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGB8 , .format = GL_RGB , .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
-  TextureDescriptor descORMH   {.target = GL_TEXTURE_2D_ARRAY, .internalFormat = GL_RGBA8, .format = GL_RGBA, .wrapS = GL_REPEAT, .wrapT = GL_REPEAT};
+  TextureDescriptor descGeneral{
+    .target = GL_TEXTURE_2D_ARRAY,
+    .minFilter = GL_LINEAR_MIPMAP_LINEAR,
+    .wrapS = GL_REPEAT,
+    .wrapT = GL_REPEAT,
+  };
+
+  TextureDescriptor descAlbedo = descGeneral;
+  descAlbedo.internalFormat = GL_SRGB8;
+  descAlbedo.format = GL_RGB;
+
+  TextureDescriptor descNormal = descGeneral;
+  descNormal.internalFormat = GL_RGB8;
+  descNormal.format = GL_RGB;
+
+  TextureDescriptor descORMH = descGeneral;
+  descORMH.internalFormat = GL_RGBA8;
+  descORMH.format = GL_RGBA;
+
   texAlbedo = Texture2DArray(count, size, descAlbedo);
   texNormal = Texture2DArray(count, size, descNormal);
   texORMH = Texture2DArray(count, size, descORMH);
@@ -66,6 +82,15 @@ void Materials::add(const std::string& name) {
   } else {
     error("[Materials::add] Provided folder ({}) is invalid", folderPath.string());
   }
+}
+
+void Materials::generateMipmaps() {
+  texAlbedo.bind(0);
+  glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  texNormal.bind(0);
+  glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+  texORMH.bind(0);
+  glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 }
 
 } // namespace gfx
