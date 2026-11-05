@@ -29,7 +29,7 @@ void GLAPIENTRY MessageCallback(
       return; // Handled by the Shader class itself
   }
 
-  // Suppress annoying SIMD32 callback
+  // Suppress annoying SIMD32 callback (drastical changes between loads)
   if (type == GL_DEBUG_TYPE_PERFORMANCE) {
     clrpFinal = clrpWarning;
     stop = false;
@@ -73,7 +73,7 @@ void Renderer::clearFrame(const ClearCommand& cmd) {
   computeQueue.clear();
 
   if (cmd.fbo)
-      cmd.fbo->bind();
+    cmd.fbo->bind();
   else
     FBO::unbind();
 

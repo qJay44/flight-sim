@@ -32,6 +32,11 @@ target_include_directories(ImGui_GLFW_OpenGL PUBLIC
   ${IMGUI_PATH}
 )
 
+# ===== UFBX ====================================================== #
+
+add_library(ufbx STATIC ${UFBX_PATH}/ufbx.c)
+target_include_directories(ufbx PUBLIC ${UFBX_PATH})
+
 # ===== My utils ================================================== #
 
 file(GLOB_RECURSE UTILS_SOURCES ${UTILS_PATH}/src/*.cpp)
@@ -67,5 +72,5 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL Utils)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw GLAD ImGui_GLFW_OpenGL ufbx Utils)
 

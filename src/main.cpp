@@ -6,13 +6,14 @@
 #include "ecs/components/InputComponent.hpp"
 #include "ecs/components/MeshComponent.hpp"
 #include "ecs/components/TransformComponent.hpp"
-#include "ecs/components/VelocityComponent.hpp"
+#include "ecs/components/PhysicsComponent.hpp"
 #include "ecs/systems/CameraSystem.hpp"
 #include "ecs/systems/InputSystem.hpp"
-#include "ecs/systems/MovementSystem.hpp"
 #include "ecs/systems/RenderSystem.hpp"
 #include "ecs/systems/TerrainSystem.hpp"
 #include "ecs/systems/TimeSystem.hpp"
+#include "ecs/systems/PhysicsSystem.hpp"
+#include "ecs/systems/JetSystem.hpp"
 #include "entt/entity/fwd.hpp"
 #include "gfx/AssetManager.hpp"
 #include "gfx/Light.hpp"
@@ -104,10 +105,12 @@ int main() {
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler = registry.ctx().get<ProfilerManager>();
+  auto& ctx = registry.ctx().get<core::EngineContext>();
 
   gui::init(window);
-  ecs::InputSystem::init(registry);
-  ecs::TerrainSystem::init(registry);
+  ecs::system::InputSystem::init(registry);
+  ecs::system::JetSystem::init(registry);
+  ecs::system::TerrainSystem::init(registry);
 
   // ----- Entities ---------------------------------------------------------------------------------------------------------------- //
 
@@ -117,7 +120,7 @@ int main() {
     entt::entity entCamera = registry.create();
     {
       TransformComponent transComponent{
-        .pos = {0.f, 0.f, 1e5f + 25.f}
+        .position = {0.f, 0.f, 1e5f + 25.f}
       };
 
       CameraComponent camComponent{
@@ -125,8 +128,8 @@ int main() {
         .isDetached = true,
       };
 
-      VelocityComponent velComponent{
-        .scale = 1e4f
+      PhysicsComponent phyComponent{
+        .mass = 1.f,
       };
 
       InputComponent inputComponent{
@@ -136,7 +139,7 @@ int main() {
 
       registry.emplace<CameraComponent>(entCamera, camComponent);
       registry.emplace<TransformComponent>(entCamera, transComponent);
-      registry.emplace<VelocityComponent>(entCamera, velComponent);
+      registry.emplace<PhysicsComponent>(entCamera, phyComponent);
       registry.emplace<InputComponent>(entCamera, inputComponent);
     }
 
@@ -166,19 +169,20 @@ int main() {
 
     auto taskUpdatesPass = profiler.startScopedTaskCpu("UpdatesPass");
 
-    if (!ecs::TimeSystem::update(registry))
+    if (!ecs::system::TimeSystem::update(registry))
       continue;
 
-    ecs::InputSystem::update(registry);
-    ecs::MovementSystem::update(registry);
-    ecs::CameraSystem::update(registry);
-    ecs::TerrainSystem::update(registry);
+    ecs::system::InputSystem::update(registry);
+    ecs::system::JetSystem::update(registry, ctx.dt);
+    ecs::system::PhysicsSystem::update(registry, ctx.dt);
+    ecs::system::CameraSystem::update(registry);
+    ecs::system::TerrainSystem::update(registry);
 
     taskUpdatesPass.end();
 
     // ----- Render ------------------------------------------------------------------------------------------------------------------ //
 
-    ecs::RenderSystem::render(registry);
+    ecs::system::RenderSystem::render(registry);
     gui::render(registry);
 
     profiler.endFrame();

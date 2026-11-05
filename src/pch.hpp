@@ -2,6 +2,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
+#include "glm/gtc/quaternion.hpp"
 
 using glm::vec2;
 using glm::vec3;
@@ -20,7 +21,8 @@ using glm::dvec3;
 using glm::dvec4;
 
 using glm::mat4;
-
+using glm::mat3;
+using glm::mat2;
 
 // #include "glad/glad.h" // Windows version?
 #include "glad/gl.h"

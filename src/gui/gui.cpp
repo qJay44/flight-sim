@@ -75,7 +75,7 @@ void render(entt::registry& registry) {
   }
 
   if (ImGui::CollapsingHeader("Cameras")) {
-    auto camView = registry.view<CameraComponent, TransformComponent, InputComponent, VelocityComponent>();
+    auto camView = registry.view<CameraComponent, TransformComponent, InputComponent>();
     auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
     for (auto entity : camView) {
@@ -88,12 +88,10 @@ void render(entt::registry& registry) {
       if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
         auto& transComponent = registry.get<TransformComponent>(entity);
         auto& inputComponent = registry.get<InputComponent>(entity);
-        auto& velComponent = registry.get<VelocityComponent>(entity);
 
         drawCameraComponent(camComponent, activeCam);
         drawTransformComponent(transComponent);
         drawInputComponent(inputComponent);
-        drawVelocityComponent(velComponent);
 
         ImGui::TreePop();
       }
@@ -139,7 +137,7 @@ void render(entt::registry& registry) {
       u |= lw.render(cfg);
 
       if (u)
-        ecs::TerrainSystem::reload(registry);
+        ecs::system::TerrainSystem::reload(registry);
 
       ImGui::SeparatorText("Lands");
       for (auto entity : registry.view<terrain::TerrainComponent, MeshComponent>()) {
@@ -255,6 +253,9 @@ void render(entt::registry& registry) {
 
     if (us)
       gm.recalcScatteringCoefficients();
+  }
+
+  if (ImGui::CollapsingHeader("Jet")) {
   }
 
   ImGui::End();

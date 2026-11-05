@@ -9,7 +9,7 @@
 #include "TransformSystem.hpp"
 #include "TerrainSystem.hpp"
 
-namespace ecs::RenderSystem {
+namespace ecs::system::RenderSystem {
 
 using namespace component;
 

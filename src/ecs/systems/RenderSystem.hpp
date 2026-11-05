@@ -2,7 +2,7 @@
 
 #include "entt/entity/fwd.hpp"
 
-namespace ecs::RenderSystem {
+namespace ecs::system::RenderSystem {
   void render(entt::registry& registry);
 };
 

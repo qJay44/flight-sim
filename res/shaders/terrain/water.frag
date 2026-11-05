@@ -124,7 +124,7 @@ void main() {
   vec3 viewDir = normalize(u_camPos - v_worldPos);
 
   float dist = max0(v_viewDist);
-  float distScale = exp(-dist * pow(gl_FragCoord.z, 7.f));
+  float distScale = exp(-dist / u_heightScale * 20.f);
   float distScale1 = 1.f - distScale;
 
   vec3 normal = mix(getWaveNormal(), v_sphereDir, distScale1);
@@ -143,7 +143,7 @@ void main() {
 
   float jacobian = getJacobian();
   float foam = 1.f - smoothstep(0.f, 1.f, jacobian * u_foamSharpness);
-  foam *= pow(1.f - gl_FragCoord.z, 5.f);
+  foam *= distScale;
 
   float depthT = clamp01(exp(-landDepthLinear * 0.0005f) * 5.f);
   vec3 waterBaseColor = mix(u_oceanDeepColor, seabedColor, depthT);

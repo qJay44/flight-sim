@@ -9,6 +9,22 @@ namespace gui {
 
 using namespace ecs::component;
 
+namespace {
+
+void TextVec3(const std::string& text, vec3 v) {
+  ImGui::Text((text + ": [%.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z);
+}
+
+void TextVec4(const std::string& text, vec4 v) {
+  ImGui::Text((text + ": [%.2f, %.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z, v.w);
+}
+
+void TextQuat(const std::string& text, glm::quat q) {
+  TextVec4(text, q * vec4(1.f));
+}
+
+} // namespace
+
 void drawMeshComponent(MeshComponent& component) {
   if (ImGui::TreeNode("Mesh component")) {
     ImGui::Checkbox("Disabled", &component.disabled);
@@ -44,7 +60,7 @@ void drawTransformComponent(TransformComponent& component) {
     auto& quat = component.rotation;
 
     ImGui::Text("Quaternion: [%.2f, %.2f, %.2f, %.2f]", quat.x, quat.y, quat.z, quat.w);
-    ImGui::DragFloat3("Position", glm::value_ptr(component.pos));
+    ImGui::DragFloat3("Position", glm::value_ptr(component.position));
     ImGui::DragFloat3("Scale", glm::value_ptr(component.scale));
 
     ImGui::SeparatorText("Rotate by");
@@ -109,11 +125,14 @@ void drawInputComponent(InputComponent& component) {
   }
 }
 
-void drawVelocityComponent(VelocityComponent& component) {
-  if (ImGui::TreeNode("Velocity component")) {
-    const auto& v = component.velocity;
-    ImGui::Text("Velocity: [%.2f, %.2f, %.2f]", v.x, v.y, v.z);
-    ImGui::SliderFloat("Scale", &component.scale, 0.f, 50.f);
+void drawPhysicsComponent(PhysicsComponent& component) {
+  if (ImGui::TreeNode("Physics component")) {
+    TextVec3("Local inertia", component.localInertia);
+    TextVec3("Velocity", component.velocity);
+    TextVec3("Angular velocity", component.angularVelocity);
+    TextQuat("Orientation", component.orientation);
+    ImGui::DragFloat("Mass", &component.mass);
+    ImGui::DragFloat("Drag", &component.drag);
     ImGui::TreePop();
   }
 }

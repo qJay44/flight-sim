@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "nlohmann/json.hpp"
+#include "glm/gtx/norm.hpp"
 
 namespace global {
 
@@ -16,6 +17,15 @@ inline vec3 linearToGamma(vec3 g, float gamma = 2.2f) {
 
 inline vec3 gammaToLinear(vec3 l, float gamma = 2.2f) {
   return glm::pow(l, vec3(1.f / gamma));
+}
+
+template<typename T>
+inline T normalizeSafe(const T& v) {
+  float lenSq = glm::length2(v);
+  if (lenSq > 1e-6f)
+    return v * glm::inversesqrt(lenSq);
+
+  return T(0.f);
 }
 
 namespace json {

@@ -6,7 +6,7 @@
 #include "../components/CameraComponent.hpp"
 #include "../components/TransformComponent.hpp"
 
-namespace ecs::CameraSystem {
+namespace ecs::system::CameraSystem {
 
 using namespace ecs::component;
 
@@ -34,7 +34,7 @@ void update(entt::registry& registry) {
 
     if (camComponent.isDetached) {
       auto& transComponent = registry.get<TransformComponent>(entity);
-      camComponent.cam->position = transComponent.pos;
+      camComponent.cam->position = transComponent.position;
     }
 
     camComponent.cam->update(aspectRatio);

@@ -1,7 +1,5 @@
 (WIP)
 
-https://github.com/user-attachments/assets/632c67c2-2253-4ce2-be3e-ca5d21ea6790
-
 ---
 
 ### 🚀 Prerequisites
@@ -40,7 +38,5 @@ https://github.com/user-attachments/assets/632c67c2-2253-4ce2-be3e-ca5d21ea6790
 ---
 
 ## TODO
-- [x] Chunk async load
-- [ ] Fix shadows
-- [ ] Rewrite entire Erosion generation to be based on world postion coordinates
+- [ ] Implement Bruneton's atmosphere instead
 

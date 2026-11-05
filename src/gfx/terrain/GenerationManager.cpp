@@ -149,7 +149,7 @@ int GenerationManager::acquireSlot(u64 nodeKey) {
   int slot;
 
   if (freeSlots.empty()) {
-    slot = cachedSlots.begin()->second;
+    slot = cachedSlots.begin()->second; // Can be 0 cache slots sometimes, likely happening when camera is under or very close to the very surface
     cachedSlots.erase(cachedSlots.begin()); // Might eat visible chunk?
   } else {
     slot = freeSlots.top();

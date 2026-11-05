@@ -7,7 +7,7 @@
 namespace ecs::TransformSystem {
 
 inline mat4 getModel(const component::TransformComponent& trans) {
-  mat4 t = glm::translate(mat4(1.f), trans.pos);
+  mat4 t = glm::translate(mat4(1.f), trans.position);
   mat4 r = glm::mat4_cast(trans.rotation);
   mat4 s = glm::scale(mat4(1.f), trans.scale);
 

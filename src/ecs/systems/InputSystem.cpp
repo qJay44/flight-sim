@@ -4,7 +4,7 @@
 #include "../../core/EngineContext.hpp"
 #include "../../core/ActiveCamera.hpp"
 #include "../systems/CameraSystem.hpp"
-#include "../components/VelocityComponent.hpp"
+#include "../components/PhysicsComponent.hpp"
 #include "../components/MeshComponent.hpp"
 #include "../components/CameraComponent.hpp"
 #include "../components/InputComponent.hpp"
@@ -14,7 +14,7 @@
 #include "../../gfx/AssetManager.hpp"
 #include "../../gui/gui.hpp"
 
-namespace ecs::InputSystem {
+namespace ecs::system::InputSystem {
 
 using namespace ecs::component;
 
@@ -168,26 +168,24 @@ void update(entt::registry& registry) {
   float downMask    = ctx.keyboardKeys[GLFW_KEY_LEFT_CONTROL];
   float shitfMask   = ctx.keyboardKeys[GLFW_KEY_LEFT_SHIFT];
 
-  // TODO: Create and use OrientationComponent instead of CameraComponent?
-  for (auto entity : registry.view<CameraComponent, VelocityComponent, InputComponent>()) {
-    const auto& camComponent = registry.get<CameraComponent>(entity);
-    auto& velComponent = registry.get<VelocityComponent>(entity);
+  for (auto entity : registry.view<PhysicsComponent, InputComponent>()) {
+    auto& phyComponent = registry.get<PhysicsComponent>(entity);
     auto& inputComponent = registry.get<InputComponent>(entity);
 
     if (inputComponent.disabled)
       continue;
 
-    const vec3& orientation = camComponent.cam->orientation;
-    const vec3& up = camComponent.cam->up;
-    const vec3 right = glm::normalize(glm::cross(orientation, up));
+    vec3 forward = phyComponent.orientation * vec3(0.f, 0.f, -1.f);
+    vec3 right = phyComponent.orientation * vec3(1.f, 0.f, 0.f);
+    vec3 up = phyComponent.orientation * vec3(0.f, 1.f, 0.f);
     float mult = inputComponent.shiftMultiplier * shitfMask + 1.f * (1.f - shitfMask);
 
-    velComponent.velocity +=  orientation * mult * forwardMask;
-    velComponent.velocity += -right       * mult * leftMask;
-    velComponent.velocity += -orientation * mult * backMask;
-    velComponent.velocity +=  right       * mult * rightMask;
-    velComponent.velocity +=  up          * mult * upMask;
-    velComponent.velocity += -up          * mult * downMask;
+    phyComponent.velocity +=  forward * mult * forwardMask;
+    phyComponent.velocity += -right   * mult * leftMask;
+    phyComponent.velocity += -forward * mult * backMask;
+    phyComponent.velocity +=  right   * mult * rightMask;
+    phyComponent.velocity +=  up      * mult * upMask;
+    phyComponent.velocity += -up      * mult * downMask;
   }
 }
 

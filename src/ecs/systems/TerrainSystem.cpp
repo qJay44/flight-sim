@@ -3,12 +3,9 @@
 #include "../components/TerrainComponent.hpp"
 #include "../components/MeshComponent.hpp"
 #include "../components/TextureComponent.hpp"
-#include "../components/CameraComponent.hpp"
-#include "../components/TransformComponent.hpp"
-#include "../components/VelocityComponent.hpp"
-#include "../components/InputComponent.hpp"
 #include "../components/WaterComponent.hpp"
 #include "../components/PostProcessComponent.hpp"
+#include "../components/CameraComponent.hpp"
 #include "../../gfx/AssetManager.hpp"
 #include "../../gfx/mesh/frustum.hpp"
 #include "../../gfx/terrain/GenerationManager.hpp"
@@ -18,7 +15,7 @@
 #include "../../core/math/frustum/Frustum.hpp"
 #include "ProfilerManager.hpp"
 
-namespace ecs::TerrainSystem {
+namespace ecs::system::TerrainSystem {
 
 using namespace ecs::component;
 using namespace gfx::terrain;
@@ -29,7 +26,6 @@ namespace {
   entt::entity entity = registry.create();
 
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
-  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   gfx::Materials* materials  = assetManager.getMaterials("TerrainMaterials");
 
@@ -57,6 +53,10 @@ namespace {
     .fbo = assetManager.getFBO("TerrainFBO"),
   };
 
+  CameraComponent camComponent{
+    .cam = assetManager.getCamera("Jet"),
+  };
+
   TextureComponent textureComponent{{
     assetManager.getTexture("TerrainNodes"),
     &materials->texAlbedo,
@@ -64,37 +64,14 @@ namespace {
     &materials->texORMH,
   }};
 
-  CameraComponent cameraComponent{
-    .cam = assetManager.getCamera("Terrain"),
-    .isDetached = true,
-  };
-
-  // NOTE: Just for camera movement //
-
-  TransformComponent transComponent{
-    .pos = activeCam.cam->position
-  };
-
-  VelocityComponent velComponent{
-    .scale = 1e4f
-  };
-
-  InputComponent inputComponent{
-    .shiftMultiplier = 10.f
-  };
-
   ////////////////////////////////////
 
   // --------------------------------------------------------------------------------------------------------------------------------- //
 
-  registry.emplace<MeshComponent>(entity, meshComponent);
+  registry.emplace<MeshComponent>(entity, std::move(meshComponent));
   registry.emplace<TerrainComponent>(entity, std::move(terrainComponent));
-  registry.emplace<TextureComponent>(entity, textureComponent);
-  registry.emplace<CameraComponent>(entity, cameraComponent);
-
-  registry.emplace<TransformComponent>(entity, transComponent);
-  registry.emplace<VelocityComponent>(entity, velComponent);
-  registry.emplace<InputComponent>(entity, inputComponent);
+  registry.emplace<TextureComponent>(entity, std::move(textureComponent));
+  registry.emplace<CameraComponent>(entity, std::move(camComponent));
 
   return entity;
 }
@@ -267,8 +244,9 @@ void update(entt::registry& registry) {
 
   for (auto entity : registry.view<TerrainComponent, CameraComponent>()) {
     auto& terrain = registry.get<TerrainComponent>(entity);
-    auto& camComponent = registry.get<CameraComponent>(entity);
-    auto frustum = core::math::frustum::Frustum(*camComponent.cam);
+    auto& cam = registry.get<CameraComponent>(entity);
+
+    auto frustum = core::math::frustum::Frustum(*cam.cam);
     std::stack<Quadnode*> activeNodes;
 
     auto taskQt = profiler.startScopedTaskCpu("QuadtreePass");
@@ -279,7 +257,7 @@ void update(entt::registry& registry) {
         .splitThreshold = terrain.qtSplitThreshold,
         .planetRadius = terrainConfig.planetRadius,
         .heightScale = terrainConfig.planetRadius * terrainConfig.planetRadiusPercent,
-        .camPos = camComponent.cam->position,
+        .camPos = cam.cam->position,
         .frustum = &frustum,
       });
 
@@ -367,7 +345,7 @@ void render(entt::registry& registry) {
   const auto& terrainConfig = gm.getTerrainConfig();
   const auto& atmosphereConfig = gm.getAtmosphereConfig();
 
-  auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent, CameraComponent>();
+  auto terrainLandView = registry.view<TerrainComponent, MeshComponent, TextureComponent>();
   auto terrainWaterView = registry.view<WaterComponent, MeshComponent, TextureComponent>();
 
   mat4 pvInvLocal;

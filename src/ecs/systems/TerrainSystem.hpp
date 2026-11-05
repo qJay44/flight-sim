@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ecs::TerrainSystem {
+namespace ecs::system::TerrainSystem {
 
 void init(entt::registry& registry);
 void update(entt::registry& registry);

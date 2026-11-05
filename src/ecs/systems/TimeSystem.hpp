@@ -2,7 +2,7 @@
 
 #include "../../core/EngineContext.hpp"
 
-namespace ecs::TimeSystem {
+namespace ecs::system::TimeSystem {
   [[nodiscard]]
   inline bool update(entt::registry& registry) {
     static double titleTimer = glfwGetTime();

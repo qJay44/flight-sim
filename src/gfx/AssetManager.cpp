@@ -319,7 +319,7 @@ Materials* AssetManager::getMaterials(const std::string& name) const {
 bool AssetManager::contains(const auto& map, const std::string& name) {
   auto it = map.find(name);
   if (it == map.end())
-    error("[AssetManager::getMesh] Didn't find ({})", name);
+    error("[AssetManager::contains] Didn't find ({})", name);
 
   return true;
 }

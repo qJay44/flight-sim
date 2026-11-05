@@ -2,7 +2,7 @@
 
 #include "entt/entity/fwd.hpp"
 
-namespace ecs::CameraSystem {
+namespace ecs::system::CameraSystem {
 
 void onMouseMove(entt::registry& registry, dvec2 mousePos);
 void update(entt::registry& registry);
