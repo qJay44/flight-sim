@@ -22,6 +22,26 @@ enum Part {
   IDX_AIRBRAKE,
 };
 
+static const std::unordered_map<std::string, Part> strToPart = {
+  {"Fuselage"     , IDX_FUSELAGE},
+  {"Nose"         , IDX_NOSE},
+  {"Cockpit"      , IDX_COCKPIT},
+  {"UpperFuselage", IDX_UPPER_FUSELAGE},
+  {"Engines"      , IDX_ENGINES},
+  {"Wings"        , IDX_WINGS},
+  {"LeftAileron"  , IDX_LEFT_AILERON},
+  {"RightAileron" , IDX_RIGHT_AILERON},
+  {"LeftFlap"     , IDX_LEFT_FLAP},
+  {"RightFlap"    , IDX_RIGHT_FLAP},
+  {"LeftElevator" , IDX_LEFT_ELEVATOR},
+  {"RightElevator", IDX_RIGHT_ELEVATOR},
+  {"Rudders"      , IDX_RUDDERS},
+  {"LeftRudder"   , IDX_LEFT_RUDDER},
+  {"RightRudder"  , IDX_RIGHT_RUDDER},
+  {"Canopy"       , IDX_CANOPY},
+  {"Airbrake"     , IDX_AIRBRAKE},
+};
+
 constexpr float weights[17] = {
   0.17f,
   0.04f,
@@ -42,6 +62,8 @@ constexpr float weights[17] = {
   0.01f,
 };
 
+namespace {
+
 constexpr float total =
   weights[IDX_FUSELAGE      ] +
   weights[IDX_NOSE          ] +
@@ -60,8 +82,9 @@ constexpr float total =
   weights[IDX_RIGHT_RUDDER  ] +
   weights[IDX_CANOPY        ] +
   weights[IDX_AIRBRAKE      ];
-
 static_assert(total > 0.999f && total < 1.001f);
 
-}
+} // namespace
+
+} // namespace core::math::fjet::weights
 

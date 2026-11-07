@@ -5,7 +5,7 @@
 namespace ecs::system::CameraSystem {
 
 void onMouseMove(entt::registry& registry, dvec2 mousePos);
-void update(entt::registry& registry);
+void updateDefault(entt::registry& registry);
 
 };
 

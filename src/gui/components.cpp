@@ -11,6 +11,11 @@ using namespace ecs::component;
 
 namespace {
 
+void TextSelfState(const std::string& text, bool state) {
+  auto col = state ? ImVec4(0,1,0,1) : ImVec4(1,1,1,1);
+  ImGui::TextColored(col, "%5s: %d", text.c_str(), state);
+}
+
 void TextVec3(const std::string& text, vec3 v) {
   ImGui::Text((text + ": [%.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z);
 }
@@ -57,17 +62,25 @@ void drawMeshComponent(MeshComponent& component) {
 void drawTransformComponent(TransformComponent& component) {
   if (ImGui::TreeNode("Transform component")) {
     static float rad = 0.f;
+    static bool wholeScale = true;
     auto& quat = component.rotation;
 
     ImGui::Text("Quaternion: [%.2f, %.2f, %.2f, %.2f]", quat.x, quat.y, quat.z, quat.w);
-    ImGui::DragFloat3("Position", glm::value_ptr(component.position));
-    ImGui::DragFloat3("Scale", glm::value_ptr(component.scale));
+    ImGui::DragFloat3("Position", glm::value_ptr(component.position), 1.f, 0.f);
+
+    if (wholeScale) {
+      ImGui::DragFloat("Scale", &component.scale.x, 0.1f, 0.f);
+      component.scale.y = component.scale.z = component.scale.x;
+    } else {
+      ImGui::DragFloat3("Scale", glm::value_ptr(component.scale), 0.1f, 0.f);
+    }
+
+    ImGui::SameLine(); ImGui::Checkbox("Whole", &wholeScale);
 
     ImGui::SeparatorText("Rotate by");
     ImGui::SliderAngle("degrees", &rad);
 
     ImGui::Spacing();
-    ImGui::Text("Around");
 
     if (ImGui::Button("Right"))   {quat = glm::rotate(quat, rad, vec3(1.f, 0.f, 0.f));} ImGui::SameLine();
     if (ImGui::Button("Up"))      {quat = glm::rotate(quat, rad, vec3(0.f, 1.f, 0.f));} ImGui::SameLine();
@@ -96,6 +109,7 @@ void drawCameraComponent(CameraComponent& component, core::ActiveCamera& activeC
     ImGui::Text("Up: [%.2f, %.2f, %2.f]", cam->up.x, cam->up.y, cam->up.z);
     ImGui::Text("Orientation: [%.2f, %.2f, %2.f]", cam->orientation.x, cam->orientation.y, cam->orientation.z);
 
+    ImGui::DragFloat3("Position", glm::value_ptr(cam->position));
     ImGui::SliderFloat("Near", &cam->nearPlane, 0.01f, 10.f);
     ImGui::DragFloat("Far", &cam->farPlane, 1.f, 1e5f);
     ImGui::SliderAngle("Fov", &cam->fov, 0.f, 120.f);
@@ -120,6 +134,15 @@ void drawInputComponent(InputComponent& component) {
     ImGui::Checkbox("Disabled", &component.disabled);
     ImGui::BeginDisabled(component.disabled);
     ImGui::SliderFloat("Shift multiplier", &component.shiftMultiplier, 0.f, 50.f);
+    TextSelfState("SPACE", component.keyboardKeys[GLFW_KEY_SPACE]);
+    TextSelfState("LCTRL", component.keyboardKeys[GLFW_KEY_LEFT_CONTROL]);
+    TextSelfState("W", component.keyboardKeys[GLFW_KEY_W]);
+    TextSelfState("A", component.keyboardKeys[GLFW_KEY_A]);
+    TextSelfState("S", component.keyboardKeys[GLFW_KEY_S]);
+    TextSelfState("D", component.keyboardKeys[GLFW_KEY_D]);
+    TextSelfState("Q", component.keyboardKeys[GLFW_KEY_Q]);
+    TextSelfState("E", component.keyboardKeys[GLFW_KEY_E]);
+    TextSelfState("W", component.keyboardKeys[GLFW_KEY_W]);
     ImGui::EndDisabled();
     ImGui::TreePop();
   }
@@ -133,6 +156,15 @@ void drawPhysicsComponent(PhysicsComponent& component) {
     TextQuat("Orientation", component.orientation);
     ImGui::DragFloat("Mass", &component.mass);
     ImGui::DragFloat("Drag", &component.drag);
+    ImGui::TreePop();
+  }
+}
+
+void drawJetCoreComponent(JetCoreComponent& component) {
+  if (ImGui::TreeNode("Jet core component")) {
+    TextVec3("Velocity", component.velocity);
+    TextVec3("Local velocity", component.localVelocity);
+    TextVec3("Local angular lelocity", component.localAngularVelocity);
     ImGui::TreePop();
   }
 }

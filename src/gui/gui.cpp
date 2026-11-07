@@ -75,7 +75,7 @@ void render(entt::registry& registry) {
   }
 
   if (ImGui::CollapsingHeader("Cameras")) {
-    auto camView = registry.view<CameraComponent, TransformComponent, InputComponent>();
+    auto camView = registry.view<CameraComponent, InputComponent>();
     auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
     for (auto entity : camView) {
@@ -86,11 +86,9 @@ void render(entt::registry& registry) {
       ImGui::SetNextItemOpen(camComponent.cam == activeCam.cam, ImGuiCond_FirstUseEver);
 
       if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
-        auto& transComponent = registry.get<TransformComponent>(entity);
         auto& inputComponent = registry.get<InputComponent>(entity);
 
         drawCameraComponent(camComponent, activeCam);
-        drawTransformComponent(transComponent);
         drawInputComponent(inputComponent);
 
         ImGui::TreePop();
@@ -256,6 +254,32 @@ void render(entt::registry& registry) {
   }
 
   if (ImGui::CollapsingHeader("Jet")) {
+    for (auto entity : registry.view<JetCoreComponent, PhysicsComponent, TransformComponent, CameraComponent, InputComponent>()) {
+      size_t id = static_cast<size_t>(entity);
+      ImGui::PushID(id);
+
+      if (ImGui::TreeNode(std::format("#{}", id).c_str())) {
+        auto& core  = registry.get<JetCoreComponent>(entity);
+        auto& phy   = registry.get<PhysicsComponent>(entity);
+        auto& trans = registry.get<TransformComponent>(entity);
+        auto& cam   = registry.get<CameraComponent>(entity);
+        auto& input = registry.get<InputComponent>(entity);
+
+        ImGui::DragFloat("Cam distance", &core.camDistance);
+        ImGui::DragFloat("Cam follow speed", &core.camFollowSpeed);
+        ImGui::DragFloat("Cam look ahead distance", &core.camLookAheadDistance);
+
+        drawJetCoreComponent(core);
+        drawPhysicsComponent(phy);
+        drawTransformComponent(trans);
+        drawCameraComponent(cam, activeCam);
+        drawInputComponent(input);
+
+        ImGui::TreePop();
+      }
+
+      ImGui::PopID();
+    }
   }
 
   ImGui::End();

@@ -4,7 +4,6 @@
 #include "../../core/EngineContext.hpp"
 #include "../../core/ActiveCamera.hpp"
 #include "../systems/CameraSystem.hpp"
-#include "../components/PhysicsComponent.hpp"
 #include "../components/MeshComponent.hpp"
 #include "../components/CameraComponent.hpp"
 #include "../components/InputComponent.hpp"
@@ -59,7 +58,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
       }
       break;
-    case GLFW_KEY_E:
+    case GLFW_KEY_T:
       if (action == GLFW_PRESS) gui::toggleConfig();
       break;
     case GLFW_KEY_C:
@@ -67,13 +66,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       break;
     case GLFW_KEY_F:
       if (action == GLFW_PRESS) {
-        for (auto entity : registry->view<CameraComponent, InputComponent>()) {
+        for (auto entity : registry->view<CameraComponent>()) {
           auto& camComponent = registry->get<CameraComponent>(entity);
-          auto& inputComponent = registry->get<InputComponent>(entity);
-          inputComponent.disabled = !inputComponent.disabled;
 
-          if (!inputComponent.disabled)
+          if (activeCam.cam != camComponent.cam) {
             activeCam.cam = camComponent.cam;
+            break;
+          }
         }
       }
       break;
@@ -160,32 +159,13 @@ void update(entt::registry& registry) {
   if (ctx.guiFocused)
     return;
 
-  float forwardMask = ctx.keyboardKeys[GLFW_KEY_W];
-  float leftMask    = ctx.keyboardKeys[GLFW_KEY_A];
-  float backMask    = ctx.keyboardKeys[GLFW_KEY_S];
-  float rightMask   = ctx.keyboardKeys[GLFW_KEY_D];
-  float upMask      = ctx.keyboardKeys[GLFW_KEY_SPACE];
-  float downMask    = ctx.keyboardKeys[GLFW_KEY_LEFT_CONTROL];
-  float shitfMask   = ctx.keyboardKeys[GLFW_KEY_LEFT_SHIFT];
-
-  for (auto entity : registry.view<PhysicsComponent, InputComponent>()) {
-    auto& phyComponent = registry.get<PhysicsComponent>(entity);
+  for (auto entity : registry.view<InputComponent>()) {
     auto& inputComponent = registry.get<InputComponent>(entity);
 
     if (inputComponent.disabled)
       continue;
 
-    vec3 forward = phyComponent.orientation * vec3(0.f, 0.f, -1.f);
-    vec3 right = phyComponent.orientation * vec3(1.f, 0.f, 0.f);
-    vec3 up = phyComponent.orientation * vec3(0.f, 1.f, 0.f);
-    float mult = inputComponent.shiftMultiplier * shitfMask + 1.f * (1.f - shitfMask);
-
-    phyComponent.velocity +=  forward * mult * forwardMask;
-    phyComponent.velocity += -right   * mult * leftMask;
-    phyComponent.velocity += -forward * mult * backMask;
-    phyComponent.velocity +=  right   * mult * rightMask;
-    phyComponent.velocity +=  up      * mult * upMask;
-    phyComponent.velocity += -up      * mult * downMask;
+    inputComponent.keyboardKeys = ctx.keyboardKeys;
   }
 }
 

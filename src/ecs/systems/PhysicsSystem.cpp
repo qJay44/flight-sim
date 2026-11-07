@@ -48,11 +48,6 @@ void update(entt::registry& registry, float dt) {
     phyComponent.velocity += acc * dt;
     transComponent.position += phyComponent.velocity * dt * scale;
 
-    if (transComponent.position.y < 0.f) {
-      transComponent.position.y = 0.f;
-      phyComponent.velocity.y *= -0.1f;
-    }
-
     phyComponent.angularVelocity += angularAcc * dt;
 
     glm::quat rotStep = glm::quat(0.f, phyComponent.angularVelocity * dt);

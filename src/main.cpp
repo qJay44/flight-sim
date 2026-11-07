@@ -6,7 +6,6 @@
 #include "ecs/components/InputComponent.hpp"
 #include "ecs/components/MeshComponent.hpp"
 #include "ecs/components/TransformComponent.hpp"
-#include "ecs/components/PhysicsComponent.hpp"
 #include "ecs/systems/CameraSystem.hpp"
 #include "ecs/systems/InputSystem.hpp"
 #include "ecs/systems/RenderSystem.hpp"
@@ -77,7 +76,7 @@ int main() {
 
     core::Camera cam{
       .farPlane = 1e6f,
-      .position = {0.f, 0.f, 1e5f + 25.f},
+      .position = {0.f, 0.f, 1e6f + 1e5f},
     };
 
     gfx::AssetManager assetManager;
@@ -106,11 +105,14 @@ int main() {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto& profiler = registry.ctx().get<ProfilerManager>();
   auto& ctx = registry.ctx().get<core::EngineContext>();
+  auto& activeCam = registry.ctx().get<core::ActiveCamera>();
 
   gui::init(window);
   ecs::system::InputSystem::init(registry);
   ecs::system::JetSystem::init(registry);
   ecs::system::TerrainSystem::init(registry);
+
+  activeCam.cam = assetManager.getCamera("Jet");
 
   // ----- Entities ---------------------------------------------------------------------------------------------------------------- //
 
@@ -128,18 +130,13 @@ int main() {
         .isDetached = true,
       };
 
-      PhysicsComponent phyComponent{
-        .mass = 1.f,
-      };
-
       InputComponent inputComponent{
-        .disabled = true,
+        .disabled = false,
         .shiftMultiplier = 10.f
       };
 
       registry.emplace<CameraComponent>(entCamera, camComponent);
       registry.emplace<TransformComponent>(entCamera, transComponent);
-      registry.emplace<PhysicsComponent>(entCamera, phyComponent);
       registry.emplace<InputComponent>(entCamera, inputComponent);
     }
 
@@ -175,7 +172,7 @@ int main() {
     ecs::system::InputSystem::update(registry);
     ecs::system::JetSystem::update(registry, ctx.dt);
     ecs::system::PhysicsSystem::update(registry, ctx.dt);
-    ecs::system::CameraSystem::update(registry);
+    ecs::system::CameraSystem::updateDefault(registry);
     ecs::system::TerrainSystem::update(registry);
 
     taskUpdatesPass.end();

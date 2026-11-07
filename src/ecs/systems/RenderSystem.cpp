@@ -8,6 +8,7 @@
 #include "../../ecs/components/AuxiliaryComponent.hpp"
 #include "TransformSystem.hpp"
 #include "TerrainSystem.hpp"
+#include "JetSystem.hpp"
 
 namespace ecs::system::RenderSystem {
 
@@ -26,7 +27,9 @@ void render(entt::registry& registry) {
 
   renderer.setGlobalLight(globalLight);
 
+  // FIXME: Jet draws over the atmosphere
   TerrainSystem::render(registry);
+  JetSystem::render(registry);
 
   // Other stuff
   for (auto entity : registry.view<MeshComponent, TransformComponent, AuxiliaryComponent>()) {

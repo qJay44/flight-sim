@@ -11,14 +11,12 @@ uniform vec3 u_camPos;
 uniform vec3 u_color;
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColor;
-uniform float u_time;
 
 vec3 directionalLight(vec3 normal) {
-  vec3 lightDir = u_lightDir;
   vec3 viewDir = normalize(u_camPos - v_worldPos);
-  vec3 reflectDir = reflect(-lightDir, normal);
+  vec3 reflectDir = reflect(-u_lightDir, normal);
 
-  float diffuse = max(dot(normal, lightDir), 0.f);
+  float diffuse = max(dot(normal, u_lightDir), 0.f);
   float ambient = 0.1f;
   float specularLight = 0.5f;
   float specAmount = pow(max(dot(viewDir, reflectDir), 0.f), 8);

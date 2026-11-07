@@ -6,10 +6,10 @@
 namespace ecs::component {
 
 struct JetCoreComponent {
-  std::array<entt::entity, 17> partEntities;
+  std::array<entt::entity, 17> partEntities{};
 
   vec3 localOrientation;
-  glm::quat initialRotation;
+  glm::quat initialRotation{};
 
   vec3 velocity{};
   vec3 localVelocity{};
@@ -32,13 +32,11 @@ struct JetCoreComponent {
 
   float throttle = 0.f;
   float maxThrust = 1.f;
-  float groundHeight = 0.f;
   float stiffness = 100000.f;
   float airbrakeDrag = 1.f;
   float flapsDrag = 2.f;
   float flapsLiftPower = 0.5f;
   float flapsAOABias = 10.f;
-  float meshScale = 1.f;
   float inducedDrag = 10.f;
   float liftPower = 1.f;
   float rudderPower = 1.f;
@@ -47,13 +45,12 @@ struct JetCoreComponent {
   vec3 turnSpeed{};
   vec3 turnAcceleration{};
 
-  core::Animation animFlaps;
-  core::Animation animAirbrake;
-  core::Animation animPitch;
-  core::Animation animRoll;
-  core::Animation animYaw;
+  core::Animation animFlaps{};
+  core::Animation animAirbrake{};
+  core::Animation animPitch{};
+  core::Animation animRoll{};
+  core::Animation animYaw{};
 
-  bool isActive = false;
   bool airbrakeDeployed = false;
   bool flapsDeployed = false;
 

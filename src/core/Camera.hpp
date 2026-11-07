@@ -21,6 +21,16 @@ struct Camera {
   mat4 cachedProjInv{1.f};
   mat4 cachedViewInv{1.f};
 
+  void updateProj(float aspectRatio) {
+    cachedProj = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+    cachedProjInv = glm::inverse(cachedProj);
+  }
+
+  void updateView() {
+    cachedView = glm::lookAt(position, position + orientation, up);
+    cachedViewInv = glm::inverse(cachedView);
+  }
+
   void update(float aspectRatio) {
     orientation = normalize(vec3{
       cos(yaw) * cos(pitch),
@@ -28,10 +38,8 @@ struct Camera {
       sin(yaw) * cos(pitch)
     });
 
-    cachedProj = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
-    cachedView = glm::lookAt(position, position + orientation, up);
-    cachedProjInv = glm::inverse(cachedProj);
-    cachedViewInv = glm::inverse(cachedView);
+    updateProj(aspectRatio);
+    updateView();
   }
 
   float extractAspectRatio() const {

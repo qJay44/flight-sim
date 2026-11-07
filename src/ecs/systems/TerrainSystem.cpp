@@ -55,6 +55,7 @@ namespace {
 
   CameraComponent camComponent{
     .cam = assetManager.getCamera("Jet"),
+    // .isDetached = false,
   };
 
   TextureComponent textureComponent{{
@@ -199,10 +200,6 @@ void init(entt::registry& registry) {
     .position = {0.f, 0.f, terrainConfig.planetRadius + 25.f},
   });
 
-  core::ActiveCamera activeCam{
-    .cam = assetManager.getCamera("Terrain"),
-  };
-
   assetManager.addFBO("TerrainFBO", std::move(fboTerrain));
   assetManager.addTexture("TerrainColorMain", std::move(texColorMain));
   assetManager.addTexture("TerrainColorWater", std::move(texColorWater));
@@ -222,7 +219,6 @@ void init(entt::registry& registry) {
   assetManager.getShader("TerrainComputeNormals")->setOnReloadCallback([&registry]() { reload(registry); });
 
   registry.ctx().emplace<GenerationManager>(std::move(gm));
-  registry.ctx().insert_or_assign<core::ActiveCamera>(std::move(activeCam));
 
   auto waterEntity = createWaterEntity(registry);
   createLandEntity(registry, waterEntity);
