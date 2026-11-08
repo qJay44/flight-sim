@@ -25,14 +25,16 @@ using namespace core::math::fjet;
 
 namespace {
 
+constexpr vec3 initPos = {0.f, 1e6f + 1e5f, 0.f};
+constexpr vec3 initOrientation = {0.f, 0.f, 1.f};
+
 entt::entity createCoreEntity(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto entity = registry.create();
-  vec3 initPos = {0.f, 1e6f + 1e5f, 0.f};
   float totalMass = 13000.f;
 
   JetCoreComponent jetCoreComponent{
-    .localOrientation = vec3(0.f, 0.f, 1.f),
+    .localOrientation = initOrientation,
     .localUp = vec3(0.f, 1.f, 0.f),
     .camDistance = 200.f,
     .camFollowSpeed = 10.f,
@@ -71,8 +73,6 @@ entt::entity createCoreEntity(entt::registry& registry) {
     .shiftMultiplier = 10.f
   };
 
-  camComponent.cam->position = initPos;
-
   registry.emplace<JetCoreComponent>(entity, std::move(jetCoreComponent));
   registry.emplace<PhysicsComponent>(entity, std::move(phyComponent));
   registry.emplace<TransformComponent>(entity, std::move(transformComponent));
@@ -94,7 +94,7 @@ entt::entity createPartEntity(entt::registry& registry, gfx::fbx::UfbxMesh& ufbx
   };
 
   TransformComponent transformComponent{
-    .position = {0.f, 0.f, 1e6f + 1e5f}
+    // .position = initPos,
   };
 
   PhysicsComponent phyComponent{
@@ -286,7 +286,16 @@ void updateSteering(JetCoreComponent& core, PhysicsComponent& phy, float dt) {
   PhysicsSystem::addTorque(phy, aeroAngularDrag);
 }
 
-void updateTransforms(entt::registry& registry, JetCoreComponent& core, PhysicsComponent& phy, TransformComponent& trans, float dt) {
+void updatePlanetForce(PhysicsComponent& phy, TransformComponent& trans) {
+  constexpr vec3 planetPos{0.f};
+
+  vec3 planetDir = glm::normalize(planetPos - trans.position);
+  vec3 planetForce = planetDir * 9.81f * phy.mass;
+
+  PhysicsSystem::addForce(phy, planetForce);
+}
+
+void postPhysicsUpdateTransforms(entt::registry& registry, JetCoreComponent& core, PhysicsComponent& phy, TransformComponent& trans, float dt) {
   using namespace weights;
 
   core.animFlaps.rotate(core.flapsDeployed * 2.f - 1.f, dt);
@@ -331,8 +340,7 @@ void updateTransforms(entt::registry& registry, JetCoreComponent& core, PhysicsC
   }
 }
 
-// NOTE: Applying before the PhysicsSystem update
-void updateCamera(JetCoreComponent& core, PhysicsComponent& phy, TransformComponent& trans, CameraComponent& cam, float aspect, float dt) {
+void postPhysicsUpdateCamera(JetCoreComponent& core, PhysicsComponent& phy, TransformComponent& trans, CameraComponent& cam, float dt) {
   float lerpFactor = 1.f - glm::exp2(-core.camFollowSpeed * dt);
 
   vec3 jetForward = glm::normalize(phy.orientation * core.localOrientation);
@@ -351,29 +359,22 @@ void updateCamera(JetCoreComponent& core, PhysicsComponent& phy, TransformCompon
   cam.cam->orientation = lookAtCenter;
   cam.cam->position = nextCamPos;
   cam.cam->up = jetUp;
-  cam.cam->updateProj(aspect);
-  cam.cam->cachedView = cam.cam->getLocalView(relativePos);
-}
-
-void updatePlanetForce(PhysicsComponent& phy, TransformComponent& trans) {
-  constexpr vec3 planetPos{0.f};
-
-  vec3 planetDir = glm::normalize(planetPos - trans.position);
-  vec3 planetForce = planetDir * 9.81f * phy.mass;
-
-  PhysicsSystem::addForce(phy, planetForce);
 }
 
 } // namespace
 
 void init(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
+  auto& ctx = registry.ctx().get<core::EngineContext>();
 
   {
     core::Camera jetCamera{
       .farPlane = 1e6f,
-      .position = {0.f, 1e6f + 1e5f, 0.f},
+      .position = initPos,
     };
+
+    jetCamera.updateProj(ctx.getAspectRatio_WidthOverHeight());
+    jetCamera.updateView();
 
     assetManager.addCamera("Jet", std::move(jetCamera));
     assetManager.addShader("Jet", gfx::Shader("jet/f15.vert", "jet/f15.frag"));
@@ -429,15 +430,12 @@ void init(entt::registry& registry) {
 
 void update(entt::registry& registry, float dt) {
   auto& profiler = registry.ctx().get<ProfilerManager>();
-  auto& ctx = registry.ctx().get<core::EngineContext>();
   auto _task = profiler.startScopedTaskCpu("JetUpdatePass");
-  float aspect = ctx.getAspectRatio_WidthOverHeight();
 
   for (auto entity : registry.view<JetCoreComponent, PhysicsComponent, TransformComponent, CameraComponent>()) {
     auto& core  = registry.get<JetCoreComponent>(entity);
     auto& phy   = registry.get<PhysicsComponent>(entity);
     auto& trans = registry.get<TransformComponent>(entity);
-    auto& cam   = registry.get<CameraComponent>(entity);
     auto& input = registry.get<InputComponent>(entity);
 
     calcState(core, phy);
@@ -448,25 +446,27 @@ void update(entt::registry& registry, float dt) {
     updateDrag(core, phy);
     updateLift(core, phy);
     updateSteering(core, phy, dt);
-    updateTransforms(registry, core, phy, trans, dt);
-    updateCamera(core, phy, trans, cam, aspect, dt);
     updatePlanetForce(phy, trans);
 
     core.controlInput *= 0.9f;
   }
 }
 
-void render(entt::registry& registry) {
+void render(entt::registry& registry, float dt) {
   auto& activeCam = registry.ctx().get<core::ActiveCamera>();
   auto& renderer = registry.ctx().get<gfx::Renderer>();
 
   for (auto coreEnt : registry.view<JetCoreComponent, TransformComponent, CameraComponent>()) {
     auto& core = registry.get<JetCoreComponent>(coreEnt);
     auto& trans = registry.get<TransformComponent>(coreEnt);
+    auto& phy   = registry.get<PhysicsComponent>(coreEnt);
     auto& cam = registry.get<CameraComponent>(coreEnt);
 
+    postPhysicsUpdateCamera(core, phy, trans, cam, dt);
+    postPhysicsUpdateTransforms(registry, core, phy, trans, dt);
+
     mat4 worldTrans = glm::translate(mat4(1.f), trans.position);
-    mat4 localView = activeCam.cam == cam.cam ? cam.cam->cachedView : activeCam.cam->getLocalView(activeCam.cam->position - trans.position);
+    mat4 localView = cam.cam->getLocalView(activeCam.cam->position - trans.position);
 
     for (auto partEnt : core.partEntities) {
       auto& part = registry.get<JetPartComponent>(partEnt);

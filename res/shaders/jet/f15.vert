@@ -25,6 +25,6 @@ void main() {
   v_normal = mat3(u_model) * a_normal;
 
 	gl_Position = u_proj * u_modelView * ndc;
-  gl_Position.z = linearDepthToLogDepth(gl_Position.w, u_camFar);
+  // gl_Position.z = linearDepthToLogDepth(gl_Position.w, u_camFar);
 }
 

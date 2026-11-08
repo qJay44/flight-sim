@@ -50,6 +50,8 @@ layout(binding = 3) uniform sampler2D u_texLandColor;
 layout(binding = 4) uniform sampler2D u_texLandDepth;
 layout(binding = 5) uniform sampler2D u_texOpticalDepth;
 
+const float distThreshold = 5e4f;
+
 mat3 getTBN(vec3 localNormal, vec3 worldPos, vec2 uv) {
   vec3 q1 = dFdx(worldPos);
   vec3 q2 = dFdy(worldPos);
@@ -71,6 +73,9 @@ vec3 derivativesToNormal(vec4 derivatives) {
 }
 
 vec3 getWaveNormal() {
+  if (v_viewDist > distThreshold)
+    return v_sphereDir;
+
   vec3 absNormal = abs(v_sphereDir);
   vec3 weights = pow(absNormal, vec3(u_triplanarSharpness));
   weights /= (weights.x + weights.y + weights.z);
@@ -97,6 +102,9 @@ vec3 getWaveNormal() {
 }
 
 float getJacobian() {
+  if (v_viewDist > distThreshold)
+    return 0.f;
+
   vec3 absNormal = abs(v_sphereDir);
   vec3 weights = pow(absNormal, vec3(u_triplanarSharpness));
   weights /= (weights.x + weights.y + weights.z);
@@ -111,6 +119,11 @@ float getJacobian() {
 
 vec3 getWaterReflection(vec2 screenUV, vec3 normal, vec3 viewDir, float depth) {
   vec3 reflDir = reflect(-viewDir, normal);
+
+  if (v_viewDist > distThreshold) {
+    return u_oceanDeepColor * dot0(reflDir, u_lightDir);
+  }
+
   Ray ray = Ray(v_worldPos, reflDir);
   RayHitInfo hitInfo = raySphere(u_planetCenter, u_atmosphereRadius, ray);
 

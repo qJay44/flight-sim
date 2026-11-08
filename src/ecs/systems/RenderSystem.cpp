@@ -27,9 +27,8 @@ void render(entt::registry& registry) {
 
   renderer.setGlobalLight(globalLight);
 
-  // FIXME: Jet draws over the atmosphere
   TerrainSystem::render(registry);
-  JetSystem::render(registry);
+  JetSystem::render(registry, ctx.dt); // Maybe its actually good that it drawn over the atmosphere pass
 
   // Other stuff
   for (auto entity : registry.view<MeshComponent, TransformComponent, AuxiliaryComponent>()) {
