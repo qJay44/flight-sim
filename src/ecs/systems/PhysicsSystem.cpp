@@ -34,8 +34,6 @@ void applyDamping(PhysicsComponent& c, float dt) {
 }
 
 void update(entt::registry& registry, float dt) {
-  float scale = 1.f;
-
   for (auto entity : registry.view<PhysicsComponent, TransformComponent>()) {
     auto& phyComponent = registry.get<PhysicsComponent>(entity);
     auto& transComponent = registry.get<TransformComponent>(entity);
@@ -46,7 +44,7 @@ void update(entt::registry& registry, float dt) {
 
     vec3 acc = phyComponent.force * phyComponent.inverseMass;
     phyComponent.velocity += acc * dt;
-    transComponent.position += phyComponent.velocity * dt * scale;
+    transComponent.position += phyComponent.velocity * dt;
 
     phyComponent.angularVelocity += angularAcc * dt;
 

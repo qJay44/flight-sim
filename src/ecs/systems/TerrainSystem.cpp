@@ -55,7 +55,6 @@ namespace {
 
   CameraComponent camComponent{
     .cam = assetManager.getCamera("Jet"),
-    // .isDetached = false,
   };
 
   TextureComponent textureComponent{{

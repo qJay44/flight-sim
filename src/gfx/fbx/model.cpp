@@ -110,8 +110,8 @@ Model load(const fspath& file, bool printInfo) {
 
       ufbx_vec3 pivotPos = node->local_transform.translation;
       vec3 offset = glm::make_vec3(pivotPos.v);
-      // for (auto& v : vertices)
-      //   v.position -= offset;
+      for (auto& v : vertices)
+        v.position -= offset;
 
       model.meshes.push_back({
         node->name.data,

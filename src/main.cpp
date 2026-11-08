@@ -127,11 +127,10 @@ int main() {
 
       CameraComponent camComponent{
         .cam = assetManager.getCamera("Default"),
-        .isDetached = true,
       };
 
       InputComponent inputComponent{
-        .disabled = false,
+        .disabled = true,
         .shiftMultiplier = 10.f
       };
 

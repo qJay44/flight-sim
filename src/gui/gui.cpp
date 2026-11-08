@@ -265,10 +265,6 @@ void render(entt::registry& registry) {
         auto& cam   = registry.get<CameraComponent>(entity);
         auto& input = registry.get<InputComponent>(entity);
 
-        ImGui::DragFloat("Cam distance", &core.camDistance);
-        ImGui::DragFloat("Cam follow speed", &core.camFollowSpeed);
-        ImGui::DragFloat("Cam look ahead distance", &core.camLookAheadDistance);
-
         drawJetCoreComponent(core);
         drawPhysicsComponent(phy);
         drawTransformComponent(trans);

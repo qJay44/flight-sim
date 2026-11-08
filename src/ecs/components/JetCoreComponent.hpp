@@ -9,9 +9,9 @@ struct JetCoreComponent {
   std::array<entt::entity, 17> partEntities{};
 
   vec3 localOrientation;
+  vec3 localUp;
   glm::quat initialRotation{};
 
-  vec3 velocity{};
   vec3 localVelocity{};
   vec3 localAngularVelocity{};
   vec3 localGForce{1.f};
@@ -20,7 +20,6 @@ struct JetCoreComponent {
   float camDistance = 10.f;
   float camFollowSpeed = 25.f;
   float camLookAheadDistance = 2.f;
-  vec3 camRelativePos{0.f};
 
   float angleOfAttack = glm::radians(10.f);
   float angleOfAttackYaw = 0.f;

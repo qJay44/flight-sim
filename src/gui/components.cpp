@@ -20,12 +20,12 @@ void TextVec3(const std::string& text, vec3 v) {
   ImGui::Text((text + ": [%.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z);
 }
 
-void TextVec4(const std::string& text, vec4 v) {
-  ImGui::Text((text + ": [%.2f, %.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z, v.w);
-}
+// void TextVec4(const std::string& text, vec4 v) {
+//   ImGui::Text((text + ": [%.2f, %.2f, %.2f, %.2f]").c_str(), v.x, v.y, v.z, v.w);
+// }
 
 void TextQuat(const std::string& text, glm::quat q) {
-  TextVec4(text, q * vec4(1.f));
+  ImGui::Text((text + ": [%.2f, %.2f, %.2f, %.2f]").c_str(), q.x, q.y, q.z, q.w);
 }
 
 } // namespace
@@ -162,9 +162,12 @@ void drawPhysicsComponent(PhysicsComponent& component) {
 
 void drawJetCoreComponent(JetCoreComponent& component) {
   if (ImGui::TreeNode("Jet core component")) {
-    TextVec3("Velocity", component.velocity);
     TextVec3("Local velocity", component.localVelocity);
     TextVec3("Local angular lelocity", component.localAngularVelocity);
+    ImGui::DragFloat("Cam distance", &component.camDistance);
+    ImGui::DragFloat("Cam follow speed", &component.camFollowSpeed);
+    ImGui::DragFloat("Cam look ahead distance", &component.camLookAheadDistance);
+    ImGui::DragFloat("Max thrust", &component.maxThrust);
     ImGui::TreePop();
   }
 }

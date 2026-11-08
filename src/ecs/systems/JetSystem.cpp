@@ -28,12 +28,14 @@ namespace {
 entt::entity createCoreEntity(entt::registry& registry) {
   auto& assetManager = registry.ctx().get<gfx::AssetManager>();
   auto entity = registry.create();
-  vec3 initPos = {0.f, 0.f, 1e6f + 1e5f};
+  vec3 initPos = {0.f, 1e6f + 1e5f, 0.f};
   float totalMass = 13000.f;
 
   JetCoreComponent jetCoreComponent{
     .localOrientation = vec3(0.f, 0.f, 1.f),
-    .camDistance = 100.f,
+    .localUp = vec3(0.f, 1.f, 0.f),
+    .camDistance = 200.f,
+    .camFollowSpeed = 10.f,
     .maxThrust = 6e5f,
     .stiffness = 500.f,
     .airbrakeDrag = 10.f,
@@ -62,7 +64,6 @@ entt::entity createCoreEntity(entt::registry& registry) {
 
   CameraComponent camComponent{
     .cam = assetManager.getCamera("Jet"),
-    .isDetached = false,
   };
 
   InputComponent inputComponent{
@@ -144,8 +145,7 @@ float getLiftCoeffYaw(float angleRad) {
 
 void calcState(JetCoreComponent& core, PhysicsComponent& phy) {
   auto invRotation = glm::conjugate(phy.orientation);
-  core.velocity = phy.velocity;
-  core.localVelocity = invRotation * core.velocity;
+  core.localVelocity = invRotation * phy.velocity;
   core.localAngularVelocity = invRotation * phy.angularVelocity;
 }
 
@@ -221,9 +221,9 @@ void updateInput(JetCoreComponent& core, InputComponent& input, float dt) {
   float forward   = input.keyboardKeys[GLFW_KEY_W];
 
   core.throttle = forward;
-  core.controlInput.x += down + -up;
-  core.controlInput.y += left + -right;
-  core.controlInput.z += (rollRight + -rollLeft) * dt * 5.f;
+  core.controlInput.x = down + -up;
+  core.controlInput.y = left + -right;
+  core.controlInput.z = (rollRight + -rollLeft) * dt * 5.f;
 }
 
 void updateThrust(JetCoreComponent& core, PhysicsComponent& phy) {
@@ -336,21 +336,20 @@ void updateCamera(JetCoreComponent& core, PhysicsComponent& phy, TransformCompon
   float lerpFactor = 1.f - glm::exp2(-core.camFollowSpeed * dt);
 
   vec3 jetForward = glm::normalize(phy.orientation * core.localOrientation);
-  vec3 jetUp = glm::normalize(phy.orientation * vec3(0.f, 1.f, 0.f));
+  vec3 jetUp = glm::normalize(phy.orientation * core.localUp);
 
   vec3 camOffsetDir = glm::normalize(jetUp * 0.34202f + jetForward * -0.93969f);
   vec3 relativePos = camOffsetDir * core.camDistance;
-  vec3 currPos = cam.cam->position;
-  vec3 targetPos = trans.position + relativePos;
-  vec3 nextPos = glm::mix(currPos, targetPos, lerpFactor);
+  vec3 camPos = cam.cam->position;
+  vec3 jetPos = trans.position;
+  vec3 targetCamPos = jetPos + relativePos;
+  vec3 nextCamPos = glm::mix(camPos, targetCamPos, lerpFactor);
 
-  vec3 lookAtEye = currPos + jetForward * core.camLookAheadDistance;
-  vec3 lookAtCenter = lookAtEye - nextPos;
+  vec3 lookAtEye = jetPos + jetForward * core.camLookAheadDistance;
+  vec3 lookAtCenter = glm::normalize(lookAtEye - nextCamPos);
 
-  core.camRelativePos = relativePos;
-  cam.cam->orientation = glm::normalize(lookAtCenter);
-  cam.cam->orientation = jetForward;
-  cam.cam->position = nextPos;
+  cam.cam->orientation = lookAtCenter;
+  cam.cam->position = nextCamPos;
   cam.cam->up = jetUp;
   cam.cam->updateProj(aspect);
   cam.cam->cachedView = cam.cam->getLocalView(relativePos);
@@ -373,7 +372,7 @@ void init(entt::registry& registry) {
   {
     core::Camera jetCamera{
       .farPlane = 1e6f,
-      .position = {0.f, 0.f, 1e5f + 25.f},
+      .position = {0.f, 1e6f + 1e5f, 0.f},
     };
 
     assetManager.addCamera("Jet", std::move(jetCamera));
@@ -487,10 +486,10 @@ void render(entt::registry& registry) {
         .shader = meshComponent.shader,
         .mesh = meshComponent.mesh,
       });
+
+      renderer.renderFrame();
     }
   }
-
-  renderer.renderFrame();
 }
 
 }; // namespace ecs::JetSystem

@@ -66,12 +66,17 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       break;
     case GLFW_KEY_F:
       if (action == GLFW_PRESS) {
-        for (auto entity : registry->view<CameraComponent>()) {
-          auto& camComponent = registry->get<CameraComponent>(entity);
+        bool changed = false;
 
-          if (activeCam.cam != camComponent.cam) {
+        for (auto entity : registry->view<CameraComponent, InputComponent>()) {
+          auto& camComponent = registry->get<CameraComponent>(entity);
+          auto& inputComponent = registry->get<InputComponent>(entity);
+          inputComponent.disabled = true;
+
+          if (!changed && activeCam.cam != camComponent.cam) {
             activeCam.cam = camComponent.cam;
-            break;
+            inputComponent.disabled = false;
+            changed = true;
           }
         }
       }
